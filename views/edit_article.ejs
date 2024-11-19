@@ -1,0 +1,124 @@
+<%- include('layout/header') %>
+
+ <!-- Code de la carte Leaflet -->
+ <script defer>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Inizializza la mappa centrata sulla posizione dell'articolo
+        let lat = parseFloat("<%= article.latitudeSelectionee %>");
+        let lng = parseFloat("<%= article.longitudeSelectionee %>");
+      let map = L.map("map", { center: [43.2, 1.30], zoom: 7 });
+   
+    // Aggiungi il layer di OpenStreetMap
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
+        preload: true,
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(map);
+  
+    // Aggiungi un marker alla posizione dell'articolo, rendendolo "draggable" (trascinabile)
+    let marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+    // Mostra una popup con i dettagli dell'articolo
+    marker.bindPopup(`
+    <strong>${"<%= article.name %>"}</strong><br>
+    Latitude: ${lat}, Longitude: ${lng}
+    `).openPopup();
+    // Se vuoi aggiornare latitudine e longitudine spostando il marker
+    marker.on('dragend', 'onClick', function(e) {
+        const newLatLng = e.target.getLatLng();
+        document.getElementById('latitudeSelectioneeInput').value = newLatLng.lat;
+        document.getElementById('longitudeSelectioneeInput').value = newLatLng.lng;
+     });
+
+ 
+        // Funzione per aggiornare il marker quando i campi di latitudine/longitudine vengono modificati manualmente
+        function updateMarkerFromInput() {
+            let newLat = parseFloat(document.getElementById('latitudeSelectioneeInput').value);
+            let newLng = parseFloat(document.getElementById('longitudeSelectioneeInput').value);
+            
+            if (!isNaN(newLat) && !isNaN(newLng)) {
+                // Sposta il marker alla nuova posizione
+                marker.setLatLng([newLat, newLng]);
+                
+                // Centra la mappa sul nuovo marker
+                map.setView([newLat, newLng], map.getZoom());
+            }
+        }
+
+        // Aggiungi eventi sugli input per aggiornare il marker quando l'utente modifica latitudine o longitudine
+        document.getElementById('latitudeSelectioneeInput').addEventListener('change', updateMarkerFromInput);
+        document.getElementById('longitudeSelectioneeInput').addEventListener('change', updateMarkerFromInput);
+
+        
+        // Evento 'submit' per aggiornare i campi lat/long prima dell'invio del form
+        document.getElementById('add-form').addEventListener('submit', function(event) {
+            // Recupera i nuovi valori del marker
+            let newLat = marker.getLatLng().lat;
+            let newLng = marker.getLatLng().lng;
+            
+            // Imposta i valori nei campi nascosti
+            document.getElementById('latitudeSelectioneeInput').value = newLat;
+            document.getElementById('longitudeSelectioneeInput').value = newLng;
+
+            // Per debug: stampa i valori aggiornati
+            console.log("Form submitted with lat:", newLat, "and lng:", newLng);
+        });
+
+  });   
+  </script>
+
+<!-- Div où la carte sera affichée -->
+<div id="map" style='width: 100%; height: 400px;'></div>
+
+<div class='container'>
+     
+  <div class="row"> 
+
+    <div class="col-lg-6 mx-auto mt-4">
+         <div class="card shadow">
+            <div class="card-header bg-success">
+             <h3 class="text-light">Edit User (<%= article.name %>)</h3>
+            </div>
+            
+            <div class="card-body p-4">
+                <form action="/edit/<%= article._id %>" method="post" id="add-form" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="name">Name</label>
+                        <input type="text" name="name" class="form-control form-control-lg" 
+                        placeholder="Enter name" value="<%= article.name %>"  required />
+                    </div>
+                 
+                    <div class="mb-3">                   
+                    <label for="latitudeSelectionee">Latitude</label>
+                        <input type="text" id="latitudeSelectioneeInput" name="latitudeSelectionee" class="form-control form-control-lg" 
+                        placeholder="Enter latitude" value="<%= article.latitudeSelectionee %>" required />
+                    </div>
+                    <div class="mb-3"> 
+                    <label for="longitudeSelectionee">Longitude</label>
+                        <input type="text" id="longitudeSelectioneeInput" name="longitudeSelectionee" class="form-control form-control-lg" 
+                        placeholder="Enter longitude" value="<%= article.longitudeSelectionee %>" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Image</label>
+                        <input type="file" name="image" class="form-control form-control-lg"  />
+                     
+                     <% if (article.image) { %>
+                        <img src="<%= article._id %>" alt="Current Image" class="img-thumbnail mt-1" width="100">
+                      <% } %>
+                    </div>
+                    
+                    <input type="hidden" name="old_image" value="<%= article._id %>" />
+                    <div class="mb-3 d-grid">                      
+                        <input type="submit" name="submit" value="User" class="btn btn-success btn-lg"  />
+                    </div>
+                </form>
+            </div>
+         </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<%- include('layout/footer') %>

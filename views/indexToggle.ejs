@@ -1,0 +1,240 @@
+<%- include('layout/header') %>
+
+<h1>Le dendrobate</h1
+
+<!-- Add Bootstrap JS for functionality -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.0-beta2/js/bootstrap.bundle.min.js" integrity="sha512-43iShtbiyImxjjU4a9rhXBy7eKtIsrpll8xKhe1ghKqh5NyfME8phZs5JRFZpRBe1si44WM3tNmnqMym7JRmDQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">  
+  <div class="container">
+    <a href="/utilisateurs" class="navbar-brand"><i class="fas fa-code me-2"></i>Dendrobade maudit</a>
+    <button class="navbar-toggler" data-bs-target="#my-nav" data-bs-toggle="collapse" aria-controls="my-nav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button> 
+    <div id="my-nav" class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/"><i class="fas fa-home me-1"></i>Home</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/addForm"><i class="fas fa-user-plus me-1"></i>Ajoute un article</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/login"><i class="fas fa-user-plus me-1"></i>Log in</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/utilisateurs"><i class="fas fa-user-plus me-1"></i>utilisateurs</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/signup"><i class="fas fa-user-plus me-1"></i>Sign up</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="#"><i class="fas fa-globe me-1"></i>About</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="#"><i class="fas fa-envelope me-1"></i>Contact</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div id="map" style='width: 100%; height: 300px; display: none;'></div>
+<div class="text-center my-3">
+  <button id="toggle-map" class="navbar-toggler">Mostra mappa</button>
+</div>
+
+<div class='container'>
+  <div class="row my-4">
+    <div class="col-lg-12">
+      <% if (message) { %> 
+        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
+          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>   
+          <strong><%= message.message %></strong>     
+        </div>
+      <% } %>
+
+      <div class="table-responsive">
+        <% if (user) { %>
+          <h2>Bienvenue, <%= user.email %>!</h2>
+          <a href="/logout">Se déconnecter</a>
+        <% } else { %>
+          <a href="/login">Se connecter</a>
+          <a href="/signup">S'inscrire</a>
+        <% } %>
+        <% if (articles && articles.length > 0) { %>    
+          <table class="table table-striped text-center my-3">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>idUtilisateur</th>
+                <th>Phone</th>
+                <th>LAT LNG</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% articles.forEach((row, index) => { 
+                   const crypted = convertPhoneToLetters(row.phone);
+                   const lat = parseFloat(row.latitudeSelectionee).toFixed(2);
+                   const lng = parseFloat(row.longitudeSelectionee).toFixed(2);
+              %>              
+                <tr class="align-middle">                
+                  <td><%= index %></td>
+                  <td><img src="/uploads/<%= row.image %>" width="50" class="img-thumbnail" /></td>
+                  <td><%= row.name %></td>
+                  <td><%= row.category %></td>
+                  <td><%= row.user %></td>
+                  <td><%= crypted %></td>
+                  <td><%= lat %>,<%= lng %></td>
+                  <td>
+                    <a href="/edit/<%= row._id %>" class="text-success"><i class="fas fa-edit fa-lg mx-1"></i></a>
+                    <a href="/delete/<%= row._id %>" class="text-danger"><i class="fas fa-trash fa-lg mx-1"></i></a>
+                  </td>
+                </tr>
+                <script>
+                  if (typeof filteredUsers === 'undefined') var filteredUsers = [];
+                  filteredUsers.push({
+                    name: "<%= row.name %>",
+                    email: "<%= row.email %>",
+                    phone: "<%= row.phone %>",
+                    latitudeSelectionee: "<%= row.latitudeSelectionee %>",
+                    longitudeSelectionee: "<%= row.longitudeSelectionee %>",
+                    image: "<%= row.image %>",
+                    category: "<%= row.category %>"
+                  });
+                </script>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <h1 class="text-center text-secondary mt-5">Aucun article trouvé dans la base de données!</h1>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('layout/footer') %>
+
+<!-- Leaflet JS and CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<!-- Map Initialization Script -->
+<script  defer>
+  document.addEventListener("DOMContentLoaded", function() {
+    let map; // Declare map variable outside the event listener
+    let layerGroup; // Declare layerGroup variable outside the event listener
+
+      // Function to initialize the map
+function initializeMap() {
+  // Initialize the map once
+     map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
+     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+     // Initialize a feature group to hold markers
+     layerGroup = L.featureGroup().addTo(map);
+
+    const icons = {
+      "bon": L.icon({
+        iconSize: [25, 41],
+        iconAnchor: [10, 41],
+        popupAnchor: [2, -40],
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png'
+      }),
+      "moyen": L.icon({
+        iconSize: [25, 41],
+        iconAnchor: [10, 41],
+        popupAnchor: [2, -40],
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png'
+      }),
+      "bas": L.icon({
+        iconSize: [25, 41],
+        iconAnchor: [10, 41],
+        popupAnchor: [2, -40],
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png'
+      })
+    };
+
+    if (typeof filteredUsers !== 'undefined' && filteredUsers.length > 0) {
+      filteredUsers.forEach(user => {
+        const lat = parseFloat(user.latitudeSelectionee); // Pas de toFixed() pour conserver la précision
+         const lng = parseFloat(user.longitudeSelectionee); // Pas de toFixed() pour conserver la précision
+        const userIcon = icons[user.category] || icons['moyen']; // Par défaut 'moyen' si catégorie inconnue
+
+    // Créer un marqueur pour chaque utilisateur
+    const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
+          // Attacher une popup au marqueur
+        singleMarker.bindPopup(
+          `<br><strong>${user.name}</strong></br>
+          <br><strong>${user.category}</strong></br>
+      <div class='flex-shrink-0 h-20 w-20'>
+        <img class='h-20 w-20 rounded-full' alt='' src="/uploads/${user.image}">
+      </div> 
+   `
+        ).openPopup();
+
+        layerGroup.addLayer(singleMarker);
+      });
+       // Ajuster la vue pour inclure tous les marqueurs uniquement s'il y a des marqueurs
+       if (layerGroup.getLayers().length > 0) {
+        map.fitBounds(layerGroup.getBounds()); // Ajuster la carte aux limites des marqueurs
+        }
+    }
+
+   // Example static marker
+   const exampleMarker = L.marker([43.2, 1.30]).addTo(layerGroup);
+    exampleMarker.bindPopup('<b>Hello world!</b><br>I am a popup.');
+   }
+     // Initialize the map
+  initializeMap();
+   // Function to handle map visibility
+  function toggleMap() {
+   
+    
+      const mapElement = document.getElementById('map');
+      const toggleButton = document.getElementById('toggle-map');
+
+      if (mapElement.style.display === 'none') {
+        mapElement.style.display = 'block';
+        toggleButton.textContent = 'Efface la carte';
+
+        // Initialize map if not already initialized
+        if (!map) {
+          initializeMap();
+          setTimeout(() => {
+            map.invalidateSize(); // Ensure map is resized
+            map.fitBounds(layerGroup.getBounds()); // Fit map to markers
+          }, 100); // Short delay to ensure rendering
+        } else {
+          map.invalidateSize(); // Ensure map is resized
+          map.fitBounds(layerGroup.getBounds()); // Fit map to markers
+        }
+      } else {
+        mapElement.style.display = 'none';
+        toggleButton.textContent = 'Visualise la carte';
+      }
+    }
+
+    // Attach event listener to toggle button
+    //document.getElementById('toggle-map').addEventListener('click', toggleMap);
+  
+
+     }
+    );
+</script>
+
+
+<!-- Map container -->
+<div id="map" style="width: 100%; height: 300px; display: none;"></div>
+
+<!-- Toggle Button -->
+<div class="text-center my-3">
+  <button id="toggle-map" class="btn btn-primary">Mostra mappa</button>
+</div>

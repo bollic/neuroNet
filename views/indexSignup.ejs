@@ -1,0 +1,92 @@
+<%- include('layout/header') %>
+
+<h1>UTILISATEURS</h1>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.0-beta2/js/bootstrap.bundle.min.js" integrity="sha512-43iShtbiyImxjjU4a9rhXBy7eKtIsrpll8xKhe1ghKqh5NyfME8phZs5JRFZpRBe1si44WM3tNmnqMym7JRmDQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <div class="container">
+    <a href="/users" class="navbar-brand"><i class="fas fa-code me-2"></i>Dendrobade maudit</a>
+    <button class="navbar-toggler" data-bs-target="#my-nav" data-bs-toggle="collapse" aria-controls="my-nav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button> 
+    <div id="my-nav" class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/"><i class="fas fa-home me-1"></i>Home</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/addForm"><i class="fas fa-user-plus me-1"></i>Ajoute un article</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/login"><i class="fas fa-user-plus me-1"></i>Log in</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/utilisateurs"><i class="fas fa-user-plus me-1"></i>utilisateurs</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/signup"><i class="fas fa-user-plus me-1"></i>Sign up</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="#"><i class="fas fa-globe me-1"></i>About</a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="#"><i class="fas fa-envelope me-1"></i>Contact</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class='container'>
+  <div class="row my-4">
+    <div class="col-lg-12">     
+      <div class="table-responsive">
+        <% if (user) { %> <!-- Vérifie si l'utilisateur connecté est défini -->
+          <h2>Bienvenue, <%= user.email %>!</h2>
+          <a href="/logout">Se déconnecter</a>
+        <% } else { %>
+          <a href="/login">Se connecter</a>
+          <a href="/signup">S'inscrire</a>
+        <% } %>
+        <% if (utilisateurs && utilisateurs.length > 0) { %>    
+          <table class="table table-striped text-center my-3">
+            <thead>
+              <tr class="table table-striped text">
+                <th>INDEX</th>  
+                <th>ID</th>              
+                <th>E-Mail</th>
+                <th>Password</th>
+                <!-- Ne pas afficher les mots de passe en clair -->
+                <!-- <th>PWD</th> -->
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% utilisateurs.forEach((row, index) => { %>              
+                <tr class="align-middle">                
+                  <td><%= index  %></td>
+                  <td><%= row._id %></td> <!-- Utilisation de _id au lieu de id -->
+                  <td><%= row.email %></td>
+                  <td><%= row.password %></td>             
+                  <!-- Mot de passe retiré pour des raisons de sécurité -->
+                  <td>
+                    <a href="/edit/<%= row._id %>" class="text-success"><i class="fas fa-edit fa-lg mx-1"></i></a>
+                    <a href="/del/<%= row._id %>" class="text-danger"
+                      onclick="return confirm('Voulez-vous vraiment supprimer cet utilisateur ?');">
+                      <i class="fas fa-trash fa-lg mx-1"></i>
+                    </a>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <h1 class="text-center text-secondary mt-5">
+            Aucun utilisateur trouvé dans la base de données !
+          </h1>
+        <% } %>
+      </div>     
+    </div>
+  </div>
+</div>
+
+<%- include('layout/footer') %>

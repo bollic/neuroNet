@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+<title><%= title %></title> 
+<link rel="stylesheet" href="/style.css">
+<!-- Preload critical CSS and JS -->
+  <link rel="preload" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" as="style">
+  <!-- Leaflet CSS -->
+
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" >
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.0-beta2/css/bootstrap.min.css" integrity="sha512-aqT9YD5gLuLBr6ipQAS+72o5yHKzgZbGxEh6iY8lW/r6gG14e2kBTAJb8XrxzZrMOgSmDqtLaF76T0Z6YY2IHg==" crossorigin="anonymous"  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin="anonymous"  />
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+<!-- CSS di Leaflet.draw -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light" >
+
+<!-- Add Bootstrap css -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css">
+
+
+
+<div class="container">
+<a href="/utilisateurs" class="navbar-brand">
+  <img src="../img/pike.png" width="80" height="60"></img></a>
+<button class="navbar-toggler" data-bs-target="#my-nav" data-bs-toggle="collapse" aria-controls="my-nav" aria-expanded="false" aria-label="Toggle navigation">
+  <span class="navbar-toggler-icon"></span>
+</button> 
+<div id="my-nav" class="collapse navbar-collapse">
+  <ul class="navbar-nav ms-auto">
+    <li class="nav-item active">
+      <a class="nav-link" href="/"><i class="fas fa-home me-1"></i>Home</a>
+    </li>
+    <li class="nav-item active">
+      <a class="nav-link" href="/addForm"><i class="fas fa-user-plus me-1"></i>Ajoute un article</a>
+    </li>
+    <li class="nav-item active">
+      <a class="nav-link" href="/login"><i class="fas fa-user-plus me-1"></i>Log in</a>
+    </li>
+    <li class="nav-item active">
+      <a class="nav-link" href="/utilisateurs"><i class="fas fa-user-plus me-1"></i>utilisateurs</a>
+    </li>
+    <li class="nav-item active">
+      <a class="nav-link" href="/signup"><i class="fas fa-user-plus me-1"></i>Sign up</a>
+    </li>
+    <button id="edit-polygons-btn" class="btn btn-warning">Modifica Poligoni</button>
+
+  </ul>
+</div>
+</div>
+
+</nav>
+
+
+
+
+
+
+
+<div class="container my-3">
+  <div class="row">
+    <div class="col-12 text-center">
+      <!-- Pulsante per visualizzare la mappa -->
+      <button id="toggle-map" class="btn btn-primary">Visualiser la carte</button>
+    </div>
+  </div>
+ 
+  <!-- Mappa -->
+  <div id="map" style='width: 100%; height: 300px; display: none; transition: all 0.3s ease-in-out'>
+  </div>
+</div>
+<div class='container'>
+  <div class="row my-4">
+    <div class="col-lg-12">
+       <!-- Pulsante per visualizzare la mappa -->
+    
+      <% if (message) { %> 
+        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
+          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+          <i class="fas fa-exclamation-circle me-2"></i>   
+          <strong><%= message.message %></strong>     
+        </div>
+             <% } %>
+
+      <div class="table-responsive">
+        <% if (user) { %>
+          <h2>Bienvenue, <%= user.email %>!</h2>
+          <a href="/logout">Se déconnecter</a>
+        <% } else { %>
+          <a href="/login">Se connecter</a>
+          <a href="/signup">S'inscrire</a>
+        <% } %>
+        <% if (articles && articles.length > 0) { %>   
+          <table class="table table-hover table-bordered table-striped text-center">
+            <thead class="table-dark">
+              <tr>
+                <th>ID</th>
+                <th>Image</th>
+                <th>Name</th>
+                <th>VERTEX</th>
+                <th>Category</th>
+                <th>idUtilisateur</th>                
+                <th>LAT LNG</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% articles.forEach((row, index) => { %> 
+                             
+                <tr class="align-middle">                
+                  <td><%= index %></td>                  
+                  <td><img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="60" /></td>
+                  <td><%= row.name %></td>
+                  <td><%= row.vertex %></td>
+                  <td><%= row.category %></td>
+                  <td><%= row.user %></td>                  
+                  <td><%= lat %>,<%= lng %></td>
+                  <td>
+                    <a href="/edit/<%= row._id %>" class="btn btn-sm btn-outline-success"><i class="fas fa-edit"></i></a>
+                    <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                  </td>
+                </tr>
+                <script>
+                  if (typeof filteredUsers ==='undefined') var filteredUsers= [];
+                  filteredUsers.push({
+                     _id: "<%= row._id || '' %>",
+                    name: "<%= row.name %>",
+                    vertex: "<%= row.vertex %>",
+                    email: "<%= row.email %>",                    
+                    latitudeSelectionee: "<%= row.latitudeSelectionee %>",
+                    longitudeSelectionee: "<%= row.longitudeSelectionee %>",
+                    image: "<%= row.image %>",
+                    category: "<%= row.category %>",                  
+                  });
+                  console.log("User ID:", "<%= row.user %>");
+                </script>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <h1 class="text-center text-secondary mt-5">Aucun article trouvé dans la base de données!</h1>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Codice aggiunto per gestire groupedArticles -->
+<script>
+  // Inizializza `groupedMarkers` fuori dal ciclo
+  if (typeof groupedMarkers === 'undefined') {
+    var groupedMarkers = {};
+  }
+
+  <% for (let userID in groupedArticles) { %>
+    <% if (groupedArticles[userID] && groupedArticles[userID].articles) { %>
+      // Inizializza l'array per ogni userID
+      groupedMarkers['<%= userID %>'] = groupedMarkers['<%= userID %>'] || [];
+
+      <% groupedArticles[userID].articles.forEach(article => { %>
+        groupedMarkers['<%= userID %>'].push({
+          name: "<%= article.name %>",
+          category: "<%= article.category %>",
+          latitude: "<%= article.latitudeSelectionee  %>",
+          longitude: "<%= article.longitudeSelectionee  %>",
+          image: "<%= article.image %>"
+        });
+      <% }) %>
+    <% } %>
+  <% } %>
+</script>
+
+<!-- Map Initialization Script -->
+<script defer>
+  document.addEventListener("DOMContentLoaded", function() {
+    let map; // Declare map variable
+    let layerGroup = L.featureGroup(); // Initialize layerGroup once
+    var drawnItems = new L.FeatureGroup();
+
+    // Function to initialize the map (runs only once)
+    function initializeMap() {
+      map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(map);
+     
+      map.addLayer(drawnItems); // Add drawnItems layer to map     
+      layerGroup.addTo(map); // Add the feature group to the map
+   
+    var drawControl = new L.Control.Draw({
+       edit: {
+        featureGroup: drawnItems,  // Gruppo di poligoni che possono essere modificati
+        edit: true,                // Permetti la modifica dei poligoni
+        remove: false              // Non permettere la rimozione (puoi cambiarlo)
+    },
+    draw: false  // Disabilita la creazione di nuovi poligoni
+});
+map.addControl(drawControl);
+
+      // Evento per la modifica dei poligoni
+      map.on('draw:edited', function(event) {
+        var layers = event.layers;
+        layers.eachLayer(function(layer) {
+          console.log(layer.getLatLngs()); // Mostra i nuovi vertici
+        });
+      });
+    // Aggiungi l'evento per il pulsante che abilita la modifica dei poligoni
+    document.getElementById('edit-polygons-btn').addEventListener('click', function () {
+    drawControl._toolbars.edit._modes.edit.handler.enable(); // Abilita la modalità di modifica
+  });
+    } // Fine della funzione initializeMap() 
+
+  // Funzione per aggiornare la mappa
+function updateMap() {
+    layerGroup.clearLayers(); // Clear existing markers/polylines
+
+    if (typeof filteredUsers !== 'undefined' && filteredUsers.length > 0) {
+        const polylineStyles = {
+            "bon": { color: 'blue', weight: 4 },
+            "moyen": { color: 'gray', weight: 4 },
+            "bas": { color: 'red', weight: 4 }
+        };
+
+        const icons = {
+            "bon": L.icon({
+                iconSize: [25, 41],
+                iconAnchor: [10, 41],
+                popupAnchor: [2, -40],
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png'
+            }),
+            "moyen": L.icon({
+                iconSize: [25, 41],
+                iconAnchor: [10, 41],
+                popupAnchor: [2, -40],
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png'
+            }),
+            "bas": L.icon({
+                iconSize: [25, 41],
+                iconAnchor: [10, 41],
+                popupAnchor: [2, -40],
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png'
+            })
+        };
+
+        // Array per raccogliere marker per ogni categoria
+        const groupedMarkers = {
+            "bon": [],
+            "moyen": [],
+            "bas": []
+        };
+
+        filteredUsers.forEach((article) => {
+            const lat = parseFloat(article.latitudeSelectionee);
+            const lng = parseFloat(article.longitudeSelectionee);
+            const userIcon = icons[article.category] || icons['moyen'];
+
+            // Aggiungi il marker all'array corrispondente
+            if (groupedMarkers[article.category]) {
+               groupedMarkers[article.category].push([lat, lng]);
+               // groupedMarkers[article.category].push({ lat, lng, id: article._id, vertex: article.vertex }); // Includi vertex
+
+       
+            }
+
+            // Crea marker per l'articolo
+            const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
+            singleMarker.bindPopup(`
+                <br><strong>${article.name}</strong></br>
+                <br><strong>${article.category}</strong></br>
+                <div class='flex-shrink-0 h-20 w-20'>
+                    <img class='h-20 w-20 rounded-full' alt='' src="/uploads/${article.image}">
+                </div>`
+            );
+            layerGroup.addLayer(singleMarker);
+        });
+        function adjustCoordinates(lat, lng, adjustment) {
+    return [lat + adjustment, lng + adjustment];
+}
+        // Crea polilinee chiuse per ciascuna categoria
+        for (const category in groupedMarkers) {
+            const latLngs = groupedMarkers[category];
+
+            if (latLngs.length === 5) {
+                // Crea una polilinea chiusa
+                const polygon = L.polygon(latLngs, polylineStyles[category]);
+              //  layerGroup.addLayer(polygon);
+               // Aggiungi il poligono al gruppo modificabile
+        drawnItems.addLayer(polygon);
+            }
+        }
+      
+        // Adatta la mappa per includere tutti i marker e polilinee
+        if (layerGroup.getLayers().length > 0) {
+            map.fitBounds(layerGroup.getBounds());
+        }
+    }
+}
+
+
+    // Function to update markers and polylines on the map
+    /*function updateMap() {
+      layerGroup.clearLayers(); // Clear existing markers/polylines
+
+      if (typeof filteredUsers !== 'undefined' && filteredUsers.length > 0) {
+        const polylineStyles = {
+          "bon": { color: 'blue', weight: 4 },
+          "moyen": { color: 'gray', weight: 4 },
+          "bas": { color: 'red', weight: 4 }
+        };
+
+        const icons = {
+          "bon": L.icon({
+            iconSize: [25, 41],
+            iconAnchor: [10, 41],
+            popupAnchor: [2, -40],
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png'
+          }),
+          "moyen": L.icon({
+            iconSize: [25, 41],
+            iconAnchor: [10, 41],
+            popupAnchor: [2, -40],
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png'
+          }),
+          "bas": L.icon({
+            iconSize: [25, 41],
+            iconAnchor: [10, 41],
+            popupAnchor: [2, -40],
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png'
+          })
+        };
+
+        filteredUsers.forEach((article, idx) => {
+          const lat = parseFloat(article.latitudeSelectionee);
+          const lng = parseFloat(article.longitudeSelectionee);
+          const userIcon = icons[article.category] || icons['moyen'];
+          const polylineStyle = polylineStyles[article.category] || polylineStyles['moyen'];
+
+          // Create marker for the current article
+          const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
+          singleMarker.bindPopup(`
+            <br><strong>${article.name}</strong></br>
+            <br><strong>${article.category}</strong></br>
+            <div class='flex-shrink-0 h-20 w-20'>
+              <img class='h-20 w-20 rounded-full' alt='' src="/uploads/${article.image}">
+            </div>`
+          );
+          layerGroup.addLayer(singleMarker);
+
+          // Create polyline to the next article
+          const nextArticle = filteredUsers[idx + 1];
+          if (nextArticle) {
+            const nextLat = parseFloat(nextArticle.latitudeSelectionee);
+            const nextLng = parseFloat(nextArticle.longitudeSelectionee);
+            const polyline = L.polyline([[lat, lng], [nextLat, nextLng]], polylineStyle);
+            layerGroup.addLayer(polyline);
+          }
+        });
+
+        // Fit the map to the bounds of the markers and polylines
+        if (layerGroup.getLayers().length > 0) {
+          map.fitBounds(layerGroup.getBounds());
+        }
+      }
+    }
+*/
+    // Function to handle map visibility
+    function toggleMap() { 
+
+      const mapElement = document.getElementById('map');
+      const toggleButton = document.getElementById('toggle-map');
+  
+      if (mapElement.style.display === 'none') {
+        mapElement.style.display = 'block';
+        toggleButton.textContent = 'Efface la carte';
+
+        // Initialize map only once, then update content
+        if (!map) {
+          initializeMap();
+        }
+
+        setTimeout(() => {
+          map.invalidateSize(); // Ensure map is resized
+          updateMap(); // Update markers and polylines
+        }, 100); // Short delay to ensure rendering
+      } else {
+        mapElement.style.display = 'none';
+        toggleButton.textContent = 'Visualiser la carte';
+      }
+    }
+
+    // Attach event listener to toggle button
+    document.getElementById('toggle-map').addEventListener('click', toggleMap);
+  });
+</script>
+
+
+<%- include('layout/footer') %>

@@ -1,0 +1,47 @@
+<%- include('layout/header') %>
+<div id="map" style='width: 80%; height: 400px;'></div>
+
+<div class='container'>
+ 
+    
+  <div class="row"> 
+
+    <div class="col-lg-6 mx-auto mt-4">
+         <div class="card shadow">
+            <div class="card-header bg-success">
+             <h3 class="text-light">Edit User (<%= article.name %>)</h3>
+            </div>
+            
+            <div class="card-body p-4">
+                <form action="/edit/<%= article._id %>" method="post" id="add-form" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="name">Name</label>
+                        <input type="text" name="name" class="form-control form-control-lg" 
+                        placeholder="Enter name" value="<%= article.name %>"  required />
+                    </div>
+                   
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Image</label>
+                        <input type="file" name="image" class="form-control form-control-lg" 
+                     required />
+                     
+                     <% if (article.image) { %>
+                        <img src="/uploads/<%= article.image %>" alt="Current Image" class="img-thumbnail mt-1" width="100">
+                      <% } %>
+                    </div>
+                    
+                    <input type="hidden" name="old_image" value="<%= article.image %>" />
+                    <div class="mb-3 d-grid">                      
+                        <input type="submit" name="submit" value="User" class="btn btn-success btn-lg"  />
+                    </div>
+                </form>
+            </div>
+         </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<%- include('layout/footer') %>

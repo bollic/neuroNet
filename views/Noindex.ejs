@@ -1,0 +1,227 @@
+<%- include('layout/header') %>
+
+
+<div class="container my-3">
+  <div class="row">
+    <div class="col-12 text-center">
+      <!-- Pulsante per visualizzare la mappa -->
+      <button id="toggle-map" class="btn btn-primary">Visualiser la carte</button>
+    </div>
+  </div>
+ 
+  <!-- Mappa -->
+  <div id="map" style='width: 100%; height: 300px; display: none; transition: all 0.3s ease-in-out'>
+  </div>
+</div>
+<div class='container'>
+  <div class="row my-4">
+    <div class="col-lg-12">
+       <!-- Pulsante per visualizzare la mappa -->
+    
+      <% if (message) { %> 
+        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
+          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+          <i class="fas fa-exclamation-circle me-2"></i>   
+          <strong><%= message.message %></strong>     
+        </div>
+             <% } %>
+
+      <div class="table-responsive">
+        <% if (user) { %>
+          <h2>Bienvenue, <%= user.email %>!</h2>
+          <a href="/logout">Se déconnecter</a>
+        <% } else { %>
+          <a href="/login">Se connecter</a>
+          <a href="/signup">S'inscrire</a>
+        <% } %>
+        <% if (articles && articles.length > 0) { %>   
+          <table class="table table-hover table-bordered table-striped text-center">
+            <thead class="table-dark">
+              <tr>
+                <th>ID</th>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>idUtilisateur</th>                
+                <th>LAT LNG</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% articles.forEach((row, index) => { 
+                 //  const crypted = convertPhoneToLetters(row.phone);
+                   const lat = parseFloat(row.latitudeSelectionee).toFixed(2);
+                   const lng = parseFloat(row.longitudeSelectionee).toFixed(2);
+              %>              
+                <tr class="align-middle">                
+                  <td><%= index %></td>                  
+                  <td><img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="60" /></td>
+                  <td><%= row.name %></td>
+                  <td><%= row.category %></td>
+                  <td><%= row.user %></td>                  
+                  <td><%= lat %>,<%= lng %></td>
+                  <td>
+                    <a href="/edit/<%= row._id %>" class="btn btn-sm btn-outline-success"><i class="fas fa-edit"></i></a>
+                    <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                  </td>
+                </tr>
+                <script>
+                  if (typeof filteredUsers === 'undefined') var filteredUsers = [];
+                  filteredUsers.push({
+                    name: "<%= row.name %>",
+                    email: "<%= row.email %>",                    
+                    latitudeSelectionee: "<%= row.latitudeSelectionee %>",
+                    longitudeSelectionee: "<%= row.longitudeSelectionee %>",
+                    image: "<%= row.image %>",
+                    category: "<%= row.category %>"
+                  });
+                </script>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <h1 class="text-center text-secondary mt-5">Aucun article trouvé dans la base de données!</h1>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Leaflet JS and CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<!-- Map Initialization Script -->
+<script defer>
+  document.addEventListener("DOMContentLoaded", function() {
+    let map; // Declare map variable outside the event listener
+    let layerGroup; // Declare layerGroup variable outside the event listener
+
+      // Function to initialize the map
+function initializeMap() {
+  // Initialize the map once
+     map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
+     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
+      maxZoom: 19,
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+     // Initialize a feature group to hold markers
+     layerGroup = L.featureGroup().addTo(map);
+    // Definisci stili per le polilinee basate sulla categoria
+const polylineStyles = {
+  "bon": { color: 'blue', weight: 4 },
+  "moyen": { color: 'gray', weight: 4 },
+  "bas": { color: 'red', weight: 4 }
+};
+    const icons = {
+      "bon": L.icon({
+        iconSize: [25, 41],
+        iconAnchor: [10, 41],
+        popupAnchor: [2, -40],
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png'
+      }),
+      "moyen": L.icon({
+        iconSize: [25, 41],
+        iconAnchor: [10, 41],
+        popupAnchor: [2, -40],
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png'
+      }),
+      "bas": L.icon({
+        iconSize: [25, 41],
+        iconAnchor: [10, 41],
+        popupAnchor: [2, -40],
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png'
+      })
+    };
+
+
+// Funzione per aggiornare la mappa
+function updateMap() {
+  // Prima rimuovi tutti i layer esistenti
+  layerGroup.clearLayers();
+
+  if (typeof filteredUsers !== 'undefined' && filteredUsers.length > 0) {
+    filteredUsers.forEach((article, idx) => {
+      const lat = parseFloat(article.latitudeSelectionee);
+      const lng = parseFloat(article.longitudeSelectionee);
+
+      // Recupera lo stile della polilinea in base alla categoria
+      const polylineStyle = polylineStyles[article.category] || polylineStyles['moyen']; // Default a 'moyen' se categoria sconosciuta
+
+      // Recupera l'icona del marker in base alla categoria
+      const userIcon = icons[article.category] || icons['moyen'];
+
+      // Crea un marker per l'articolo
+      const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
+
+      // Attacca una popup al marker
+      singleMarker.bindPopup(
+        `<br><strong>${article.name}</strong></br>
+         <br><strong>${article.category}</strong></br>
+         <div class='flex-shrink-0 h-20 w-20'>
+           <img class='h-20 w-20 rounded-full' alt='' src="/uploads/${article.image}">
+         </div>`
+      );
+
+      // Aggiungi il marker al layer group
+      layerGroup.addLayer(singleMarker);
+
+      // Crea una polilinea collegando il marker corrente a quello successivo
+      const nextArticle = filteredUsers[idx + 1]; // Supponiamo di collegare all'articolo successivo
+      if (nextArticle) {
+        const nextLat = parseFloat(nextArticle.latitudeSelectionee);
+        const nextLng = parseFloat(nextArticle.longitudeSelectionee);
+
+        // Crea la polilinea con lo stile basato sulla categoria
+        const polyline = L.polyline([[lat, lng], [nextLat, nextLng]], polylineStyle);
+        layerGroup.addLayer(polyline);
+      }
+    });
+
+    // Adatta la mappa per includere tutti i marker e polilinee
+    if (layerGroup.getLayers().length > 0) {
+      map.fitBounds(layerGroup.getBounds());
+    }
+  }
+}
+
+// Esegui l'aggiornamento della mappa quando necessario
+updateMap();
+
+
+      }
+     // Initialize the map
+  initializeMap();
+   // Function to handle map visibility
+   function toggleMap() {   
+      const mapElement = document.getElementById('map');
+      const toggleButton = document.getElementById('toggle-map');
+
+      if (mapElement.style.display === 'none') {
+        mapElement.style.display = 'block';
+        toggleButton.textContent = 'Efface la carte';
+
+        // Initialize map if not already initialized
+        if (!map) {
+          initializeMap();
+          setTimeout(() => {
+            map.invalidateSize(); // Ensure map is resized
+            map.fitBounds(layerGroup.getBounds()); // Fit map to markers
+          }, 100); // Short delay to ensure rendering
+        } else {
+          map.invalidateSize(); // Ensure map is resized
+          map.fitBounds(layerGroup.getBounds()); // Fit map to markers
+        }
+      } else {
+        mapElement.style.display = 'none';
+        toggleButton.textContent = 'Visualiser la carte';
+      }
+    }
+
+    // Attach event listener to toggle button
+    document.getElementById('toggle-map').addEventListener('click', toggleMap);
+  
+
+    });
+</script>
+
+<%- include('layout/footer') %>

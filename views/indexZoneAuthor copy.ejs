@@ -1,0 +1,332 @@
+<%- include('layout/header') %>
+
+
+<div class="container my-3">
+  <div class="row">
+    <div class="col-12 text-center">
+      <!-- Pulsante per visualizzare la mappa -->
+      <button id="toggle-map" class="btn btn-primary">Visualiser la carte</button>
+    </div>
+  </div>
+ 
+  <!-- Mappa -->
+  <div id="map" style='width: 100%; height: 300px; display: none; transition: all 0.3s ease-in-out'>
+  </div>
+</div>
+<div class='container'>
+  <div class="row my-4">
+    <div class="col-lg-12">
+       <!-- Pulsante per visualizzare la mappa -->
+    
+      <% if (message) { %> 
+        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
+          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+          <i class="fas fa-exclamation-circle me-2"></i>   
+          <strong><%= message.message %></strong>     
+        </div>
+             <% } %>
+
+      <div class="table-responsive">
+        <% if (user) { %>
+          <h2>Bienvenue, <%= user.email %>!</h2>
+          <a href="/logout">Se déconnecter</a>
+        <% } else { %>
+          <a href="/login">Se connecter</a>
+          <a href="/signup">S'inscrire</a>
+        <% } %>
+        <% if (typeof articles !== 'undefined' && articles.length > 0) { %>   
+          <table class="table table-hover table-bordered table-striped text-center">
+            <thead class="table-dark">
+              <tr>
+                <th>ID</th>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>idUtilisateur</th>                
+                <th>LAT LNG</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% articles.forEach((row, index) => { %>              
+                <tr class="align-middle">                
+                  <td><%= index %></td>                  
+                  <td><img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="60" /></td>
+                  <td><%= row.name %></td>
+                  <td><%= row.category %></td>
+                  <td><%= row.user %></td>                  
+                  <td><%= parseFloat(row.latitudeSelectionee).toFixed(2) %>,<%= parseFloat(row.longitudeSelectionee).toFixed(2) %></td>
+                 
+                  <td>
+                    <a href="/edit/<%= row._id %>" class="btn btn-sm btn-outline-success"><i class="fas fa-edit"></i></a>
+                    <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
+                  </td>
+                </tr>
+                <script>
+                  if (typeof filteredUsers === 'undefined') var filteredUsers = [];
+                  filteredUsers.push({
+                    _id: "<%= row._id || '' %>",
+              
+                    name: "<%= row.name %>",
+                    email: "<%= row.email %>",                    
+                    latitudeSelectionee: "<%= row.latitudeSelectionee %>",
+                    longitudeSelectionee: "<%= row.longitudeSelectionee %>",
+                    image: "<%= row.image %>",
+                    category: "<%= row.category %>"
+                  });
+                  console.log("User ID:", "<%= row._id %>");
+                </script>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <h1 class="text-center text-secondary mt-5">Aucun article trouvé dans la base de données!</h1>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Map Initialization Script -->
+<script defer>
+  document.addEventListener("DOMContentLoaded", function() {
+    let map; // Declare map variable
+    let layerGroup = L.featureGroup(); // Initialize layerGroup once
+    var drawnItems = new L.FeatureGroup();
+
+    // Function to initialize the map (runs only once)
+    function initializeMap() {
+      map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(map);
+     
+      map.addLayer(drawnItems); // Add drawnItems layer to map     
+      layerGroup.addTo(map); // Add the feature group to the map
+    //  map.addLayer(drawnItems); Per il DB
+
+    var drawControl = new L.Control.Draw({
+       edit: {
+        featureGroup: drawnItems,  // Gruppo di poligoni che possono essere modificati
+        edit: true,                // Permetti la modifica dei poligoni
+        remove: false              // Non permettere la rimozione (puoi cambiarlo)
+    },
+    draw: false  // Disabilita la creazione di nuovi poligoni
+});
+map.addControl(drawControl);
+
+      // Evento per la modifica dei poligoni
+map.on('draw:edited', function(event) {
+        var layers = event.layers;
+        layers.eachLayer(function(layer) {
+          console.log(layer.getLatLngs()); // Mostra i nuovi vertici
+        });
+   });
+    // Aggiungi l'evento per il pulsante che abilita la modifica dei poligoni
+    document.getElementById('edit-polygons-btn').addEventListener('click', function () {
+    drawControl._toolbars.edit._modes.edit.handler.enable(); // Abilita la modalità di modifica
+  });
+    } // Fine della funzione initializeMap() 
+
+// Funzione aggiornata per aggiornare la mappa
+function updateMap() {
+    layerGroup.clearLayers();
+
+    const polylineStyles = {
+        "bon": { color: 'blue', weight: 4 },
+        "moyen": { color: 'gray', weight: 4 },
+        "bas": { color: 'red', weight: 4 }
+    };
+
+    const icons = {
+        "bon": L.icon({
+            iconSize: [25, 41],
+            iconAnchor: [10, 41],
+            popupAnchor: [2, -40],
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png'
+        }),
+        "moyen": L.icon({
+            iconSize: [25, 41],
+            iconAnchor: [10, 41],
+            popupAnchor: [2, -40],
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png'
+        }),
+        "bas": L.icon({
+            iconSize: [25, 41],
+            iconAnchor: [10, 41],
+            popupAnchor: [2, -40],
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png'
+        })
+    };
+        // Array per raccogliere marker per ogni categoria
+        const groupedMarkers = {
+        "bon": [],
+        "moyen": [],
+        "bas": []
+    };
+    
+    filteredUsers.forEach((article) => {
+        const lat = parseFloat(article.latitudeSelectionee);
+        const lng = parseFloat(article.longitudeSelectionee);
+       // Verifica che le coordinate siano valide
+    if (!isNaN(lat) && !isNaN(lng)) {
+        const userIcon = icons[article.category] || icons['moyen'];
+   
+        // Aggiungi il marker all'array corrispondente
+        if (groupedMarkers[article.category]) {
+            groupedMarkers[article.category].push({ lat, lng }); // Assicurati di usare oggetti con lat e lng
+        }
+
+        // Crea un marker per l'articolo
+        const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
+
+        // Aggiungi evento dragend per salvare le nuove coordinate
+        singleMarker.on('dragend', function(e) {
+            const newLatLng = e.target.getLatLng();
+            saveMapChanges(article._id, newLatLng.lat, newLatLng.lng);
+        });
+
+        singleMarker.bindPopup(`
+            <b>${article.name}</b><br>
+            <strong>${article.category}</strong><br>
+            <img src="/uploads/${article.image}" alt="Immagine" class="img-thumbnail" width="100">
+        `);
+
+        layerGroup.addLayer(singleMarker);
+
+
+      } else {
+        console.warn(`Coordinate non valide per l'articolo ID ${article._id}: lat=${lat}, lng=${lng}`);
+    }
+    });
+    
+// Controlla il contenuto di groupedMarkers
+console.log("Grouped Markers:", groupedMarkers);
+ 
+// Crea polilinee per ciascuna categoria
+for (const category in groupedMarkers) {
+    const latLngs = groupedMarkers[category];
+    if (latLngs.length >= 2) {
+        const polygon = L.polygon(latLngs.map(article => [article.lat, article.lng]), polylineStyles[category]);
+        drawnItems.addLayer(polygon);
+    } else {
+        console.warn(`il poligono è visualizzato: ${category}`, latLngs);
+    }
+}
+if (layerGroup.getLayers().length > 0) {
+        map.fitBounds(layerGroup.getBounds());
+    }
+
+   // Crea i raggi collegando i nodi corrispondenti
+   createRaggi(groupedMarkers);
+    // 2. Definire la logica per creare i raggi
+   
+  }  //finisce la funzione updateMap 
+  /*const raggi = [];
+    const uniqueIds = new Set(
+        Object.keys(groupedMarkers)
+    );*/
+   // Creare i raggi collegando i nodi corrispondenti in ogni categoria
+   uniqueIds.forEach(id => {
+        const nodes = [];
+        for (const category in groupedMarkers) {
+            const article = groupedMarkers[category].find(article => article.id && article.id.startsWith(id));
+            
+            // Assicurati che l'articolo esista e che abbia coordinate valide
+            if (article) {
+                nodes.push([article.lat, article.lng]);
+            }
+        }
+      
+       // Verifica finale per assicurarsi che ci siano almeno due punti per creare una polilinea
+       if (nodes.length >= 0) {
+            const polyline = L.polyline(nodes, { color: 'blue' });
+            drawnItems.addLayer(polyline);
+            raggi.push(polyline); // Facoltativo, se vuoi un riferimento ai raggi
+        } else {
+            console.warn(`Nodi insufficienti per creare una polilinea per l'ID ${id}: `, nodes);
+        }
+    });
+
+     // Adatta la mappa per includere tutti i marker e polilinee
+   
+// Funzione aggiornata per aggiornare la mappa
+
+
+   
+    
+    // Crea polilinee per ciascuna categoria
+     
+// 2. Definire la logica per creare i raggi
+
+
+// Array per raccogliere i nodi per ogni categoria
+
+// Creare i raggi collegando i nodi corrispondenti in ogni categoria
+
+// Adatta la mappa per includere tutti i marker e polilinee
+  
+
+
+
+
+    // Function to handle map visibility
+    function toggleMap() { 
+
+      const mapElement = document.getElementById('map');
+      const toggleButton = document.getElementById('toggle-map');
+   
+      if (mapElement.style.display === 'none') {
+        mapElement.style.display = 'block';
+        toggleButton.textContent = 'Efface la carte';
+
+        // Initialize map only once, then update content
+        if (!map) {
+          initializeMap();
+        }
+
+        setTimeout(() => {
+          map.invalidateSize(); // Ensure map is resized
+          updateMap(); // Update markers and polylines
+        }, 100); // Short delay to ensure rendering
+      } else {
+        mapElement.style.display = 'none';
+        toggleButton.textContent = 'Visualiser la carte';
+      }
+    }
+
+    // Attach event listener to toggle button
+    document.getElementById('toggle-map').addEventListener('click', toggleMap);
+  });
+</script>
+<script defer>
+   // Altri script per la mappa
+
+   // Funzione per salvare le modifiche della mappa
+   function saveMapChanges(articleId, newLat, newLng) {
+       fetch(`/api/articles/${articleId}`, {
+           method: 'PUT',
+           headers: {
+               'Content-Type': 'application/json'
+           },
+           body: JSON.stringify({ latitudeSelectionee: newLat, longitudeSelectionee: newLng })
+       })
+       .then(response => response.json())
+       .then(data => {
+           if (data.success) {
+            console.log("Calling API with ID:", articleId);
+               console.log("Modifica salvata nel database.", data.article);
+           } else {
+               console.error("Errore durante il salvataggio:", data.message);
+           }
+       })
+       .catch(error => console.error("Errore nel salvataggio della modifica:", error));
+   }
+
+  
+</script>
+
+
+<%- include('layout/footer') %>
