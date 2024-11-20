@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const articleSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,  // Correct reference to ObjectId
-        ref: 'Utilisateur'  // Assuming it's referencing another User model
+        ref: 'User'  // Assuming it's referencing another User model
     },
     vertex: {
         type: String,

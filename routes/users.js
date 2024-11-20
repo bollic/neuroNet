@@ -4,7 +4,7 @@ const fs = require('fs');
 const bcrypt = require('bcrypt'); // Utilisé pour comparer les mots de passe hachés
 const mongoose = require('mongoose');
 
-const Signup = require('../models/utilisateurs');
+const Signup = require('../models/users');
 router.use(logger);
 
 
@@ -15,12 +15,12 @@ const SINGLE_USER = {
     // Hash della password predefinita (es. "password123")
 };
 
-//const Login = require('../models/login'); // Assurez-vous que ce chemin correspond à votre modèle utilisateur
-// Middleware pour vérifier si l'utilisateur est connecté
+//const Login = require('../models/login'); // Assurez-vous que ce chemin correspond à votre modèle user
+// Middleware pour vérifier si l'user est connecté
 function isAdmin(req, res, next) {
   if (req.session && req.session.user && req.session.user.email === SINGLE_USER.email) {
 
-    return next(); // Si l'utilisateur est connecté, continuer l'exécution
+    return next(); // Si l'user est connecté, continuer l'exécution
   } else {
     // Memorizza la route originaria nella sessione per redirigere dopo il login
     req.session.redirectTo = req.originalUrl;
@@ -28,7 +28,7 @@ function isAdmin(req, res, next) {
    }
 }
 //VADO A: qs e' l indirizzo web ed event. Links http://localhost:4000/login
-router.get("/utilisateurs/login", (req, res) => {
+router.get("/users/login", (req, res) => {
   //recupero qs file da ejs
   res.render("login", { title: 'Form Page', error: null })
 });
@@ -52,7 +52,7 @@ router.post('/login', async (req, res) => {
    console.log('Login riuscito, utente salvato nella sessione:', req.session.user);
   
       // Reindirizza l'utente alla route salvata o alla homepage
-      const redirectTo = req.session.redirectTo || '/utilisateurs';
+      const redirectTo = req.session.redirectTo || '/users';
       delete req.session.redirectTo;
       return res.redirect(redirectTo);
     } else {
@@ -85,15 +85,15 @@ router.post('/signup', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Vérifier si l'utilisateur existe déjà
+    // Vérifier si l'user existe déjà
     const existingUser = await Signup.findOne({ email });
 
     if (existingUser) {
-      // Si l'utilisateur existe déjà, retourner une erreur
+      // Si l'user existe déjà, retourner une erreur
       return res.render('signup', { error: 'Cet email est déjà utilisé.' });
     }
 
-    // Si l'utilisateur n'existe pas, créer un nouvel utilisateur
+    // Si l'user n'existe pas, créer un nouvel user
     const hashedPassword = bcrypt.hashSync(password, 6); // Hacher le mot de passe avec bcrypt
 
     const newUser = new Signup({
@@ -101,9 +101,9 @@ router.post('/signup', async (req, res) => {
       password: hashedPassword
     });
 
-    await newUser.save(); // Enregistrer le nouvel utilisateur dans la base de données
+    await newUser.save(); // Enregistrer le nouvel user dans la base de données
 
-    // Stocker les informations utilisateur dans la session
+    // Stocker les informations user dans la session
     req.session.user = newUser;
 
     // Rediriger vers la page d'accueil ou une autre page
@@ -140,54 +140,54 @@ async function ensureAdminExists(req, res, next) {
 // Use this middleware on a route or globally
 router.use(ensureAdminExists);
 
-// Affichage de la liste des utilisateurs inscrits
+// Affichage de la liste des users inscrits
 
-router.get('/utilisateurs', isAdmin, async (req, res) => {
+router.get('/users', isAdmin, async (req, res) => {
   try {
-    const utilisateurs  = await Signup.find(); // Récupère tous les utilisateurs de la base de données
+    const users  = await Signup.find(); // Récupère tous les users de la base de données
      
          res.render('indexSignup', 
-           { title:'la liste des utilisateurs',  // Passe les utilisateurs récupérés à la vue
-            utilisateurs: utilisateurs, // Passe les utilisateurs récupérés à la vue
-            user: req.session.user, // Passe l'utilisateur connecté à la vue
+           { title:'la liste des users',  // Passe les users récupérés à la vue
+            users: users, // Passe les users récupérés à la vue
+            user: req.session.user, // Passe l'user connecté à la vue
             password: req.session.password
           });
              } catch (error) {
-               res.status(500).send('Erreur lors de la récupération des utilisateurs');
+               res.status(500).send('Erreur lors de la récupération des users');
              }
  });
  
 
-//DELETE UN UTILISATEUR
+//DELETE UN user
 router.get('/del/:id', async (req, res) => {
   try {
-    // Récupérer l'ID de l'utilisateur depuis les paramètres de l'URL
+    // Récupérer l'ID de l'user depuis les paramètres de l'URL
     let id = req.params.id;
      // Vérifier si l'ID est un ObjectId valide
      if (!mongoose.Types.ObjectId.isValid(id)) {
       console.log('ID non valide:', id);
       return res.status(404).send('ID non valide');
     }
-    console.log('Tentative de suppression de l\'utilisateur avec ID:', id);
-     // Trouver et supprimer l'utilisateur
+    console.log('Tentative de suppression de l\'user avec ID:', id);
+     // Trouver et supprimer l'user
     const result = await Signup.findByIdAndDelete(id);
 
 
     if (result) {   
       // Afficher un message de succès dans la console
-      console.log('Utilisateur supprimé avec succès:', result);
+      console.log('user supprimé avec succès:', result);
 
       // Rediriger vers la page principale après suppression
-      res.redirect('/utilisateurs');
+      res.redirect('/users');
     } else {
-      // Si l'utilisateur n'a pas été trouvé, renvoyer une erreur 404
-      console.log('Utilisateur non trouvé pour ID:', id);
-       res.status(404).send('Utilisateur non trouvé');
+      // Si l'user n'a pas été trouvé, renvoyer une erreur 404
+      console.log('user non trouvé pour ID:', id);
+       res.status(404).send('user non trouvé');
     }
   } catch (err) {
     // Gérer les erreurs et les afficher dans la console
-    console.error('Erreur lors de la suppression de l\'utilisateur:', err);
-    res.status(500).send('Erreur lors de la suppression de l\'utilisateur');
+    console.error('Erreur lors de la suppression de l\'user:', err);
+    res.status(500).send('Erreur lors de la suppression de l\'user');
   }
 });
 
@@ -195,17 +195,17 @@ router.param("id", async (req, res, next, id) => {
   try {
     const user = await Signup.findById(id);
     if (!user) {
-      return res.status(404).send('Utilisateur non trouvé');
+      return res.status(404).send('user non trouvé');
     }
     req.user = user;
     next();
   } catch (err) {
     console.error(err);
-    res.status(500).send('Erreur serveur lors de la récupération de l\'utilisateur');
+    res.status(500).send('Erreur serveur lors de la récupération de l\'user');
   }
 });
 //req.session.redirectTo = req.originalUrl;
-//const redirectTo = req.session.redirectTo || '/utilisateurs';
+//const redirectTo = req.session.redirectTo || '/users';
 //delete req.session.redirectTo; 
 function logger(req, res, next) {
   console.log(req.originalUrl)

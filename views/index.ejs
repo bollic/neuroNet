@@ -31,7 +31,7 @@
   
 
 <div class="container">
-  <a href="/utilisateurs" class="navbar-brand">
+  <a href="/users" class="navbar-brand">
     <img src="../img/pike.png" width="80" height="60"></img></a>
   <button class="navbar-toggler" data-bs-target="#my-nav" data-bs-toggle="collapse" aria-controls="my-nav" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
@@ -48,7 +48,7 @@
         <a class="nav-link" href="/login"><i class="fas fa-user-plus me-1"></i>Log in</a>
       </li>
       <li class="nav-item active">
-        <a class="nav-link" href="/utilisateurs"><i class="fas fa-user-plus me-1"></i>utilisateurs</a>
+        <a class="nav-link" href="/users"><i class="fas fa-user-plus me-1"></i>users</a>
       </li>
       <li class="nav-item active">
         <a class="nav-link" href="/signup"><i class="fas fa-user-plus me-1"></i>Sign up</a>
@@ -105,13 +105,14 @@
                 <th>Name</th>
                 <th>VERTEX</th>
                 <th>Category</th>
-                <th>idUtilisateur</th>                
+                <th>idUser</th>                
                 <th>LAT LNG</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
                <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->
+                
               <% articles.forEach((row, index)=> { %>              
                 <tr class="align-middle">                
                   <td><%= index %></td>                  
@@ -119,7 +120,7 @@
                   <td><%= row.name %></td>
                   <td><%= row.vertex %></td>
                   <td><%= row.category %></td>
-                  <td><%= row.user %></td>                  
+                  <td><%= row.user.email %></td>                  
                   <td>
                     <% if (row.latitudeSelectionee && row.longitudeSelectionee) { %>
                       <%= row.latitudeSelectionee %>, <%= row.longitudeSelectionee %>
@@ -145,9 +146,11 @@
                     longitudeSelectionee: "<%= row.longitudeSelectionee %>",
                     image: "<%= row.image %>",
                     category: "<%= row.category %>",
-                    user: "<%= row.user %>"                       
+                              
                   });
-                  console.log("L'ID dell' user':", "<%= row.user %>");
+                  
+console.log("Articolo aggiunto a filteredUsers:", JSON.stringify(filteredUsers[filteredUsers.length - 8], null, 2));
+                  console.log("L'ID dell' user':", "<%= row.user._id %>");
                 </script>
 
               <% }) %>

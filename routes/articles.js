@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt'); // Utilisé pour comparer les mots de passe ha
 
 const mongoose = require('mongoose');
 const Article = require('../models/articles');
-const User = require('../models/utilisateurs');
+const User = require('../models/users');
 
 const multer = require('multer');
 router.use(logger);
@@ -21,20 +21,20 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user) {
-      console.log('Utilisateur trouvé:', user);
+      console.log('user trouvé:', user);
 
       if (bcrypt.compareSync(password, user.password)) {
              // Authentification réussie
-        // Stocker seulement l'ID et l'email de l'utilisateur dans la session
+        // Stocker seulement l'ID et l'email de l'user dans la session
         req.session.user = {
           _id: user._id,
           email: user.email
-        }; // Stocker les informations utilisateur dans la session
+        }; // Stocker les informations user dans la session
         const redirectTo = req.session.redirectTo || '/';
      delete req.session.redirectTo;  // Elimina la variabile di sessione dopo il reindirizzamento
     
      console.log('Redirection vers:', redirectTo)
-     // Redirige alla route originaria o a '/utilisateurs'
+     // Redirige alla route originaria o a '/users'
     res.redirect(redirectTo);
       
       //  console.log('Connexion réussie, redirection vers /');
@@ -44,7 +44,7 @@ router.post('/login', async (req, res) => {
         res.render('login', { error: 'Email ou mot de passe incorrect' });
       }
     } else {
-      console.log('Utilisateur non trouvé');
+      console.log('user non trouvé');
       res.render('login', { error: 'Email ou mot de passe incorrect' });
     }
   } catch (error) {
@@ -74,15 +74,18 @@ var upload = multer({
 router.get('/',  async (req, res) => {
   try {
         // Recupera tutti gli articoli di tutti gli utenti
-       const articles = await Article.find(); // Popola il campo user per avere accesso a userID
+      
+       const articles = await Article.find()
+       .populate('user', '_id') 
+       .exec();
+       // Logga gli articoli per verificare i dati
+    console.log('Articoli recuperati:', articles);
  
-
- 
-         // Rendre la page avec les articles et l'utilisateur connecté
+         // Rendre la page avec les articles et l'user connecté
          res.render('index',  {
              title:'la liste des points',
                session: req.session, // Passer la session à la vue
-               user: req.session ? req.session.user : null, // Vérifiez si un utilisateur est connecté, sinon null
+               user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
                //id: userId,
                //  Passe les articles à la vue   
                articles: articles,             
@@ -119,11 +122,11 @@ router.get('/nets',  async (req, res) => {
       return acc;
     }, {});
 
-        // Rendre la page avec les articles et l'utilisateur connecté
+        // Rendre la page avec les articles et l'user connecté
         res.render('index',  {
             title:'la liste des points',
               session: req.session, // Passer la session à la vue
-              user: req.session ? req.session.user : null, // Vérifiez si un utilisateur est connecté, sinon null
+              user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
               // id: userId,
               //  Passe les articles à la vue   
               groupedArticles: groupedArticles,             
@@ -156,11 +159,11 @@ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
       console.log(`Articolo ${index + 1} - User ID: ${article.user}, Nome: ${article.name}`);
     });
 
-     // Rendre la page avec les articles et l'utilisateur connecté
+     // Rendre la page avec les articles et l'user connecté
          res.render('indexZoneAuthor',  {
              title:'la liste tes points',
                session: req.session, // Passer la session à la vue
-               user: req.session.user, // Vérifiez si un utilisateur est connecté
+               user: req.session.user, // Vérifiez si un user est connecté
                 //id: userId,
                articles: articles, // Passe les articles à la vue             
               })
@@ -203,13 +206,13 @@ router.get('/logout', (req, res) => {
 
 
 
-// Middleware pour vérifier si l'utilisateur est connecté
+// Middleware pour vérifier si l'user est connecté
 function isAuthenticated(req, res, next) {
    // Log per vedere cosa contiene la sessione
    console.log("Verifica autenticazione - sessione utente:", req.session ? req.session.user : "Nessuna sessione");
 
   if (req.session && req.session.user) {
-    return next(); // Si l'utilisateur est connecté, continuer l'exécution
+    return next(); // Si l'user est connecté, continuer l'exécution
   } else {
      // Log per vedere se l'utente non è autenticato e viene reindirizzato al login
      console.log("Utente non autenticato, reindirizzamento a /login");
@@ -265,7 +268,7 @@ router.post("/ajoute_articles", upload, async(req, res) => {
   console.log("Sessione utente:", req.session ? req.session.user : "Nessuna sessione");
   const articles = new Article({
  
-    utilisateur: req.body.id,
+    user: req.body.id,
     name: req.body.name,
     category: req.body.category,
     vertex: req.body.vertex,
@@ -274,7 +277,7 @@ router.post("/ajoute_articles", upload, async(req, res) => {
     longitudeSelectionee: req.body.longitudeSelectionee,
     user: req.session.user,
     session: req.session, // Passer la session à la vue
-   // message: req.session.message  // Passe l'utilisateur connecté à la vue
+   // message: req.session.message  // Passe l'user connecté à la vue
   });
   try {
     await articles.save();
@@ -287,7 +290,7 @@ router.post("/ajoute_articles", upload, async(req, res) => {
     console.log("Articolo aggiunto con successo:", req.session.message)
   } catch (err) {
     console.error("Errore durante l'aggiunta dell'articolo:", err);
-    res.status(500).send('Erreur lors de l enregistrement de l utilisateur');
+    res.status(500).send('Erreur lors de l enregistrement de l user');
   }
  
 });
@@ -308,10 +311,10 @@ router.get('/delete/:id', async (req, res) => {
      let result;  // Dichiarare result all'esterno del blocco try
   
      try {
-    // Trouver l'article par ID et utilisateur loggé
+    // Trouver l'article par ID et user loggé
     const result = await Article.findOne({ _id: articleId,  user: userId });
    
-  // Vérifiez si l'article existe et appartient à l'utilisateur loggé
+  // Vérifiez si l'article existe et appartient à l'user loggé
     if (!result) {
       console.log("Articolo non trovato o non autorizzato");
       return res.status(404).send('Article non trouvé ou non autorisé à être supprimé');
@@ -383,12 +386,12 @@ router.post("/edit/:id", upload, async (req, res) => {
     let articleId = req.params.id;
     console.log("ID dell'articolo passato:", req.params.id);
     //image: req.file.filename,
-    // Trouver l'utilisateur par son ID
+    // Trouver l'user par son ID
     let article = await Article.findById(articleId);
     console.log("Articolo passato:", req.params.id);
 
     if (article) {
-      // Mettre à jour les informations de l'utilisateur
+      // Mettre à jour les informations de l'user
       article.name = req.body.name;
       article.latitudeSelectionee = req.body.latitudeSelectionee;
       article.longitudeSelectionee = req.body.longitudeSelectionee;
@@ -416,7 +419,7 @@ router.post("/edit/:id", upload, async (req, res) => {
       // Rediriger vers la page principale avec un message de succès
       res.redirect('/');
     } else {
-      res.status(404).send('Utilisateur non trouvé');
+      res.status(404).send('user non trouvé');
     }
   } catch (err) {
     console.error('Erreur lors de la mise à jour de l\'article:', err);
@@ -433,7 +436,7 @@ router.put("/api/articles/:id", async (req, res) => {
     
     console.log("ID dell'articolo passato:", req.params.id);
     //image: req.file.filename,
-    // Trouver l'utilisateur par son ID
+    // Trouver l'user par son ID
     const updatedArticle  = await Article.findByIdAndUpdate(
       articleId,
     
@@ -441,7 +444,7 @@ router.put("/api/articles/:id", async (req, res) => {
     console.log("Articolo passato:", req.params.id);
 
     if (updatedArticle) {
-      // Mettre à jour les informations de l'utilisateur
+      // Mettre à jour les informations de l'user
       article.name = req.body.name;
       article.latitudeSelectionee = req.body.latitudeSelectionee;
       article.longitudeSelectionee = req.body.longitudeSelectionee;
@@ -469,7 +472,7 @@ router.put("/api/articles/:id", async (req, res) => {
       // Rediriger vers la page principale avec un message de succès
       res.redirect('/');
     } else {
-      res.status(404).send('Utilisateur non trouvé');
+      res.status(404).send('user non trouvé');
     }
   } catch (err) {
     console.error('Erreur lors de la mise à jour de l\'article:', err);

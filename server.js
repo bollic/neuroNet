@@ -7,7 +7,9 @@ const path = require('path');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 
-//import mongoose from "mongoose";
+// Abilita il debug di Mongoose
+mongoose.set('debug', true);
+
 //import connectDB from './connectDB/connectDB.js'
 //         mongodb+srv://soniaBoss:KLP59dnH8@cluster0.cvr9g5a.mongodb.net/?retryWrites=true&w=majority
 mongoose.connect(process.env.DATABASE_URL, {
@@ -54,12 +56,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.set("view engine", "ejs");
 
 const articleRouter = require("./routes/articles")
-const utilisateurRouter = require("./routes/utilisateurs")
+const userRouter = require("./routes/users")
 //const postRouter = require("./routes/posts")
 
 //app.use("/users", userRouter)
 app.use("/", articleRouter)
-app.use("/", utilisateurRouter)
+app.use("/", userRouter)
 //app.use("/posts", postRouter)
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
