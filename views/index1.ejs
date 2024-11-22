@@ -110,18 +110,9 @@
               </tr>
             </thead>
             <tbody>
-
-               <!-- Inizializzazione delle variabili lato client -->
-      <script>
-     
-        if (typeof filteredUsers === 'undefined') var filteredUsers = [];
-        if (typeof groupedByUser === 'undefined') var groupedByUser = {};
-      </script>
-    
-               <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->               
-              <% articles.forEach((row, index)=> { 
-                 %> 
-  
+               <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->
+                
+              <% articles.forEach((row, index)=> { %>              
                 <tr class="align-middle">                
                   <td><%= index %></td>                  
                   <td><img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="60" /></td>
@@ -141,34 +132,44 @@
                     <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
                   </td>
                 </tr>
-    <script>     
-         
-    {
-    const articleData = {
-      _id: "<%= row._id || '' %>",
-      name: "<%= row.name %>",
-      vertex: "<%= row.vertex %>",
-      email: "<%= row.user.email %>",                    
-      latitudeSelectionee: "<%= row.latitudeSelectionee || '' %>",
-      longitudeSelectionee: "<%= row.longitudeSelectionee || '' %>",
-      image: "<%= row.image %>",
-      category: "<%= row.category %>"
-    };
-    const userId = "<%= row.user._id %>"; // Usa questa una sola volta
-    // Aggiungo a filteredUsers
-    filteredUsers.push(articleData);
-
-    // Aggiungo a groupedByUser
-    if (!groupedByUser[userId]) {
-      groupedByUser[userId] = [];
-    }
-    groupedByUser[userId].push(articleData);
-
-    // Debugging
-    console.log("Articolo aggiunto a filteredUsers:", JSON.stringify(articleData, null, 2));
-    console.log("Articolo raggruppato in groupedByUser:", JSON.stringify(groupedByUser[userId], null, 2));
-  }
-    </script>
+                 <!-- Restando dentro articles.forEach creo uno script per inizializzare l'array 
+                  filteredUsers , prelevando i valori del ciclo forEach-->
+                <script>
+                  if (typeof filteredUsers ==='undefined') var filteredUsers= [];
+                  filteredUsers.push({
+                     _id: "<%= row._id || '' %>",
+                    name: "<%= row.name %>",
+                    vertex: "<%= row.vertex %>",
+                    email: "<%= row.email %>",                    
+                    latitudeSelectionee: "<%= row.latitudeSelectionee %>",
+                    longitudeSelectionee: "<%= row.longitudeSelectionee %>",
+                    image: "<%= row.image %>",
+                    category: "<%= row.category %>",
+                              
+                  });
+                  
+console.log("Articolo aggiunto a filteredUsers:", JSON.stringify(filteredUsers[filteredUsers.length - 8], null, 2));
+                  console.log("L'ID dell' user':", "<%= row.user._id %>");
+                </script>
+                 <!-- Restando dentro articles.forEach creo uno script per inizializzare l'array 
+                  groupedByUser , prelevando i valori del ciclo forEach-->
+                  <script>
+                    if (typeof groupedByUser ==='undefined') var groupedByUser= [];
+                    groupedByUser.push({
+                       _id: "<%= row._id || '' %>",
+                      name: "<%= row.name %>",
+                      vertex: "<%= row.vertex %>",
+                      email: "<%= row.email %>",                    
+                      latitudeSelectionee: "<%= row.latitudeSelectionee %>",
+                      longitudeSelectionee: "<%= row.longitudeSelectionee %>",
+                      image: "<%= row.image %>",
+                      category: "<%= row.category %>",
+                                
+                    });
+                    
+  console.log("  groupedByUser:", JSON.stringify(groupedByUser[groupedByUser.length - 8], null, 2));
+                    console.log("L'ID dell' user':", "<%= row.user._id %>");
+                  </script>
               <% }) %>
             </tbody>
           </table>
@@ -227,12 +228,13 @@ map.addControl(drawControl);
   // Funzione per aggiornare la mappa
 function updateMap() {
     layerGroup.clearLayers(); // Clear existing markers/polylines
-    if (!filteredUsers || filteredUsers.length === 0) return;
-   // if (typeof filteredUsers !== 'undefined' && filteredUsers.length > 0) {
+
+    if (typeof filteredUsers !== 'undefined' && filteredUsers.length > 0) {
+      console.log("Aggiornamento mappa con articoli:", filteredUsers);  // Log per il debugging
          // Carica groupedByUser dal server
   
 
-    //console.log("Dati raggruppati per utente:", groupedByUser);
+    console.log("Dati raggruppati per utente:", groupedByUser);
       const polylineStyles = {
             "bon": { color: 'blue', weight: 4 },
             "moyen": { color: 'gray', weight: 4 },
@@ -271,11 +273,7 @@ function updateMap() {
 
 
           // Itera sui dati e popola i marker 
-        filteredUsers.forEach(article => {
-          if (!article || typeof article !== 'object') {
-    console.error(`Problema con l'article:`, article);
-    return; // Salta questo articolo
-  }
+        filteredUsers.forEach((article) => {
             const lat = parseFloat(article.latitudeSelectionee);
             const lng = parseFloat(article.longitudeSelectionee);
             const userIcon = icons[article.category] || icons['moyen'];
@@ -300,17 +298,18 @@ function updateMap() {
                // groupedMarkers[article.category].push({ lat, lng, id: article._id, vertex: article.vertex }); // Includi vertex
             }
           });
-    
                 // Crea i marker per ogni utente
-        for (const userId in groupedByUser) {
-            const userGroup = groupedByUser[userId];
-            console.log(`Creazione marker per l'utente ${userId}:`, userGroup);
-          
+        for (const userID in groupedByUser) {
+            const userGroup = groupedByUser[userID];
+            console.log(`Creazione marker per l'utente ${userID}:`, userGroup);
+
             userGroup.forEach(article => {
-            // Crea marker per l'articolo  
-             const userIcon = icons[article.category] || icons['moyen'];
-         
-            const singleMarker = L.marker([article.latitude, article.longitude], { icon: userIcon, draggable: true });
+               /* const singleMarker = L.marker([article.latitude, article.longitude], { 
+                    icon: icons[article.category], 
+                    draggable: true 
+                });*/
+            // Crea marker per l'articolo
+            const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
             singleMarker.on('dragend', function(e) {
                 const newLatLng = e.target.getLatLng();
                 saveMapChanges(article._id, newLatLng.lat, newLatLng.lng);
@@ -355,7 +354,7 @@ function updateMap() {
             map.fitBounds(layerGroup.getBounds());
         }
     }
-
+}
 
 
     // Function to update markers and polylines on the map
@@ -454,7 +453,9 @@ function updateMap() {
   });
 </script>
 <script defer>
+  // Altri script per la mappa
 
+  // Funzione per salvare le modifiche della mappa
   function saveMapChanges(articleId, newLat, newLng) {
       fetch(`/api/articles/${articleId}`, {
           method: 'PUT',

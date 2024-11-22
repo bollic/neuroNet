@@ -70,7 +70,7 @@ var upload = multer({
 }).single('image');
 
 // Utiliser le middleware pour protéger la route des articles
-
+/*
 router.get('/',  async (req, res) => {
   try {
         // Recupera tutti gli articoli di tutti gli utenti
@@ -94,16 +94,16 @@ router.get('/',  async (req, res) => {
                console.error('Errore durante la ricerca degli articoli:', error);
                res.status(500).send('Erreur lors de la récupération des articles');
              }
- });
- /*
-router.get('/nets',  async (req, res) => {
+ });*/
+ 
+
+router.get('/',  async (req, res) => {
  try {
        // Recupera tutti gli articoli di tutti gli utenti
       const articles = await Article.find().populate('user'); // Popola il campo user per avere accesso a userID
-
       
     // Raggruppa gli articoli per userID
-    const groupedArticles = articles.reduce((acc, article) => {
+    const groupedByUser = articles.reduce((acc, article) => {
       const userID = article.user._id.toString(); // ottieni l'ID dell'utente
   
          // Aggiungi un log per vedere il 'userID' e l'articolo
@@ -129,13 +129,14 @@ router.get('/nets',  async (req, res) => {
               user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
               // id: userId,
               //  Passe les articles à la vue   
-              groupedArticles: groupedArticles,             
+              articles: articles,
+              groupedByUser: groupedByUser,             
              })
             } catch (error) {
               console.error('Errore durante la ricerca degli articoli:', error);
               res.status(500).send('Erreur lors de la récupération des articles');
             }
-});*/
+});
 
 router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
   try {
