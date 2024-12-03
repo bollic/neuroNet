@@ -70,65 +70,45 @@ var upload = multer({
 }).single('image');
 
 // Utiliser le middleware pour protéger la route des articles
-/*
-router.get('/',  async (req, res) => {
-  try {
-        // Recupera tutti gli articoli di tutti gli utenti
-      
-       const articles = await Article.find()
-       .populate('user', '_id') 
-       .exec();
-       // Logga gli articoli per verificare i dati
-    console.log('Articoli recuperati:', articles);
- 
-         // Rendre la page avec les articles et l'user connecté
-         res.render('index',  {
-             title:'la liste des points',
-               session: req.session, // Passer la session à la vue
-               user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
-               //id: userId,
-               //  Passe les articles à la vue   
-               articles: articles,             
-              })
-             } catch (error) {
-               console.error('Errore durante la ricerca degli articoli:', error);
-               res.status(500).send('Erreur lors de la récupération des articles');
-             }
- });*/
- 
 
 router.get('/',  async (req, res) => {
  try {
        // Recupera tutti gli articoli di tutti gli utenti
       const articles = await Article.find().populate('user'); // Popola il campo user per avere accesso a userID
-      
+     
+      // Log per vedere tutti gli articoli prima del raggruppamento
+    console.log("All articles:", articles);
+
     // Raggruppa gli articoli per userID
     const groupedByUser = articles.reduce((acc, article) => {
-      const userID = article.user._id.toString(); // ottieni l'ID dell'utente
+      const userId = article.user._id.toString(); // ottieni l'ID dell'utente
   
-         // Aggiungi un log per vedere il 'userID' e l'articolo
-      console.log("Processing article for userID:", userID);
-      console.log("Article data:", article); 
+      // Log per ogni articolo in fase di elaborazione
+      console.log("Processing article:", article);
+      console.log("UserID:", userId);
       
-      if (!acc[userID]) {
-        acc[userID] = {
+      if (!acc[userId]) {
+        acc[userId] = {
           user: article.user, // Dettagli utente per identificare chi ha creato la rete
           articles: [],       // Array dei marker dell'utente
         };
+        console.log(`Created new group for user ${userId}`);
       }
-      acc[userID].articles.push(article); // Aggiungi l'articolo al gruppo dell'utente
-      console.log(`Article added to user ${userID}:`, article.name);
+    // Aggiungi l'articolo al gruppo dell'utente
+    acc[userId].articles.push(article);
+     console.log(`Article added to user ${userId}:`, article.name);
 
       return acc;
     }, {});
 
-        // Rendre la page avec les articles et l'user connecté
+     // Log finale per verificare il risultato del raggruppamento
+     console.log("Grouped articles by user:", groupedByUser);
+
+       // Rendi la pagina con gli articoli e l'user connesso
         res.render('index',  {
             title:'la liste des points',
               session: req.session, // Passer la session à la vue
               user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
-              // id: userId,
-              //  Passe les articles à la vue   
               articles: articles,
               groupedByUser: groupedByUser,             
              })
@@ -174,6 +154,48 @@ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
                res.status(500).send('Erreur lors de la récupération des articles');
              }
  });
+// groupedByUser come variabile lato server
+//let groupedByUser = {}; // Popolalo con i tuoi dati, per esempio da un database
+// Rotta per restituire groupedByUser al client
+// In routes/articles.js o simile
+router.get('/api/grouped-by-user', async (req, res) => {
+  try {
+    const articles = await Article.find().populate('user'); // Recupera articoli e popola il campo 'user'
+    
+    // Raggruppa gli articoli per userID
+    const groupedByUser = articles.reduce((acc, article) => {
+      const userId = article.user._id.toString();
+
+      if (!acc[userId]) {
+        acc[userId] = {
+          user: article.user,  // Dettagli dell'utente
+          articles: [],        // Array per gli articoli
+        };
+      }
+      acc[userId].articles.push({
+        _id: article._id,
+        name: article.name,
+        latitude: article.latitudeSelectionee,
+        longitude: article.longitudeSelectionee,
+        category: article.category,
+        image: article.image
+      });
+      return acc;
+    }, {});
+
+
+    if (!groupedByUser) {
+      console.error('Dati mancanti o non validi per groupedByUser');
+      return res.status(500).json({ error: 'Dati non trovati' });
+  }
+  console.log('Dati raggruppati da inviare:', groupedByUser);
+    res.json(groupedByUser); // Restituisci il risultato in formato JSON
+  } catch (error) {
+    console.error('Errore nel recupero degli articoli:', error);
+    res.status(500).send('Errore nel recupero degli articoli');
+  }
+});
+
 
 // Route per aggiornare la posizione dell'articolo
 router.put('/api/articles/:id', async (req, res) => {

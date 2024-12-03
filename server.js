@@ -6,6 +6,8 @@ const mongoose = require('mongoose')
 const path = require('path');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const Article = require('./models/articles');
+const User = require('./models/users');
 
 // Abilita il debug di Mongoose
 mongoose.set('debug', true);
@@ -19,6 +21,40 @@ mongoose.connect(process.env.DATABASE_URL, {
   .then(() => console.log('Connexion à MongoDB réussie !'))
   .catch(() => console.log('Connexion à MongoDB échouée !'));
 
+
+// Route per caricare gli articoli
+/* app.get('/api/grouped-by-user', async (req, res) => {
+  try {
+      // Esegui la query per ottenere gli articoli dove 'user' esiste
+      const articles = await Article.find({ 'user': { $exists: true } });
+
+      // Raggruppa gli articoli per 'user._id'
+      const groupedByUser = articles.reduce((acc, article) => {
+          const userId = article.user._id.toString();  // Assicurati di avere un valore valido per userId
+          if (!acc[userId]) {
+              acc[userId] = { bon: [], moyen: [], bas: [] };  // Inizializza le categorie
+          }
+          // Aggiungi l'articolo alla categoria appropriata
+          if (article.category) {
+              acc[userId][article.category].push({
+                  _id: article._id,
+                  name: article.name,
+                  latitude: article.latitudeSelectionee,
+                  longitude: article.longitudeSelectionee,
+                  image: article.image
+              });
+          }
+          return acc;
+      }, {});
+
+      // Restituisci i dati come JSON
+      res.json(groupedByUser);
+  } catch (err) {
+      console.error('Errore nella query degli articoli:', err);
+      res.status(500).json({ error: 'Errore interno del server' });
+  }
+});
+*/
 // Assurez-vous que votre application sait où se trouve le répertoire 'uploads'
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

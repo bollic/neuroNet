@@ -34,6 +34,7 @@
           <a href="/login">Se connecter</a>
           <a href="/signup">S'inscrire</a>
         <% } %>
+        <!-- Verifico se ci sono degli articles -->
         <% if (typeof articles !== 'undefined' && articles.length > 0) { %>   
           <table class="table table-hover table-bordered table-striped text-center">
             <thead class="table-dark">
@@ -49,6 +50,7 @@
               </tr>
             </thead>
             <tbody>
+             <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->               
               <% articles.forEach((row, index) => { %>              
                 <tr class="align-middle">                
                   <td><%= index %></td>                  
@@ -64,11 +66,11 @@
                     <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
                   </td>
                 </tr>
+     <!-- INIZIO FRONTEND 2: Logica aggiuntiva per elaborare groupedByMarkers -->
                 <script>
                   if (typeof filteredUsers === 'undefined') var filteredUsers = [];
                   filteredUsers.push({
-                    _id: "<%= row._id || '' %>",
-                
+                    _id: "<%= row._id || '' %>",                
                     name: "<%= row.name %>",
                     vertex: "<%= row.vertex %>",    
                     email: "<%= row.email %>",                    
@@ -133,139 +135,7 @@ map.on('draw:edited', function(event) {
   });
     } // Fine della funzione initializeMap() 
 
-// Funzione aggiornata per aggiornare la mappa
 
-  /*const raggi = [];
-    const uniqueIds = new Set(
-        Object.keys(groupedMarkers)
-    );*/
-   // Creare i raggi collegando i nodi corrispondenti in ogni categoria
-   
-
-/*function createRaggi(groupedMarkers) {
-    const uniqueIds = new Set();
-
-    // Raccogli tutti gli ID unici presenti nei markers raggruppati
-    for (const category in groupedMarkers) {
-        groupedMarkers[category].forEach(article => {
-            if (article.id) uniqueIds.add(article.id);
-        });
-    }
-
-    // Creare i raggi collegando i nodi corrispondenti in ogni categoria
-   
-    uniqueIds.forEach(id => {
-    const nodes = [];
-    for (const category in groupedMarkers) {
-        // Trova tutti i nodi che condividono un prefisso di ID comune
-        const articles = groupedMarkers[category].filter(article => article.id === id);
-      
-       // const articles = groupedMarkers[category].filter(article => article.id && article.id.startsWith(id.slice(0, 4)));
-        
-        // Aggiungi le coordinate solo se ci sono articoli per quella categoria
-        articles.forEach(article => {
-            nodes.push([article.lat, article.lng]);
-        });
-    }
-    console.log(`ID: ${id}, uniqueIds: `, uniqueIds);
-    console.log(`ID: ${id}, Nodes: `, nodes);
-
-
-    
-    if (nodes.length === 2) {
-        const polyline = L.polyline(nodes, { color: 'blue' });
-        drawnItems.addLayer(polyline);
-        nodes.push(polyline);
-    } else {
-        console.warn(`Coordinate insufficienti per creare un raggio per l'ID ${id}: `, nodes);
-    }
-});
-
-
-} *///FINE DELLA FUNZIONE createRaggi
-
-
-     // Adatta la mappa per includere tutti i marker e polilinee
-   
-// Funzione aggiornata per aggiornare la mappa
-/*function updateMap() {
-    layerGroup.clearLayers();
-
-    const icons = {
-        "bon": L.icon({
-            iconSize: [25, 41],
-            iconAnchor: [10, 41],
-            popupAnchor: [2, -40],
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png'
-        }),
-        "moyen": L.icon({
-            iconSize: [25, 41],
-            iconAnchor: [10, 41],
-            popupAnchor: [2, -40],
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png'
-        }),
-        "bas": L.icon({
-            iconSize: [25, 41],
-            iconAnchor: [10, 41],
-            popupAnchor: [2, -40],
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png'
-        })
-    };
-    const polylineStyles = {
-        "bon": { color: 'blue', weight: 4 },
-        "moyen": { color: 'gray', weight: 4 },
-        "bas": { color: 'red', weight: 4 }
-    };
-
-    const groupedMarkers = {
-        "bon": [],
-        "moyen": [],
-        "bas": []
-    };
-
-    filteredUsers.forEach((article) => {
-        const lat = parseFloat(article.latitudeSelectionee);
-        const lng = parseFloat(article.longitudeSelectionee);
-        const userIcon = icons[article.category] || icons['moyen'];
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-            // Aggiungi il marker alla categoria corrispondente
-            groupedMarkers[article.category].push({ lat, lng, id: article._id });
-
-            const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
-            singleMarker.on('dragend', function(e) {
-                const newLatLng = e.target.getLatLng();
-                saveMapChanges(article._id, newLatLng.lat, newLatLng.lng);
-            });
-
-            singleMarker.bindPopup(`
-                <b>${article.name}</b><br>
-                   <b>${article.vertex || "Nessun vertice specificato"}</b><br>
-                <strong>${article._id}</strong><br>
-                <img src="/uploads/${article.image}" alt="Immagine" class="img-thumbnail" width="100">
-            `);
-
-            layerGroup.addLayer(singleMarker);
-        }
-    });
-
-    // Crea i poligoni per ciascuna categoria
-    for (const category in groupedMarkers) {
-        const latLngs = groupedMarkers[category].map(article => [article.lat, article.lng]);
-        if (latLngs.length >= 2) {
-            const polygon = L.polygon(latLngs, polylineStyles[category]);
-            drawnItems.addLayer(polygon);
-        }
-    }
-
-    // Crea i raggi collegando i nodi corrispondenti
-    createRaggi(groupedMarkers);
-
-    // Adatta la mappa per includere tutti i marker e polilinee
-    if (layerGroup.getLayers().length > 0) {
-        map.fitBounds(layerGroup.getBounds());
-    }
-}*/
 function updateMap() {
     layerGroup.clearLayers();
 
@@ -306,7 +176,7 @@ function updateMap() {
         "moyen": [],
         "bas": []
     };
-
+// Raggruppa gli articoli per categoria
     filteredUsers.forEach((article) => {
         const lat = parseFloat(article.latitudeSelectionee);
         const lng = parseFloat(article.longitudeSelectionee);
@@ -410,20 +280,6 @@ for (const key in verticesBon) {
 }
 
     
-    // Disegna le polilinee tra i vertici Moyen e Mauvais
-   /* for (const key in verticesMoyen) {
-        if (verticesMoyen.hasOwnProperty(key)) {
-            const pointMoyen = verticesMoyen[key];
-            const pointMauvais = verticesMauvais[key];
-
-            // Assicurati che entrambi i punti siano definiti
-            if (pointMoyen && pointMauvais) {
-                const polyline = L.polyline([pointMoyen, pointMauvais], { color: 'blue', weight: 4 });
-                drawnItems.addLayer(polyline); // Aggiungi la polilinea ai layer disegnati
-                console.log(`Polilinea disegnata tra il vertice Moyen ${key} e il vertice Mauvais ${key}`);
-            }
-        }
-    }*/
 
     // Stampa le coordinate per ogni vertice di Moyen
     for (const [key, coords] of Object.entries(verticesMoyen)) {
@@ -437,108 +293,6 @@ for (const key in verticesBon) {
         // Usa coords[0] e coords[1] per lat e lng rispettivamente
     }
 }
-
-/*
-function createRaggi(groupedMarkers) {
-  
-    const verticesMoyen = {};
-    const verticesMauvais = {};
-
-    console.log("Grouped Markers:", groupedMarkers); // Controlla il contenuto di groupedMarkers
-
-    // Popola i vertici per "moyen"
-    for (const [index, article] of groupedMarkers['moyen'].entries()) {
-        console.log("Articolo Moyen:", article); // Logga l'articolo corrente
-        // Usa l'indice come vertice
-        verticesMoyen[index + 1] = [article.lat, article.lng]; 
-        console.log(`Aggiunto vertice Moyen: ${index + 1} -> [${article.lat}, ${article.lng}]`);
-    }
-
-    // Popola i vertici per "bas"
-    for (const [index, article] of groupedMarkers['bas'].entries()) {
-        console.log("Articolo Bas:", article); // Logga l'articolo corrente
-        // Usa l'indice come vertice
-        verticesMauvais[index + 1] = [article.lat, article.lng]; 
-        console.log(`Aggiunto vertice Bas: ${index + 1} -> [${article.lat}, ${article.lng}]`);
-    }
-
-    // Controlla il risultato finale
-    console.log("Vertices Moyen:", verticesMoyen);
-    console.log("Vertices Mauvais:", verticesMauvais);
-
- // Stampa le coordinate per ogni vertice di Moyen
- for (const [key, coords] of Object.entries(verticesMoyen)) {
-        console.log(`Vertice Moyen ${key}:`, coords); // Stampa le coordinate
-        // Usa coords[0] e coords[1] per lat e lng rispettivamente
-    }
-
-    // Se desideri anche stampare i vertici Mauvais
-    for (const [key, coords] of Object.entries(verticesMauvais)) {
-        console.log(`Vertice Mauvais ${key}:`, coords); // Stampa le coordinate
-        // Usa coords[0] e coords[1] per lat e lng rispettivamente
-    }
-
-}*/
-
-/*
-
-function createRaggi(groupedMarkers) {
-    const verticesMoyen = {};
-    const verticesMauvais = {};
-
-    console.log("Grouped Markers:", groupedMarkers); // Controlla il contenuto di groupedMarkers
-
-   // Popola le mappe dei vertici per "moyen"
-for (const article of groupedMarkers["moyen"] || []) {
-    console.log("Articolo Moyen:", article); // Logga l'articolo corrente
-    const vertex = parseInt(article.vertex);
-    if (!isNaN(vertex)) {
-        verticesMoyen[vertex] = [article.lat, article.lng];
-        console.log(`Aggiunto vertice Moyen: ${vertex} -> [${article.lat}, ${article.lng}]`);
-    } else {
-        console.warn("Vertex non valido per l'articolo:", article);
-    }
-}
-
-// Popola le mappe dei vertici per "mauvais"
-for (const article of groupedMarkers["mauvais"] || []) {
-    console.log("Articolo Mauvais:", article); // Logga l'articolo corrente
-    const vertex = parseInt(article.vertex);
-    if (!isNaN(vertex)) {
-        verticesMauvais[vertex] = [article.latitudeSelectionee, article.longitudeSelectionee];
-        console.log(`Aggiunto vertice Mauvais: ${vertex} -> [${article.latitudeSelectionee}, ${article.longitudeSelectionee}]`);
-    } else {
-        console.warn("Vertex non valido per l'articolo:", article);
-    }
-}
-
-    // Traccia i raggi tra i vertici corrispondenti
-    Object.keys(verticesMoyen).forEach(vertex => {
-        if (verticesMauvais[vertex]) {
-            const pointMoyen = verticesMoyen[vertex];
-            const pointMauvais = verticesMauvais[vertex];
-            console.log("Tracciamento vertice:", vertex, "Punto Moyen:", pointMoyen, "Punto Mauvais:", pointMauvais); // Log del vertice corrente e dei punti
-
-            if (pointMoyen && pointMauvais) {
-                const polyline = L.polyline([pointMoyen, pointMauvais], { color: 'blue', weight: 4 });
-                drawnItems.addLayer(polyline);
-            }
-        }
-    });
-}
-
-*/
-    // Crea polilinee per ciascuna categoria
-     
-// 2. Definire la logica per creare i raggi
-
-
-// Array per raccogliere i nodi per ogni categoria
-
-// Creare i raggi collegando i nodi corrispondenti in ogni categoria
-
-// Adatta la mappa per includere tutti i marker e polilinee
-  
 
 
 

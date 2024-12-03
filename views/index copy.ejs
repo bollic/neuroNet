@@ -6,12 +6,12 @@
   <div class="row">
     <div class="col-12 text-center">
       <!-- Pulsante per visualizzare la mappa -->
-      <button id="toggle-map" class="btn btn-primary  mt-3 rounded-circle"><strong>+</strong></button>
+      <button id="toggle-map" class="btn btn-primary">Visualiser la carte</button>
     </div>
   </div>
  
   <!-- Mappa -->
-  <div id="map" style='width: 100%; height: 400px; margin-top: 20px; display: none; transition: all 0.3s ease-in-out'>
+  <div id="map" style='width: 100%; height: 300px; display: none; transition: all 0.3s ease-in-out'>
   </div>
 </div>
 <div class='container'>
@@ -158,189 +158,86 @@ map.addControl(drawControl);
         "moyen": { color: 'gray', weight: 4 },
         "bas": { color: 'red', weight: 4 }
     };
-    const groupedMarkers = {
-            "bon": [],
-            "moyen": [],
-            "bas": []
-        };
+    
     // Icone per i marker
     const icons = {
         "bon": L.icon({
-          iconSize: [19, 30],
-            iconAnchor: [8, 30],
-            popupAnchor: [2, -30],
-            shadowSize: [31, 30],
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png', // URL dell'ombra predefinita di Leaflet
+            iconSize: [25, 41],
+            iconAnchor: [10, 41],
+            popupAnchor: [2, -40],
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png'
-     }),
+        }),
         "moyen": L.icon({
-          iconSize: [19, 30],
-            iconAnchor: [8, 30],
-            popupAnchor: [2, -30],
-            shadowSize: [31, 30],
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png', // URL dell'ombra predefinita di Leaflet
+            iconSize: [25, 41],
+            iconAnchor: [10, 41],
+            popupAnchor: [2, -40],
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png'
         }),
         "bas": L.icon({
-          iconSize: [19, 30],
-            iconAnchor: [8, 30],
-            popupAnchor: [2, -30],
-            shadowSize: [31, 30],
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png', // URL dell'ombra predefinita di Leaflet
+            iconSize: [25, 41],
+            iconAnchor: [10, 41],
+            popupAnchor: [2, -40],
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png'
         })
     };
 
     
 
-   
     // Itera sugli utenti per creare marker e poligoni
     Object.keys(groupedByUser).forEach(userId => {
         const userGroup = groupedByUser[userId];
-        const articles = userGroup.articles; // Ottieni gli articoli per questo utente
-
         console.log(`Creazione di marker e poligoni per l'utente ${userId}`);
-        
-        // Raggruppa i marker per categoria
-        const groupedMarkers = {
+
+       // Reset per ogni categoria
+       const groupedMarkers = {
             "bon": [],
             "moyen": [],
             "bas": []
         };
 
-        // Itera sui dati dell'utente per ogni articolo
-        articles.forEach(article => {
-          const lat = parseFloat(article.latitude || article.latitudeSelectionee);
-          const lng = parseFloat(article.longitude || article.longitudeSelectionee);
-
-            const category = article.category;
-     // Crea poligoni per ogni categoria all'interno dell'utente
-
-     if (typeof category === 'object') {
-    console.warn("La categoria è un oggetto, verifica la struttura:", category);
-
-    // Seleziona la chiave giusta se necessario
-    if (category.name) { // Sostituisci "name" con la chiave giusta per accedere alla categoria
-        category = category.name; 
-    } else {
-        console.error("Impossibile determinare la categoria da questo oggetto:", category);
-        return;
-    }
-}
-
-     console.log("Validazione categoria:", { category, icons });
-     if (!lat || !lng || !icons[category]) { 
-    console.warn("Coordinate o categoria mancanti o invalide:", { lat, lng, category });
-    return;
-}
-
-            // Aggiungi il marker
-            const marker = L.marker([lat, lng], { icon: icons[category] });
-           
-            marker.bindPopup(`
-                <strong>${article.name}</strong><br>
-                Categoria: ${article.category}<br>
-                <img src="/uploads/${article.image}" width="50">
-            `);
-            layerGroup.addLayer(marker);
-
-            // Aggiungi le coordinate alla categoria corrispondente
-            if (groupedMarkers[category]) {
-              console.log(groupedMarkers[category])
-                groupedMarkers[category].push({ lat, lng, id: article._id, vertex: article.vertex || null });
+        // Itera sulle categorie definite
+        userGroup.forEach(category => {
+            if (!userGroup[category] || !Array.isArray(userGroup[category])) {
+                console.warn(`Nessun dato valido per la categoria "${category}" dell'utente ${userId}`);
+                return; // Salta se non è un array valido
             }
-        });
 
-         // Crea poligoni per ogni categoria all'interno dell'utente
-        // UNO. Ciclo per ogni categoria (es. bon, moyen, bas) all'interno dell'utente
-        for (const category in groupedMarkers) {
-            const latLngs = groupedMarkers[category];
+            const articles = userGroup[category];
+            const latLngs = []; // Raccolta delle coordinate per il poligono
 
+            // Aggiungi marker per ogni articolo
+            articles.forEach(article => {
+                if (!article.latitude || !article.longitude) {
+                    console.warn('Articolo con coordinate mancanti:', article);
+                    return; // Salta articoli con coordinate invalide
+                }
+
+                const userIcon = icons[category] || icons['moyen'];
+                const marker = L.marker([article.latitude, article.longitude], { icon: userIcon });
+                marker.bindPopup(`
+                    <strong>${article.name}</strong><br>
+                    Categoria: ${article.category}<br>
+                    <img src="/uploads/${article.image}" width="50">
+                `);
+                layerGroup.addLayer(marker); // Aggiunge il marker al layer
+                latLngs.push([article.latitude, article.longitude]); // Aggiungi le coordinate al poligono
+            });
+
+            // Crea un poligono se ci sono almeno 3 punti
             if (latLngs.length >= 3) {
-                // Crea il poligono se ci sono almeno 3 punti per la categoria dell'utente
                 const polygon = L.polygon(latLngs, polylineStyles[category]);
                 drawnItems.addLayer(polygon); // Aggiungi il poligono al layer
             }
-        }
-        // DUECrea i raggi collegando i nodi corrispondenti
-        createRaggi(groupedMarkers);
+        });
     });
- 
- 
- console.log("Grouped Markers prima di creare i raggi:", groupedMarkers);
+
     // Adatta la mappa per includere tutti i marker e i poligoni
     if (layerGroup.getLayers().length > 0) {
         map.fitBounds(layerGroup.getBounds());
     }
 }
-function createRaggi(groupedMarkers) {
-  console.log("Grouped Markers all'inizio:", groupedMarkers);
+  
 
-     // Normalizza groupedMarkers
-     ['bon', 'moyen', 'bas'].forEach(category => {
-        if (!groupedMarkers[category]) {
-            groupedMarkers[category] = [];
-        }
-    });
-  const verticesBon = {};
-    const verticesMoyen = {};
-    const verticesMauvais = {};
-
-    // Popola i vertici per ogni categoria
-    for (const [index, article] of groupedMarkers['bon'].entries()) {
-        console.log("Articolo Bon:", article);
-        verticesBon[index + 1] = [article.lat, article.lng];
-    }
-    for (const [index, article] of groupedMarkers['moyen'].entries()) {
-        console.log("Articolo Moyen:", article);
-        verticesMoyen[index + 1] = [article.lat, article.lng];
-    }
-    for (const [index, article] of groupedMarkers['bas'].entries()) {
-        console.log("Articolo Bas:", article);
-        verticesMauvais[index + 1] = [article.lat, article.lng];
-    }
-
-    // Controlla il risultato finale
-    console.log("Vertices Bon:", verticesBon);
-    console.log("Vertices Moyen:", verticesMoyen);
-    console.log("Vertices Mauvais:", verticesMauvais);
-
-       // Disegna le polilinee tra i vertici Moyen e Mauvais
-       // Disegna le polilinee tra i vertici Bon, Moyen e Mauvais
-for (const key in verticesBon) {
-    if (verticesBon.hasOwnProperty(key)) {
-        const pointBon = verticesBon[key];
-        const pointMoyen = verticesMoyen[key];
-        const pointMauvais = verticesMauvais[key];
-
-        // Assicurati che tutti e tre i punti siano definiti
-        for (const key in verticesBon) {
-        const pointBon = verticesBon[key];
-        const pointMoyen = verticesMoyen[key];
-        const pointMauvais = verticesMauvais[key];
-        if (pointBon && pointMoyen && pointMauvais) {
-            console.log(`Disegno polilinee tra Bon, Moyen e Mauvais per il vertice ${key}`);
-            drawnItems.addLayer(L.polyline([pointBon, pointMoyen], { color: 'black', weight: 0.9 }));
-            drawnItems.addLayer(L.polyline([pointMoyen, pointMauvais], { color: 'black', weight: 0.8 }));
-        }
-    }
-}
-
-    
-
-    // Stampa le coordinate per ogni vertice di Moyen
-    for (const [key, coords] of Object.entries(verticesMoyen)) {
-        console.log(`Vertice Moyen ${key}:`, coords); // Stampa le coordinate
-        // Usa coords[0] e coords[1] per lat e lng rispettivamente
-    }
-
-    // Se desideri anche stampare i vertici Mauvais
-    for (const [key, coords] of Object.entries(verticesMauvais)) {
-        console.log(`Vertice Mauvais ${key}:`, coords); // Stampa le coordinate
-        // Usa coords[0] e coords[1] per lat e lng rispettivamente
-    }
-}
-}
     // Function to handle map visibility
     function toggleMap() { 
 
@@ -349,7 +246,7 @@ for (const key in verticesBon) {
   
       if (mapElement.style.display === 'none') {
         mapElement.style.display = 'block';
-        toggleButton.textContent = '+';
+        toggleButton.textContent = 'Efface la carte';
 
         // Initialize map only once, then update content
         if (!map) {
@@ -382,7 +279,7 @@ for (const key in verticesBon) {
         }, 100); // Short delay to ensure rendering
       } else {
         mapElement.style.display = 'none';
-        toggleButton.textContent = '-';
+        toggleButton.textContent = 'Visualiser la carte';
       }
     }
 
@@ -413,12 +310,6 @@ for (const key in verticesBon) {
   }
 
  
-</script>
-
-
-<script>
-  const groupedByUser = <%- JSON.stringify(groupedByUser ) %>;
-  console.log("Grouped By User data:", groupedByUser);
 </script>
 
 <%- include('layout/footer') %>
