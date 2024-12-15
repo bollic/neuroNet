@@ -18,7 +18,18 @@ mongoose.connect(process.env.DATABASE_URL, {
    // useNewUrlParser: true,
    // useUnifiedTopology: true
     })
-  .then(() => console.log('Connexion à MongoDB réussie !'))
+    .then(() => {
+        console.log('Connexion à MongoDB réussie !');
+        // Elimina articoli orfani
+        (async () => {
+          try {
+            const deleted = await Article.deleteMany({ user: '675185f9fe88f5f41b5a40e9' });
+            console.log(`${deleted.deletedCount} articoli di coucou4 eliminati.`);
+          } catch (error) {
+            console.error('Errore durante l\'eliminazione degli articoli orfani:', error);
+          }
+        })();
+      })
   .catch(() => console.log('Connexion à MongoDB échouée !'));
 
 

@@ -28,7 +28,9 @@
 
       <div class="table-responsive">
         <% if (user) { %>
-          <h2>Bienvenue, <%= user.email %>!</h2>
+          <h2>Bienvenue, <%= user.email %>!</h2> <br>  <button id="add-triangle" class="btn btn-primary">
+            <i class="fas fa-shapes"></i> Triangle
+          </button>
           <a href="/logout">Se déconnecter</a>
         <% } else { %>
           <a href="/login">Se connecter</a>
@@ -68,7 +70,10 @@
                 </tr>
      <!-- INIZIO FRONTEND 2: Logica aggiuntiva per elaborare groupedByMarkers -->
                 <script>
-                  if (typeof filteredUsers === 'undefined') var filteredUsers = [];
+                // Inizializza filteredUsers come array vuoto per evitare errori
+  if (typeof filteredUsers === 'undefined') var filteredUsers = [];
+                
+                  
                   filteredUsers.push({
                     _id: "<%= row._id || '' %>",                
                     name: "<%= row.name %>",
@@ -85,7 +90,10 @@
             </tbody>
           </table>
         <% } else { %>
-          <h1 class="text-center text-secondary mt-5">Aucun article trouvé dans la base de données!</h1>
+          <div class="text-center mt-5">
+            <h1 class="text-secondary">Aucun article trouvé dans la base de données!</h1>
+            <a href="/ajoute_articles" class="btn btn-primary mt-3">Ajouter le premier article</a>
+          </div>  
         <% } %>
       </div>
     </div>
@@ -98,8 +106,13 @@
     let map; // Declare map variable
     let layerGroup = L.featureGroup(); // Initialize layerGroup once
     var drawnItems = new L.FeatureGroup();
+    //let trianglePoints = []; // Memorizza i punti selezionati
+    const maxPoints = 3; // Numero massimo di punti per un triangolo
 
-    // Function to initialize the map (runs only once)
+    const addTriangleButton = document.getElementById("add-triangle");
+    const mapElement = document.getElementById("map");
+    // Recupera dati server-side
+         // Function to initialize the map (runs only once)
     function initializeMap() {
       map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
 
@@ -296,7 +309,52 @@ for (const key in verticesBon) {
 
 
 
+    // Funzione per gestire i clic sulla mappa per aggiungere punti al triangolo
+   /* function handleMapClick(event) {
+        const { lat, lng } = event.latlng;
+        trianglePoints.push({ lat, lng });
 
+        // Aggiungi un marker per feedback visivo
+        L.marker([lat, lng]).addTo(map);
+        alert(`Punto selezionato: (${lat.toFixed(5)}, ${lng.toFixed(5)})`);
+
+        if (trianglePoints.length === maxPoints) {
+            map.off("click", handleMapClick); // Rimuovi il listener per i clic
+            alert("Hai selezionato 3 punti! Creo il triangolo...");
+
+            // Disegna il triangolo sulla mappa
+            const latLngs = trianglePoints.map(point => [point.lat, point.lng]);
+            latLngs.push(latLngs[0]); // Chiudi il triangolo
+            const triangle = L.polygon(latLngs, { color: "green", weight: 2 });
+            drawnItems.addLayer(triangle);
+
+            // Invia i punti del triangolo al server
+            fetch("/add-triangle", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ points: trianglePoints }),
+            })
+                .then(response => {
+                    if (!response.ok) throw new Error(`Errore dal server: ${response.status}`);
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert("Triangolo salvato con successo!");
+                    } else {
+                        alert(`Errore durante il salvataggio: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    console.error("Errore nella richiesta:", error);
+                });
+
+            // Resetta i punti del triangolo per il prossimo
+            trianglePoints = [];
+            map.on("click", handleMapClick); // Riattiva il listener
+        }
+    }
+*/
     // Function to handle map visibility
     function toggleMap() { 
 

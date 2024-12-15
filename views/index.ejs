@@ -29,7 +29,8 @@
       <div class="table-responsive">
         <% if (user) { %>
           <h2>Bienvenue, <%= user.email %>!</h2>
-          <a href="/logout">Se déconnecter</a>
+        
+          <a href="/logout" class="btn btn-secondary">Se déconnecter</a>
         <% } else { %>
           <a href="/login">Se connecter</a>
           <a href="/signup">S'inscrire</a>
@@ -346,7 +347,7 @@ for (const key in verticesBon) {
 
       const mapElement = document.getElementById('map');
       const toggleButton = document.getElementById('toggle-map');
-  
+      
       if (mapElement.style.display === 'none') {
         mapElement.style.display = 'block';
         toggleButton.textContent = '+';

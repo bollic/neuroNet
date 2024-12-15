@@ -5,6 +5,8 @@
     // Initialiser la carte avec Leaflet
     let map = L.map("map", { center: [46.2, 2.9], zoom: 5 });
     let layerGroup = L.featureGroup().addTo(map);
+   let treArticles=[];
+   let selectedCoordinates = []; // Array per memorizzare le coordinate dei 3 punti
 
     // Ajouter le fond de carte
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
@@ -32,20 +34,126 @@ function onMapClick(e) {
 }
 map.addEventListener("click", onMapClick);
 
+ // Listener per il clic sulla mappa
 map.addEventListener("click", function(e) {
-        myLocation.clearLayers();
-        L.marker(e.latlng).addTo(myLocation);
+  if (selectedCoordinates.length < 3) {
+    // Aggiungi un marker sulla mappa
+    L.marker(e.latlng).addTo(myLocation);
 
-        // Mettre à jour les champs cachés avec les coordonnées sélectionnées
-        document.getElementById('latitudeSelectioneeInput').value = e.latlng.lat;
-        document.getElementById('longitudeSelectioneeInput').value = e.latlng.lng;
- 
+    // Memorizza le coordinate selezionate
+    selectedCoordinates.push(e.latlng);
+        // Aggiorna i campi nascosti per ogni articolo (latitudine e longitudine)
+        const pointIndex = selectedCoordinates.length - 1;
+   // Aggiorna i valori dei campi hidden per latitudine e longitudine per l'articolo corrente
+   document.getElementById(`latitudeSelectioneeInput_${pointIndex}`).value = e.latlng.lat;
+    document.getElementById(`longitudeSelectioneeInput_${pointIndex}`).value = e.latlng.lng;
+     // Aggiorna i valori degli input nascosti con le coordinate selezionate
+   // latInput.value = e.latlng.lat;
+ //   lngInput.value = e.latlng.lng;
+
+    // Aggiorna i campi nascosti con le coordinate selezionate
+    document.getElementById('latitudeSelectionee').textContent = 
+      selectedCoordinates.map(coord => coord.lat).join(', ');
+    document.getElementById('longitudeSelectionee').textContent = 
+      selectedCoordinates.map(coord => coord.lng).join(', ');
+  } else {
+    alert("Hai già selezionato 3 punti!");
+  }
 });
+
+
     const allMarker = document.getElementById("get-marker");
     allMarker.addEventListener("click", async () => {
       console.log("All marker clicked");
       layerGroup.clearLayers();
     });
+
+ // Funzione per verificare il numero di articoli già presenti
+        async function checkMaxArticles() {
+            const response = await fetch('/api/check-articles'); // Percorso per verificare il numero di articoli
+            const data = await response.json();
+
+            if (data.count >= 3) {
+                alert("Puoi aggiungere solo 3 articoli.");
+                return false;
+            }
+            return true;
+        }
+
+
+ const form = document.getElementById("add-form");
+ form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  // Verifica se ci sono punti selezionati
+  if (selectedCoordinates.length === 0) {
+    alert("Seleziona almeno un punto sulla mappa!");
+    return;
+  }
+
+  // Verifica se ci sono abbastanza coordinate per il nuovo articolo
+  if (treArticles.length >= 3 || selectedCoordinates.length < 3 - treArticles.length) {
+    alert("Puoi aggiungere al massimo 3 articoli con coordinate valide!");
+    return;
+  }
+   // Associa le coordinate al nuovo articolo
+   const pointIndex = treArticles.length; // Usa un indice per le coordinate
+  const point = selectedCoordinates[pointIndex];
+// Ciclo per creare articoli con tutte le coordinate
+    // Verifica che il punto esista
+    if (!point) {
+    alert("Mancano coordinate per il prossimo articolo!");
+    return;
+  }
+  const articleData = {
+    name: form.querySelector("[name='name']").value,
+    category: form.querySelector("[name='category']").value,
+    vertex: form.querySelector("[name='vertex']").value,
+    latitudeSelectionee: point.lat, // Usa la latitudine del punto corrente
+    longitudeSelectionee: point.lng, // Usa la longitudine del punto corrente
+    image: form.querySelector("[name='image']").value
+  };
+
+  // Aggiungi l'articolo all'array
+  treArticles.push(articleData);
+  console.log("Articolo aggiunto:", articleData);
+  console.log("Articoli totali:", treArticles);
+
+  // Controlla se sono stati aggiunti 3 articoli
+  if (treArticles.length === 3) {
+    // Prepara i dati per l'invio al server
+    const formData = new FormData();
+    treArticles.forEach((article, index) => {
+      formData.append(`articles[${index}][name]`, article.name);
+      formData.append(`articles[${index}][category]`, article.category);
+      formData.append(`articles[${index}][vertex]`, article.vertex);
+      formData.append(`articles[${index}][latitudeSelectionee]`, article.latitudeSelectionee);
+      formData.append(`articles[${index}][longitudeSelectionee]`, article.longitudeSelectionee);
+      formData.append(`articles[${index}][image]`, article.image);
+    });
+
+    // Invia i dati al server
+    try {
+      const response = await fetch("/ajoute_articles", { method: "POST", body: formData });
+
+      if (response.ok) {
+        alert("Tutti gli articoli aggiunti con successo!");
+        window.location.reload();
+      } else {
+        alert("Errore nella spedizione degli articoli!");
+      }
+    } catch (err) {
+      console.error("Errore durante l'invio:", err);
+    }
+  } else {
+    // Messaggio per indicare quanti articoli mancano
+    alert(`Articolo aggiunto. Mancano ${3 - treArticles.length} articoli.`);
+  }
+
+  // Resetta il form per il prossimo articolo
+  form.reset();
+});
+
   });
 </script>
 <!-- Div où la carte sera affichée -->
@@ -76,7 +184,7 @@ map.addEventListener("click", function(e) {
                           </select><br>
                           <label for="vertex">Vertice:</label>
                           <select id="vertex" name="vertex" value="vertex" placeholder="vertex...">
-                              <option value="1">1</option>
+                            <option value="1" selected>1</option> <!-- Questo sarà il valore predefinito -->  
                               <option value="2">2</option>
                               <option value="3">3</option>
                               <option value="4">4</option>
@@ -84,24 +192,30 @@ map.addEventListener("click", function(e) {
                           </select>
                         <label for="name">Name</label>
                         <input type="text" name="name" class="form-control form-control-lg" 
-                        placeholder="Enter name" required />
+                        placeholder="Enter name" value="Default Name"  required />
                     </div>
-                   
-                  
+                              
                     <div class="mb-3">
                         <label for="image" class="form-label">Image</label>
-                        <input type="file" name="image" class="form-control form-control-lg" 
-                     required />
+                        <input type="hidden" name="image" value="image_1726683744353_dendrobate-agrave-tapirer.png" class="form-control form-control-lg" required />
                     </div>
-                    <input type="hidden" name="latitudeSelectionee" id="latitudeSelectioneeInput">
-                    <input type="hidden" name="longitudeSelectionee" id="longitudeSelectioneeInput">
-                 
-                    Latitude Selectionée: <span id="latitudeSelectionee"></span>&deg;<br />
-                    Longitude Selectionée: <span id="longitudeSelectionee"></span>&deg;<br /> 
+  <!-- Questi sono i campi hidden per ciascun articolo, legati ai punti selezionati sulla mappa -->
+<input type="hidden" id="latitudeSelectioneeInput_0" name="latitudeSelectioneeInput_0">
+<input type="hidden" id="longitudeSelectioneeInput_0" name="longitudeSelectioneeInput_0">
+
+<input type="hidden" id="latitudeSelectioneeInput_1" name="latitudeSelectioneeInput_1">
+<input type="hidden" id="longitudeSelectioneeInput_1" name="longitudeSelectioneeInput_1">
+
+<input type="hidden" id="latitudeSelectioneeInput_2" name="latitudeSelectioneeInput_2">
+<input type="hidden" id="longitudeSelectioneeInput_2" name="longitudeSelectioneeInput_2">
+
+  Latitude Selectionée: <span id="latitudeSelectionee"></span>&deg;<br />
+  Longitude Selectionée: <span id="longitudeSelectionee"></span>&deg;<br /> 
+
                     <% if (user) { %>
                       <input type="hidden" name="id" value="<%= user._id %>">
                     <% } %>
-                   
+                  
                     
                     <div class="mb-3 d-grid">                      
                         <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />
