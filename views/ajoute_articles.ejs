@@ -108,7 +108,7 @@ map.addEventListener("click", function(e) {
   const articleData = {
     name: form.querySelector("[name='name']").value,
     category: form.querySelector("[name='category']").value,
-    vertex: form.querySelector("[name='vertex']").value,
+  
     latitudeSelectionee: point.lat, // Usa la latitudine del punto corrente
     longitudeSelectionee: point.lng, // Usa la longitudine del punto corrente
     image: form.querySelector("[name='image']").value
@@ -126,7 +126,7 @@ map.addEventListener("click", function(e) {
     treArticles.forEach((article, index) => {
       formData.append(`articles[${index}][name]`, article.name);
       formData.append(`articles[${index}][category]`, article.category);
-      formData.append(`articles[${index}][vertex]`, article.vertex);
+ 
       formData.append(`articles[${index}][latitudeSelectionee]`, article.latitudeSelectionee);
       formData.append(`articles[${index}][longitudeSelectionee]`, article.longitudeSelectionee);
       formData.append(`articles[${index}][image]`, article.image);
@@ -175,30 +175,31 @@ map.addEventListener("click", function(e) {
             </div>
        
             <div class="card-body p-4">
-                <form action="/ajoute_articles" method="post" id="add-form" enctype="multipart/form-data">
+                <form action="/ajoute_articles" method="POST" id="add-form" enctype="multipart/form-data">
                     <div class="mb-3">
                         <select id="category" name="category" value="category" placeholder="Content..." >
                             <option value="bon">Content</option>
-                            <option value="moyen">Moyen</option>
+                            <option value="moyen" selected>Moyen</option>
                             <option value="bas">Pas content</option>    
                           </select><br>
-                          <label for="vertex">Vertice:</label>
-                          <select id="vertex" name="vertex" value="vertex" placeholder="vertex...">
-                            <option value="1" selected>1</option> <!-- Questo sarà il valore predefinito -->  
-                              <option value="2">2</option>
-                              <option value="3">3</option>
-                              <option value="4">4</option>
-                              <option value="5">5</option>
-                          </select>
+                         
                         <label for="name">Name</label>
                         <input type="text" name="name" class="form-control form-control-lg" 
                         placeholder="Enter name" value="Default Name"  required />
                     </div>
                               
                     <div class="mb-3">
-                        <label for="image" class="form-label">Image</label>
-                        <input type="hidden" name="image" value="image_1726683744353_dendrobate-agrave-tapirer.png" class="form-control form-control-lg" required />
+                        <label for="image_1" class="form-label">Image</label>
+                        <input type="hidden" name="image_1" value="image_1.png" class="form-control form-control-lg" required />
                     </div>
+                    <div class="mb-3">
+                      <label for="image_2" class="form-label">Image</label>
+                      <input type="hidden" name="image_2" value="image_2.png" class="form-control form-control-lg" required />
+                  </div>
+                  <div class="mb-3">
+                    <label for="image_3" class="form-label">Image</label>
+                    <input type="hidden" name="image_3" value="image_3.png" class="form-control form-control-lg" required />
+                </div>
   <!-- Questi sono i campi hidden per ciascun articolo, legati ai punti selezionati sulla mappa -->
 <input type="hidden" id="latitudeSelectioneeInput_0" name="latitudeSelectioneeInput_0">
 <input type="hidden" id="longitudeSelectioneeInput_0" name="longitudeSelectioneeInput_0">

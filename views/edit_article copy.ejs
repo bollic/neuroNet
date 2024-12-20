@@ -87,11 +87,6 @@
                         <input type="text" name="name" class="form-control form-control-lg" 
                         placeholder="Enter name" value="<%= article.name %>"  required />
                     </div>
-                    <% if (article.category) { %>
-                      <p style="color: red; font-weight: bold;">Categoria attuale: <%= article.category %></p>
-                    <% } else { %>
-                      <p style="color: red; font-weight: bold;">Categoria non trovata!</p>
-                    <% } %>
                     <label for="category">Category</label>
                     <select id="category" name="category"  placeholder="Content..." >
                       <option value="bon" <%= article.category === "bon" ? "selected" : "" %>>Content</option>
@@ -99,6 +94,7 @@
                       <option value="bas" <%= article.category === "bas" ? "selected" : "" %>>Pas content</option>
                     </select><br>
 
+                  
                     <div class="mb-3">                   
                     <label for="latitudeSelectionee">Latitude</label>
                         <input type="text" id="latitudeSelectioneeInput" name="latitudeSelectionee" class="form-control form-control-lg" 
@@ -109,20 +105,23 @@
                         <input type="text" id="longitudeSelectioneeInput" name="longitudeSelectionee" class="form-control form-control-lg" 
                         placeholder="Enter longitude" value="<%= article.longitudeSelectionee %>" required />
                     </div>
-                    <% if (article.image) { %>
-                      <p style="color: red; font-weight: bold;">Image attuale: <%= article.image %></p>
-                    <% } else { %>
-                      <p style="color: red; font-weight: bold;">Image non trovata!</p>
-                    <% } %>
-                    <label for="image">Image</label>
-                    <select id="image" name="image"  placeholder="image..." >
-                      <option value="image_1.png" <%= article.image === "image_1.png" ? "selected" : "" %>>image_1</option>
-                      <option value="image_2.png" <%= article.image === "image_2.png" ? "selected" : "" %>>image_2</option>
-                      <option value="image_3.png" <%= article.image === "image_3.png" ? "selected" : "" %>>image_3</option>
-                    </select><br>                
-                     <% if (article.image) { %>
-                        <img src="/uploads/<%= article.image %>" alt="Current Image" class="img-thumbnail mt-1" width="100">
-                     <% } %>                                  
+                    
+                  
+                      <div class="mb-3">
+                        <label for="image" class="form-label">Image</label>
+                        <select name="image" class="form-select form-select-lg">
+                          <option value="image_1.png" <%= article.image === 'image_1.png' ? 'selected' : '' %>>Image 1</option>
+                          <option value="image_2.png" <%= article.image === 'image_2.png' ? 'selected' : '' %>>Image 2</option>
+                          <option value="image_3.png" <%= article.image === 'image_3.png' ? 'selected' : '' %>>Image 3</option>
+                        </select>
+                      
+                        <!-- Anteprima dell'immagine attuale -->
+                        <% if (article.image) { %>
+                          <img src="/uploads/<%= article.image %>" alt="Current Image" class="img-thumbnail mt-3" width="60">
+                        <% } %>
+                      </div>
+
+                   
                     <div class="mb-3 d-grid">                      
                         <input type="submit" name="submit" value="User" class="btn btn-success btn-lg"  />
                     </div>

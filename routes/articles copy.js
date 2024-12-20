@@ -143,6 +143,9 @@ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
 
      // Rendre la page avec les articles et l'user connecté
          res.render('indexZoneAuthor',  {
+            articles: articles || [], // Passa un array vuoto se non ci sono articoli
+      filteredUsers: [],
+      groupedMarkers: [],
              title:'la liste tes points',
                session: req.session, // Passer la session à la vue
                user: req.session.user, // Vérifiez si un user est connecté
@@ -285,38 +288,135 @@ router.get("/addForm", isAuthenticated, (req, res) => {
   res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
 }
 });
-
-router.post("/ajoute_articles", upload, async(req, res) => {
-  // Log del corpo della richiesta e della sessione
-  console.log("Dati del form ricevuti:", req.body);
-  console.log("Sessione utente:", req.session ? req.session.user : "Nessuna sessione");
-  const articles = new Article({
- 
-    user: req.body.id,
-    name: req.body.name,
-    category: req.body.category,
-    vertex: req.body.vertex,
-    image: req.file.filename,
-    latitudeSelectionee: req.body.latitudeSelectionee,
-    longitudeSelectionee: req.body.longitudeSelectionee,
-    user: req.session.user,
-    session: req.session, // Passer la session à la vue
-   // message: req.session.message  // Passe l'user connecté à la vue
-  });
+// Route per aggiungere un triangolo
+/*router.post('/add-triangle', async (req, res) => {
   try {
-    await articles.save();
+      const { points } = req.body;
+
+      // Controllo di validità
+      if (!points || points.length !== 3) {
+          return res.status(400).json({ error: "Servono esattamente 3 punti per un triangolo!" });
+      }
+
+      // Creazione dell'articolo triangolo
+      const newTriangle = new Article({
+          name: "Triangolo",
+          vertex: points,
+          category: 1, // Categoria predefinita
+          user: req.session.user ? req.session.user._id : null // Associa l'utente loggato
+      });
+
+      // Salva nel database
+      await newTriangle.save();
+
+      res.json({ success: true, message: "Triangolo aggiunto con successo!" });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Errore interno del server" });
+  }
+});
+*/
+router.get('/api/check-articles', async (req, res) => {
+  try {
+      const userId = req.session.user._id;  // Ottieni l'ID dell'utente dalla sessione
+      const count = await Article.countDocuments({ user: userId });
+      res.json({ count });  // Restituisci il numero di articoli
+  } catch (err) {
+      console.error("Errore nel recupero degli articoli:", err);
+      res.status(500).send("Errore nel recupero degli articoli");
+  }
+});
+
+router.post("/ajoute_articles", upload, async (req, res) => {
+  try {
+    console.log(req.body);
+
+    const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
+
+    // Conta gli articoli già aggiunti dall'utente
+    const existingArticles = await Article.countDocuments({ user: userId });
+
+    if (existingArticles >= 3) {
+      // Se l'utente ha già 3 articoli, blocca l'aggiunta
+      return res.status(400).send("Puoi aggiungere al massimo 3 articoli.");
+    }
+
+    const { body } = req;
+    const treArticles = [];
+
+    let i = 0;
+    // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
+    while (body[`latitudeSelectioneeInput_${i}`]) {
+      console.log(`Trovato articolo ${i}:`);
+      
+      // Recupera e controlla le coordinate
+      const latitude = parseFloat(body[`latitudeSelectioneeInput_${i}`]);
+      const longitude = parseFloat(body[`longitudeSelectioneeInput_${i}`]);
+
+      // Verifica che le coordinate siano numeriche
+      if (isNaN(latitude) || isNaN(longitude)) {
+        console.log("Errore: Coordinate non valide");
+        return res.status(400).send("Le coordinate devono essere numeriche.");
+      }
+
+      // Creazione dei dati per l'articolo
+      const articleData = {
+        name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
+        category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
+        vertex: body.vertex && body.vertex.trim() !== "" ? body.vertex : "1",  // Usa 'vertex' dal form
+        latitudeSelectionee: latitude,  // Latitudine
+        longitudeSelectionee: longitude,  // Longitudine
+        image: req.file && req.file.filename ? req.file.filename : "image_1.png", // Usa immagine predefinita se non c'è un file
+      };
+      
+      console.log(`Articolo ${i} dati:`, articleData);
+
+      // Verifica che tutti i campi obbligatori siano presenti
+      if (!articleData.name || !articleData.category || !articleData.vertex || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
+        console.log("Errore: Manca uno dei campi obbligatori");
+        return res.status(400).send("Tutti i campi sono obbligatori");
+      }
+
+      // Aggiungi l'articolo all'array
+      treArticles.push(articleData);
+      i++; // Incrementa l'indice per il prossimo articolo
+    }
+
+    // Verifica che siano stati trovati articoli
+    if (treArticles.length === 0) {
+      return res.status(400).send("Nessun articolo da aggiungere.");
+    }
+
+    // Salva tutti gli articoli nel database
+    for (const articleData of treArticles) {
+      const newArticle = new Article({
+        user: userId,
+        name: articleData.name,
+        category: articleData.category,
+        vertex: articleData.vertex,
+        latitudeSelectionee: articleData.latitudeSelectionee,
+        longitudeSelectionee: articleData.longitudeSelectionee,
+        image: articleData.image,
+      });
+
+      await newArticle.save();
+    }
+
+    console.log("Articoli salvati:", treArticles);
+
+    // Impostazione del messaggio di successo nella sessione
     req.session.message = {
       type: "success",
-      message: "Article ajouté avec succes!",
-     
-    }
-    res.redirect('/');
-    console.log("Articolo aggiunto con successo:", req.session.message)
+      message: "Articoli aggiunti con successo!",
+    };
+
+    // Redirect alla home dopo il salvataggio degli articoli
+    return res.redirect("/indexZoneAuthor");
+
   } catch (err) {
-    console.error("Errore durante l'aggiunta dell'articolo:", err);
-    res.status(500).send('Erreur lors de l enregistrement de l user');
+    console.error("Errore durante l'aggiunta degli articoli:", err);
+    res.status(500).send("Errore durante l'invio degli articoli");
   }
- 
 });
 
 // delete a product
@@ -371,7 +471,7 @@ router.get('/delete/:id', async (req, res) => {
       console.log('Article supprimé avec succès');
 
       // Rediriger vers la page principale après suppression
-      res.redirect('/');
+      res.redirect('/indexZoneAuthor');
     } catch (err) {
     // Gérer les erreurs et les afficher dans la console
     console.error('Erreur lors de la suppression de l\'article:', err);
@@ -405,43 +505,39 @@ router.get("/edit/:id", isAuthenticated, isAuthor, async(req, res) => {
 });
 
 
-router.post("/edit/:id", upload, async (req, res) => {
+router.post("/edit/:id", async (req, res) => {
   try {
     let articleId = req.params.id;
     console.log("ID dell'articolo passato:", req.params.id);
+   
     //image: req.file.filename,
     // Trouver l'user par son ID
     let article = await Article.findById(articleId);
-    console.log("Articolo passato:", req.params.id);
-
+    console.log("Articolo passato:", article);
+   
     if (article) {
-      // Mettre à jour les informations de l'user
-      article.name = req.body.name;
+      // Mettre à jour les infor
+        console.log("Immagine selezionata dal form:", req.body.image);
+
+     // Aggiorna i campi con i valori inviati dal form
+     article.name = req.body.name || article.name;
+     article.category = req.body.category || article.category;
+     article.image = req.body.image || article.image; // Assicurati che 'image' esista in req.body
+
       article.latitudeSelectionee = req.body.latitudeSelectionee;
       article.longitudeSelectionee = req.body.longitudeSelectionee;
-     // article.image = req.file.filename
+       // Aggiorna l'immagine con quella selezionata dal <select>
+     
+     // 
+      // article.image = req.file.filename
       // Vérifiez si une nouvelle image a été uploadée
-      if (req.file) {
-        // Supprimer l'ancienne image si elle existe
-        if (article.image) {
-          console.log(article.image)
-          const oldImagePath = './uploads/' + article.image;
-          try {
-            fs.unlinkSync(oldImagePath);
-            console.log('Ancienne image supprimée avec succès');
-          } catch (err) {
-            console.error('Erreur lors de la suppression de l\'ancienne image:', err);
-          }
-        }
-        // Mettre à jour le chemin de la nouvelle image
-        article.image = req.file.filename;
-      }
+   
 
       // Sauvegarder les modifications dans la base de données
       await article.save();
-
+      console.log("Articolo aggiornato:", article);
       // Rediriger vers la page principale avec un message de succès
-      res.redirect('/');
+      res.redirect('/indexZoneAuthor');
     } else {
       res.status(404).send('user non trouvé');
     }

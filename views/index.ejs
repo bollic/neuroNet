@@ -43,10 +43,9 @@
                 <th>ID</th>
                 <th>Image</th>
                 <th>Name</th>
-                <th>VERTEX</th>
                 <th>Category</th>
-                <th>idUser</th>                
-                <th>LAT LNG</th>
+                             
+               
                 <th>Action</th>
               </tr>
             </thead>
@@ -66,16 +65,9 @@
                   <td><%= index %></td>                  
                   <td><img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="60" /></td>
                   <td><%= row.name %></td>
-                  <td><%= row.vertex %></td>
+                 
                   <td><%= row.category %></td>
-                  <td><%= row.user.email %></td>                  
-                  <td>
-                    <% if (row.latitudeSelectionee && row.longitudeSelectionee) { %>
-                      <%= row.latitudeSelectionee %>, <%= row.longitudeSelectionee %>
-                    <% } else { %>
-                      N/A
-                    <% } %>
-                  </td>
+                          
                   <td>
                     <a href="/edit/<%= row._id %>" class="btn btn-sm btn-outline-success"><i class="fas fa-edit"></i></a>
                     <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
@@ -221,12 +213,8 @@ map.addControl(drawControl);
     console.warn("La categoria è un oggetto, verifica la struttura:", category);
 
     // Seleziona la chiave giusta se necessario
-    if (category.name) { // Sostituisci "name" con la chiave giusta per accedere alla categoria
-        category = category.name; 
-    } else {
-        console.error("Impossibile determinare la categoria da questo oggetto:", category);
-        return;
-    }
+    // Se category è già una stringa (es. "bon", "moyen", "bas"), usala direttamente
+
 }
 
      console.log("Validazione categoria:", { category, icons });
@@ -248,7 +236,7 @@ map.addControl(drawControl);
             // Aggiungi le coordinate alla categoria corrispondente
             if (groupedMarkers[category]) {
               console.log(groupedMarkers[category])
-                groupedMarkers[category].push({ lat, lng, id: article._id, vertex: article.vertex || null });
+                groupedMarkers[category].push({ lat, lng, id: article._id || null });
             }
         });
 

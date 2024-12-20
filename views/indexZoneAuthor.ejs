@@ -44,7 +44,7 @@
                 <th>ID</th>
                 <th>Image</th>
                 <th>Name</th>
-                <th>Vertex</th>
+                
                 <th>Category</th>
                 <th>idUtilisateur</th>                
                 <th>LAT LNG</th>
@@ -58,7 +58,7 @@
                   <td><%= index %></td>                  
                   <td><img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="60" /></td>
                   <td><%= row.name %></td>
-                  <td><%= row.vertex %></td>
+                 
                   <td><%= row.category %></td>
                   <td><%= row.user %></td>                  
                   <td><%= parseFloat(row.latitudeSelectionee).toFixed(2) %>,<%= parseFloat(row.longitudeSelectionee).toFixed(2) %></td>
@@ -77,7 +77,7 @@
                   filteredUsers.push({
                     _id: "<%= row._id || '' %>",                
                     name: "<%= row.name %>",
-                    vertex: "<%= row.vertex %>",    
+                  
                     email: "<%= row.email %>",                    
                     latitudeSelectionee: "<%= row.latitudeSelectionee %>",
                     longitudeSelectionee: "<%= row.longitudeSelectionee %>",
@@ -197,7 +197,7 @@ function updateMap() {
 
         if (!isNaN(lat) && !isNaN(lng)) {
             // Aggiungi il marker alla categoria corrispondente
-            groupedMarkers[article.category].push({ lat, lng, id: article._id, vertex: article.vertex }); // Includi vertex
+            groupedMarkers[article.category].push({ lat, lng, id: article._id});
 
             const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
             singleMarker.on('dragend', function(e) {
@@ -207,7 +207,7 @@ function updateMap() {
 
             singleMarker.bindPopup(`
                 <b>${article.name}</b><br>
-                <b>${article.vertex || "Nessun vertice specificato"}</b><br>
+             
                 <strong>${article._id}</strong><br>
                 <img src="/uploads/${article.image}" alt="Immagine" class="img-thumbnail" width="100">
             `);

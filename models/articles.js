@@ -5,10 +5,7 @@ const articleSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,  // Correct reference to ObjectId
         ref: 'User'  // Assuming it's referencing another User model
     },
-    vertex: {
-        type: String,
-        required: true,
-    },
+ 
     name: {
         type: String,
         required: true,

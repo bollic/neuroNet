@@ -19,11 +19,25 @@
                         <input type="text" name="name" class="form-control form-control-lg" 
                         placeholder="Enter name" value="<%= article.name %>"  required />
                     </div>
-                   
-                    <div class="mb-3">
-                        <label for="image" class="form-label">Image</label>
-                        <input type="file" name="image" class="form-control form-control-lg" 
-                     required />
+                   <!-- Campo Category -->
+<div class="mb-3">
+  <label for="category" class="form-label">Category</label>
+  <select name="category" class="form-select form-select-lg">
+    <option value="bon" <%= article.category === 'bon' ? 'selected' : '' %>>Content</option>
+    <option value="moyen" <%= article.category === 'moyen' ? 'selected' : '' %>>Moyen</option>
+    <option value="bas" <%= article.category === 'bas' ? 'selected' : '' %>>Pas content</option>
+  </select>
+</div>
+                 
+<!-- Campo Immagine -->
+<div class="mb-3">
+  <label for="image" class="form-label">Image</label>
+  <select name="image" class="form-select form-select-lg">
+    <option value="image_1.png" <%= article.image === 'image_1.png' ? 'selected' : '' %>>Image 1</option>
+    <option value="image_2.png" <%= article.image === 'image_2.png' ? 'selected' : '' %>>Image 2</option>
+    <option value="image_3.png" <%= article.image === 'image_3.png' ? 'selected' : '' %>>Image 3</option>
+  </select>
+
                      
                      <% if (article.image) { %>
                         <img src="/uploads/<%= article.image %>" alt="Current Image" class="img-thumbnail mt-1" width="100">

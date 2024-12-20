@@ -54,6 +54,7 @@ router.post('/login', async (req, res) => {
 });
 
 //image upload
+/*
 var storage = multer.diskStorage({
   destination: function(req, file, cb){
     cb(null, './uploads');
@@ -68,8 +69,26 @@ var storage = multer.diskStorage({
 var upload = multer({
    storage: storage,
 }).single('image');
-
+*/
 // Utiliser le middleware pour protéger la route des articles
+// Configurazione multer per più immagini
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './uploads'); // Cartella di destinazione
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname); // Nome file originale
+  },
+});
+
+// Configurazione di multer per gestire più immagini
+var upload = multer({
+  storage: storage,
+}).fields([
+  { name: 'image_0', maxCount: 1 },
+  { name: 'image_1', maxCount: 1 },
+  { name: 'image_2', maxCount: 1 },
+]);
 
 router.get('/',  async (req, res) => {
  try {
@@ -288,34 +307,7 @@ router.get("/addForm", isAuthenticated, (req, res) => {
   res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
 }
 });
-// Route per aggiungere un triangolo
-/*router.post('/add-triangle', async (req, res) => {
-  try {
-      const { points } = req.body;
 
-      // Controllo di validità
-      if (!points || points.length !== 3) {
-          return res.status(400).json({ error: "Servono esattamente 3 punti per un triangolo!" });
-      }
-
-      // Creazione dell'articolo triangolo
-      const newTriangle = new Article({
-          name: "Triangolo",
-          vertex: points,
-          category: 1, // Categoria predefinita
-          user: req.session.user ? req.session.user._id : null // Associa l'utente loggato
-      });
-
-      // Salva nel database
-      await newTriangle.save();
-
-      res.json({ success: true, message: "Triangolo aggiunto con successo!" });
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Errore interno del server" });
-  }
-});
-*/
 router.get('/api/check-articles', async (req, res) => {
   try {
       const userId = req.session.user._id;  // Ottieni l'ID dell'utente dalla sessione
@@ -330,7 +322,7 @@ router.get('/api/check-articles', async (req, res) => {
 router.post("/ajoute_articles", upload, async (req, res) => {
   try {
     console.log(req.body);
-
+ 
     const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
 
     // Conta gli articoli già aggiunti dall'utente
@@ -341,14 +333,13 @@ router.post("/ajoute_articles", upload, async (req, res) => {
       return res.status(400).send("Puoi aggiungere al massimo 3 articoli.");
     }
 
-    const { body } = req;
+    const { body, files } = req;
     const treArticles = [];
 
     let i = 0;
     // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
     while (body[`latitudeSelectioneeInput_${i}`]) {
       console.log(`Trovato articolo ${i}:`);
-      
       // Recupera e controlla le coordinate
       const latitude = parseFloat(body[`latitudeSelectioneeInput_${i}`]);
       const longitude = parseFloat(body[`longitudeSelectioneeInput_${i}`]);
@@ -358,21 +349,23 @@ router.post("/ajoute_articles", upload, async (req, res) => {
         console.log("Errore: Coordinate non valide");
         return res.status(400).send("Le coordinate devono essere numeriche.");
       }
-
+      // Recupera il file caricato per questo articolo
+      const imageField = `image_${i}`;
+      const imageFile = body[imageField] || "image_3.png"; // Usa il valore da req.body
+      
       // Creazione dei dati per l'articolo
       const articleData = {
         name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
         category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
-        vertex: body.vertex && body.vertex.trim() !== "" ? body.vertex : "1",  // Usa 'vertex' dal form
-        latitudeSelectionee: latitude,  // Latitudine
+       latitudeSelectionee: latitude,  // Latitudine
         longitudeSelectionee: longitude,  // Longitudine
-        image: req.file && req.file.filename ? req.file.filename : "image_1726683744353_dendrobate-agrave-tapirer.png", // Usa immagine predefinita se non c'è un file
-      };
+        image: imageFile,  
+     };
       
       console.log(`Articolo ${i} dati:`, articleData);
 
       // Verifica che tutti i campi obbligatori siano presenti
-      if (!articleData.name || !articleData.category || !articleData.vertex || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
+      if (!articleData.name || !articleData.category || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
         console.log("Errore: Manca uno dei campi obbligatori");
         return res.status(400).send("Tutti i campi sono obbligatori");
       }
@@ -393,7 +386,7 @@ router.post("/ajoute_articles", upload, async (req, res) => {
         user: userId,
         name: articleData.name,
         category: articleData.category,
-        vertex: articleData.vertex,
+      
         latitudeSelectionee: articleData.latitudeSelectionee,
         longitudeSelectionee: articleData.longitudeSelectionee,
         image: articleData.image,
@@ -401,8 +394,8 @@ router.post("/ajoute_articles", upload, async (req, res) => {
 
       await newArticle.save();
     }
-
-    console.log("Articoli salvati:", treArticles);
+    const traArticles = await Article.find({ user: userId });
+    console.log("Articoli salvati nel database:", treArticles);
 
     // Impostazione del messaggio di successo nella sessione
     req.session.message = {
@@ -515,10 +508,13 @@ router.post("/edit/:id", upload, async (req, res) => {
     console.log("Articolo passato:", req.params.id);
 
     if (article) {
-      // Mettre à jour les informations de l'user
+     // Aggiorna i campi con i valori inviati dal form dell' edit_article.ejs
       article.name = req.body.name;
+      article.category = req.body.category || article.category;
+      article.image = req.body.image || article.image;
       article.latitudeSelectionee = req.body.latitudeSelectionee;
       article.longitudeSelectionee = req.body.longitudeSelectionee;
+      
      // article.image = req.file.filename
       // Vérifiez si une nouvelle image a été uploadée
       if (req.file) {
