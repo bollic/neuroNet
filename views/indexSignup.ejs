@@ -20,7 +20,7 @@
           <a class="nav-link" href="/login"><i class="fas fa-user-plus me-1"></i>Log in</a>
         </li>
         <li class="nav-item active">
-          <a class="nav-link" href="/utilisateurs"><i class="fas fa-user-plus me-1"></i>utilisateurs</a>
+          <a class="nav-link" href="/users"><i class="fas fa-user-plus me-1"></i>utilisateurs</a>
         </li>
         <li class="nav-item active">
           <a class="nav-link" href="/signup"><i class="fas fa-user-plus me-1"></i>Sign up</a>
@@ -47,7 +47,7 @@
           <a href="/login">Se connecter</a>
           <a href="/signup">S'inscrire</a>
         <% } %>
-        <% if (utilisateurs && utilisateurs.length > 0) { %>    
+        <% if (users && users.length > 0) { %>    
           <table class="table table-striped text-center my-3">
             <thead>
               <tr class="table table-striped text">
@@ -61,7 +61,7 @@
               </tr>
             </thead>
             <tbody>
-              <% utilisateurs.forEach((row, index) => { %>              
+              <% users.forEach((row, index) => { %>              
                 <tr class="align-middle">                
                   <td><%= index  %></td>
                   <td><%= row._id %></td> <!-- Utilisation de _id au lieu de id -->

@@ -22,9 +22,15 @@ mongoose.connect(process.env.DATABASE_URL, {
         console.log('Connexion à MongoDB réussie !');
         // Elimina articoli orfani
         (async () => {
+          const toDelete = await Article.find({ email: "coucou5@gmail.com" });
+console.log("Articoli da eliminare:", toDelete);
           try {
-            const deleted = await Article.deleteMany({ user: '675185f9fe88f5f41b5a40e9' });
-            console.log(`${deleted.deletedCount} articoli di coucou4 eliminati.`);
+            const deleted = await Article.deleteMany({ email: "coucou5@gmail.com"});
+            console.log(`${deleted.deletedCount} articoli eliminati.`);
+          
+             // Log per verificare l'operazione
+        console.log(`${deleted.deletedCount} articoli eliminati per l'utente con ID 675185f9fe88f5f41b5a40e9.`);
+   
           } catch (error) {
             console.error('Errore durante l\'eliminazione degli articoli orfani:', error);
           }

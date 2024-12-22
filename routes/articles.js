@@ -150,14 +150,14 @@ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
       // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
       return res.status(401).send('Utente non autenticato');
     } 
-    const articles = await Article.find({ user: userId });
+    const articles = await Article.find({ user: userId }).populate('user'); 
       // Aggiungi un log per il debug
     console.log('Articoli trovati per l\'utente:', userId, articles);
 
     // Aggiungi log dettagliato
     console.log('ID utente loggato:', userId);
     articles.forEach((article, index) => {
-      console.log(`Articolo ${index + 1} - User ID: ${article.user}, Nome: ${article.name}`);
+      console.log(`Articolo ${index + 1} - - User ID: ${article.user._id}, Nome: ${article.name}`);
     });
 
      // Rendre la page avec les articles et l'user connecté
@@ -404,7 +404,7 @@ router.post("/ajoute_articles", upload, async (req, res) => {
     };
 
     // Redirect alla home dopo il salvataggio degli articoli
-    return res.redirect("/");
+    return res.redirect("/indexZoneAuthor");
 
   } catch (err) {
     console.error("Errore durante l'aggiunta degli articoli:", err);
@@ -417,22 +417,29 @@ router.post("/ajoute_articles", upload, async (req, res) => {
 
 router.get('/delete/:id', async (req, res) => {
   try {
-   // Récupérer l'ID de l'article depuis les paramètres de l'URL
     const articleId = req.params.id;
-    //const userId = req.session.user._id;
-     const userId = req.session.user ? req.session.user._id : null;
-   
-     console.log("ID articolo:", articleId); // Per controllare se l'ID è corretto
-     console.log("ID utente:", userId);
+    const userId = req.session.user ? req.session.user._id : null;
+    const isAdmin = req.session.user && req.session.user.email === 'coucou0@gmail.com';
 
-     let result;  // Dichiarare result all'esterno del blocco try
-  
-     try {
-    // Trouver l'article par ID et user loggé
-    const result = await Article.findOne({ _id: articleId,  user: userId });
-   
+    console.log("ID articolo:", articleId);
+    console.log("ID utente:", userId);
+    console.log("Admin calcolato:", isAdmin);
+
+    let result;
+
+    try {
+      // Se l'utente è admin, cerca solo per `_id`
+      if (isAdmin) {
+        // L'admin può eliminare qualsiasi articolo, non dipende dal campo `user`
+        result = await Article.findOne({ _id: articleId });
+      } else {
+        // Gli utenti normali possono eliminare solo i propri articoli
+        result = await Article.findOne({ _id: articleId, user: userId });
+      }
+
   // Vérifiez si l'article existe et appartient à l'user loggé
     if (!result) {
+      
       console.log("Articolo non trovato o non autorizzato");
       return res.status(404).send('Article non trouvé ou non autorisé à être supprimé');
     }
@@ -537,7 +544,7 @@ router.post("/edit/:id", upload, async (req, res) => {
       await article.save();
 
       // Rediriger vers la page principale avec un message de succès
-      res.redirect('/');
+      res.redirect('/indexZoneAuthor');
     } else {
       res.status(404).send('user non trouvé');
     }

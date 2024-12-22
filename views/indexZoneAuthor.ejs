@@ -60,7 +60,7 @@
                   <td><%= row.name %></td>
                  
                   <td><%= row.category %></td>
-                  <td><%= row.user %></td>                  
+                  <td><%= row.user._id %></td>                  
                   <td><%= parseFloat(row.latitudeSelectionee).toFixed(2) %>,<%= parseFloat(row.longitudeSelectionee).toFixed(2) %></td>
                  
                   <td>
@@ -77,7 +77,7 @@
                   filteredUsers.push({
                     _id: "<%= row._id || '' %>",                
                     name: "<%= row.name %>",
-                  
+                    user: "<%= row.user._id %>",      
                     email: "<%= row.email %>",                    
                     latitudeSelectionee: "<%= row.latitudeSelectionee %>",
                     longitudeSelectionee: "<%= row.longitudeSelectionee %>",
@@ -207,7 +207,7 @@ function updateMap() {
 
             singleMarker.bindPopup(`
                 <b>${article.name}</b><br>
-             
+             <strong>ID user: ${article.user}</strong><br>
                 <strong>${article._id}</strong><br>
                 <img src="/uploads/${article.image}" alt="Immagine" class="img-thumbnail" width="100">
             `);
