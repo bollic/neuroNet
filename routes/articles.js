@@ -337,17 +337,30 @@ router.post("/ajoute_articles", upload, async (req, res) => {
     console.log(req.body);
  
     const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
-
+    const type = req.body.type; // Es: "triangle" o "pentagone"
     // Conta gli articoli già aggiunti dall'utente
-    const existingTriangles  = await Article.countDocuments({ user: userId });
+    const existingTriangles  = await Article.countDocuments({ 
+      user: userId,
+      type: type, // Aggiunge un campo specifico per distinguere le figure
+    });
 
-    if (existingTriangles >= 3) {
+// Definisci il numero massimo di articoli per tipo
+let maxArticles = 0;
+if (type === "triangle") {
+  maxArticles = 3;
+} else if (type === "pentagone") {
+  maxArticles = 5;
+} else {
+  return res.status(400).send("Tipo di articolo non valido.");
+}
+
+    if (existingTriangles >= maxArticles) {
       // Se l'utente ha già 3 articoli, blocca l'aggiunta
-      return res.status(400).send("Puoi aggiungere al massimo 3 articoli.");
+      return res.status(400).send("Puoi aggiungere al massimo  ${maxArticles} articoli di tipo ${type}.");
     }
 
     const { body, files } = req;
-    const treArticles = [];
+    const trianglePoints = [];
 
     let i = 0;
     // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
@@ -372,7 +385,8 @@ router.post("/ajoute_articles", upload, async (req, res) => {
         category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
        latitudeSelectionee: latitude,  // Latitudine
         longitudeSelectionee: longitude,  // Longitudine
-        image: imageFile,  
+        type: "triangle",
+         image: imageFile,  
      };
       
       console.log(`Articolo ${i} dati:`, articleData);
@@ -384,31 +398,33 @@ router.post("/ajoute_articles", upload, async (req, res) => {
       }
 
       // Aggiungi l'articolo all'array
-      treArticles.push(articleData);
+      trianglePoints.push(articleData);
       i++; // Incrementa l'indice per il prossimo articolo
     }
 
     // Verifica che siano stati trovati articoli
-    if (treArticles.length === 0) {
+    if (trianglePoints.length === 0) {
       return res.status(400).send("Nessun articolo da aggiungere.");
     }
 
     // Salva tutti gli articoli nel database
-    for (const articleData of treArticles) {
-      const newArticle = new Article({
+    for (const articleData of trianglePoints ) {
+      const newTriangle = new Article({
         user: userId,
         name: articleData.name,
         category: articleData.category,
       
         latitudeSelectionee: articleData.latitudeSelectionee,
         longitudeSelectionee: articleData.longitudeSelectionee,
+        type: "triangle", // Specifica che si tratta di un triangolo
+   
         image: articleData.image,
       });
 
-      await newArticle.save();
+      await newTriangle.save();
     }
-    const traArticles = await Article.find({ user: userId });
-    console.log("Articoli salvati nel database:", treArticles);
+ 
+    console.log("Articoli salvati nel database:", trianglePoints);
 
     // Impostazione del messaggio di successo nella sessione
     req.session.message = {
@@ -430,17 +446,29 @@ router.post("/ajoute_pentagone", upload, async (req, res) => {
     console.log(req.body);
  
     const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
-
+    const type = req.body.type; // Es: "triangle" o "pentagone"
+  
     // Conta gli articoli già aggiunti dall'utente
-    const existingArticles = await Article.countDocuments({ user: userId });
-
-    if (existingArticles >= 5) {
+    const existingPentagone = await Article.countDocuments({ 
+      user: userId,
+      type: type,
+     });
+// Definisci il numero massimo di articoli per tipo
+let maxArticles = 0;
+if (type === "triangle") {
+  maxArticles = 3;
+} else if (type === "pentagone") {
+  maxArticles = 5;
+} else {
+  return res.status(400).send("Tipo di articolo non valido.");
+}
+    if (existingPentagone >= maxArticles) {
       // Se l'utente ha già 3 articoli, blocca l'aggiunta
       return res.status(400).send("Puoi aggiungere al massimo 5 articoli.");
     }
 
     const { body, files } = req;
-    const cinqueArticles = [];
+    const pentagonePoints = [];
 
     let i = 0;
     // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
@@ -465,6 +493,7 @@ router.post("/ajoute_pentagone", upload, async (req, res) => {
         category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
        latitudeSelectionee: latitude,  // Latitudine
         longitudeSelectionee: longitude,  // Longitudine
+        type: "pentagone",
         image: imageFile,  
      };
       
@@ -477,31 +506,33 @@ router.post("/ajoute_pentagone", upload, async (req, res) => {
       }
 
       // Aggiungi l'articolo all'array
-      cinqueArticles.push(articleData);
+      pentagonePoints.push(articleData);
       i++; // Incrementa l'indice per il prossimo articolo
     }
 
     // Verifica che siano stati trovati articoli
-    if (cinqueArticles.length === 0) {
+    if (pentagonePoints.length === 0) {
       return res.status(400).send("Nessun articolo da aggiungere.");
     }
 
     // Salva tutti gli articoli nel database
-    for (const articleData of cinqueArticles) {
-      const newArticle = new Article({
+    for (const articleData of pentagonePoints) {
+      const newPentagone = new Article({
         user: userId,
         name: articleData.name,
         category: articleData.category,
       
         latitudeSelectionee: articleData.latitudeSelectionee,
         longitudeSelectionee: articleData.longitudeSelectionee,
-        image: articleData.image,
+        type: "pentagone", // Specifica che si tratta di un triangolo
+   
+          image: articleData.image,
       });
 
-      await newArticle.save();
+      await newPentagone.save();
     }
-    const traArticles = await Article.find({ user: userId });
-    console.log("Articoli salvati nel database:", cinqueArticles);
+  
+    console.log("Articoli salvati nel database:", pentagonePoints);
 
     // Impostazione del messaggio di successo nella sessione
     req.session.message = {

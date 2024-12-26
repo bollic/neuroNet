@@ -5,7 +5,7 @@
     // Initialiser la carte avec Leaflet
     let map = L.map("map", { center: [46.2, 2.9], zoom: 5 });
     let layerGroup = L.featureGroup().addTo(map);
-   let treArticles=[];
+   let cinqueArticles=[];
    let selectedCoordinates = []; // Array per memorizzare le coordinate dei 5 punti
 
     // Ajouter le fond de carte
@@ -92,12 +92,12 @@ map.addEventListener("click", function(e) {
   }
 
   // Verifica se ci sono abbastanza coordinate per il nuovo articolo
-  if (treArticles.length >= 5 || selectedCoordinates.length < 5 - treArticles.length) {
+  if (cinqueArticles.length >= 5 || selectedCoordinates.length < 5 - cinqueArticles.length) {
     alert("Puoi aggiungere al massimo 5 articoli con coordinate valide!");
     return;
   }
    // Associa le coordinate al nuovo articolo
-   const pointIndex = treArticles.length; // Usa un indice per le coordinate
+   const pointIndex = cinqueArticles.length; // Usa un indice per le coordinate
   const point = selectedCoordinates[pointIndex];
 // Ciclo per creare articoli con tutte le coordinate
     // Verifica che il punto esista
@@ -111,24 +111,27 @@ map.addEventListener("click", function(e) {
   
     latitudeSelectionee: point.lat, // Usa la latitudine del punto corrente
     longitudeSelectionee: point.lng, // Usa la longitudine del punto corrente
+    type: form.querySelector("[name='type']").value,
     image: form.querySelector("[name='image']").value
   };
 
   // Aggiungi l'articolo all'array
-  treArticles.push(articleData);
+  cinqueArticles.push(articleData);
   console.log("Articolo aggiunto:", articleData);
-  console.log("Articoli totali:", treArticles);
+  console.log("Articoli totali:", cinqueArticles);
 
   // Controlla se sono stati aggiunti 5 articoli
-  if (treArticles.length === 5) {
+  if (cinqueArticles.length === 5) {
     // Prepara i dati per l'invio al server
     const formData = new FormData();
-    treArticles.forEach((article, index) => {
+    cinqueArticles.forEach((article, index) => {
       formData.append(`articles[${index}][name]`, article.name);
       formData.append(`articles[${index}][category]`, article.category);
  
       formData.append(`articles[${index}][latitudeSelectionee]`, article.latitudeSelectionee);
       formData.append(`articles[${index}][longitudeSelectionee]`, article.longitudeSelectionee);
+      formData.append(`articles[${index}][type]`, "pentagone");
+ 
       formData.append(`articles[${index}][image]`, article.image);
     });
 
@@ -147,7 +150,7 @@ map.addEventListener("click", function(e) {
     }
   } else {
     // Messaggio per indicare quanti articoli mancano
-    alert(`Articolo aggiunto. Mancano ${5 - treArticles.length} articoli.`);
+    alert(`Articolo aggiunto. Mancano ${5 - cinqueArticles.length} articoli.`);
   }
 
   // Resetta il form per il prossimo articolo
@@ -178,8 +181,8 @@ map.addEventListener("click", function(e) {
                 <form action="/ajoute_articles" method="POST" id="add-form" enctype="multipart/form-data">
                     <div class="mb-3">
                         <select id="category" name="category" value="category" placeholder="Content..." >
-                            <option value="bon">Content</option>
-                            <option value="moyen" selected>Moyen</option>
+                            <option value="bon" selected>Content</option>
+                            <option value="moyen" >Moyen</option>
                             <option value="bas">Pas content</option>    
                           </select><br>
                          
@@ -233,8 +236,9 @@ map.addEventListener("click", function(e) {
                     <% if (user) { %>
                       <input type="hidden" name="id" value="<%= user._id %>">
                     <% } %>
-                  
-                    
+                     
+                    <input type="hidden" name="type" value="pentagone">
+                                     
                     <div class="mb-3 d-grid">                      
                         <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />
                     </div>

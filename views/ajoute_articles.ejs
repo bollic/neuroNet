@@ -111,7 +111,9 @@ map.addEventListener("click", function(e) {
   
     latitudeSelectionee: point.lat, // Usa la latitudine del punto corrente
     longitudeSelectionee: point.lng, // Usa la longitudine del punto corrente
-    image: form.querySelector("[name='image']").value
+   
+    type: form.querySelector("[name='type']").value,
+     image: form.querySelector("[name='image']").value
   };
 
   // Aggiungi l'articolo all'array
@@ -129,6 +131,8 @@ map.addEventListener("click", function(e) {
  
       formData.append(`articles[${index}][latitudeSelectionee]`, article.latitudeSelectionee);
       formData.append(`articles[${index}][longitudeSelectionee]`, article.longitudeSelectionee);
+      formData.append(`articles[${index}][type]`, "triangle");
+ 
       formData.append(`articles[${index}][image]`, article.image);
     });
 
@@ -217,7 +221,8 @@ map.addEventListener("click", function(e) {
                       <input type="hidden" name="id" value="<%= user._id %>">
                     <% } %>
                   
-                    
+                   <input type="hidden" name="type" value="triangle">
+                 
                     <div class="mb-3 d-grid">                      
                         <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />
                     </div>

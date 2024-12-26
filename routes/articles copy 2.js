@@ -54,6 +54,7 @@ router.post('/login', async (req, res) => {
 });
 
 //image upload
+/*
 var storage = multer.diskStorage({
   destination: function(req, file, cb){
     cb(null, './uploads');
@@ -68,8 +69,26 @@ var storage = multer.diskStorage({
 var upload = multer({
    storage: storage,
 }).single('image');
-
+*/
 // Utiliser le middleware pour protéger la route des articles
+// Configurazione multer per più immagini
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './uploads'); // Cartella di destinazione
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname); // Nome file originale
+  },
+});
+
+// Configurazione di multer per gestire più immagini
+var upload = multer({
+  storage: storage,
+}).fields([
+  { name: 'image_0', maxCount: 1 },
+  { name: 'image_1', maxCount: 1 },
+  { name: 'image_2', maxCount: 1 },
+]);
 
 router.get('/',  async (req, res) => {
  try {
@@ -131,14 +150,14 @@ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
       // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
       return res.status(401).send('Utente non autenticato');
     } 
-    const articles = await Article.find({ user: userId });
+    const articles = await Article.find({ user: userId }).populate('user'); 
       // Aggiungi un log per il debug
     console.log('Articoli trovati per l\'utente:', userId, articles);
 
     // Aggiungi log dettagliato
     console.log('ID utente loggato:', userId);
     articles.forEach((article, index) => {
-      console.log(`Articolo ${index + 1} - User ID: ${article.user}, Nome: ${article.name}`);
+      console.log(`Articolo ${index + 1} - - User ID: ${article.user._id}, Nome: ${article.name}`);
     });
 
      // Rendre la page avec les articles et l'user connecté
@@ -288,34 +307,20 @@ router.get("/addForm", isAuthenticated, (req, res) => {
   res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
 }
 });
-// Route per aggiungere un triangolo
-/*router.post('/add-triangle', async (req, res) => {
-  try {
-      const { points } = req.body;
 
-      // Controllo di validità
-      if (!points || points.length !== 3) {
-          return res.status(400).json({ error: "Servono esattamente 3 punti per un triangolo!" });
-      }
+router.get("/addPentagone", isAuthenticated, (req, res) => {
+  // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
+  console.log("Accesso a /addPentagone - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
 
-      // Creazione dell'articolo triangolo
-      const newTriangle = new Article({
-          name: "Triangolo",
-          vertex: points,
-          category: 1, // Categoria predefinita
-          user: req.session.user ? req.session.user._id : null // Associa l'utente loggato
-      });
-
-      // Salva nel database
-      await newTriangle.save();
-
-      res.json({ success: true, message: "Triangolo aggiunto con successo!" });
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: "Errore interno del server" });
-  }
+  if (req.session.user) {
+  res.render("ajoute_pentagone", { title: 'Article Form Page', user: req.session.user});
+  
+} else {
+    // Log per verificare se si viene reindirizzati al login
+    console.log("Utente non autenticato, reindirizzamento a /login");
+  res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
+}
 });
-*/
 router.get('/api/check-articles', async (req, res) => {
   try {
       const userId = req.session.user._id;  // Ottieni l'ID dell'utente dalla sessione
@@ -330,25 +335,27 @@ router.get('/api/check-articles', async (req, res) => {
 router.post("/ajoute_articles", upload, async (req, res) => {
   try {
     console.log(req.body);
-
+ 
     const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
 
     // Conta gli articoli già aggiunti dall'utente
-    const existingArticles = await Article.countDocuments({ user: userId });
+    const existingTriangles  = await Article.countDocuments({ 
+      user: userId,
+      type: "triangle", // Aggiunge un campo specifico per distinguere le figure
+    });
 
-    if (existingArticles >= 3) {
+    if (existingTriangles >= 3) {
       // Se l'utente ha già 3 articoli, blocca l'aggiunta
       return res.status(400).send("Puoi aggiungere al massimo 3 articoli.");
     }
 
-    const { body } = req;
-    const treArticles = [];
+    const { body, files } = req;
+    const trianglePoints = [];
 
     let i = 0;
     // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
     while (body[`latitudeSelectioneeInput_${i}`]) {
       console.log(`Trovato articolo ${i}:`);
-      
       // Recupera e controlla le coordinate
       const latitude = parseFloat(body[`latitudeSelectioneeInput_${i}`]);
       const longitude = parseFloat(body[`longitudeSelectioneeInput_${i}`]);
@@ -358,42 +365,45 @@ router.post("/ajoute_articles", upload, async (req, res) => {
         console.log("Errore: Coordinate non valide");
         return res.status(400).send("Le coordinate devono essere numeriche.");
       }
-
+      // Recupera il file caricato per questo articolo
+      const imageField = `image_${i}`;
+      const imageFile = body[imageField] || "image_3.png"; // Usa il valore da req.body
+      
       // Creazione dei dati per l'articolo
       const articleData = {
         name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
         category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
-        vertex: body.vertex && body.vertex.trim() !== "" ? body.vertex : "1",  // Usa 'vertex' dal form
-        latitudeSelectionee: latitude,  // Latitudine
+       latitudeSelectionee: latitude,  // Latitudine
         longitudeSelectionee: longitude,  // Longitudine
-        image: req.file && req.file.filename ? req.file.filename : "image_1.png", // Usa immagine predefinita se non c'è un file
-      };
+          type: "triangle", // Specifica che si tratta di un triangolo
+        image: imageFile,  
+     };
       
       console.log(`Articolo ${i} dati:`, articleData);
 
       // Verifica che tutti i campi obbligatori siano presenti
-      if (!articleData.name || !articleData.category || !articleData.vertex || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
+      if (!articleData.name || !articleData.category || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
         console.log("Errore: Manca uno dei campi obbligatori");
         return res.status(400).send("Tutti i campi sono obbligatori");
       }
 
       // Aggiungi l'articolo all'array
-      treArticles.push(articleData);
+      trianglePoints.push(articleData);
       i++; // Incrementa l'indice per il prossimo articolo
     }
 
     // Verifica che siano stati trovati articoli
-    if (treArticles.length === 0) {
+    if (trianglePoints.length === 0) {
       return res.status(400).send("Nessun articolo da aggiungere.");
     }
 
     // Salva tutti gli articoli nel database
-    for (const articleData of treArticles) {
+    for (const articleData of trianglePoints ) {
       const newArticle = new Article({
         user: userId,
         name: articleData.name,
         category: articleData.category,
-        vertex: articleData.vertex,
+      
         latitudeSelectionee: articleData.latitudeSelectionee,
         longitudeSelectionee: articleData.longitudeSelectionee,
         image: articleData.image,
@@ -401,8 +411,101 @@ router.post("/ajoute_articles", upload, async (req, res) => {
 
       await newArticle.save();
     }
+    const traArticles = await Article.find({ user: userId });
+    console.log("Articoli salvati nel database:", trianglePoints);
 
-    console.log("Articoli salvati:", treArticles);
+    // Impostazione del messaggio di successo nella sessione
+    req.session.message = {
+      type: "success",
+      message: "Articoli aggiunti con successo!",
+    };
+
+    // Redirect alla home dopo il salvataggio degli articoli
+    return res.redirect("/indexZoneAuthor");
+
+  } catch (err) {
+    console.error("Errore durante l'aggiunta degli articoli:", err);
+    res.status(500).send("Errore durante l'invio degli articoli");
+  }
+});
+// ROUTE PER IL PENTAGONO
+router.post("/ajoute_pentagone", upload, async (req, res) => {
+  try {
+    console.log(req.body);
+ 
+    const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
+
+    // Conta gli articoli già aggiunti dall'utente
+    const existingArticles = await Article.countDocuments({ user: userId });
+
+    if (existingArticles >= 5) {
+      // Se l'utente ha già 3 articoli, blocca l'aggiunta
+      return res.status(400).send("Puoi aggiungere al massimo 5 articoli.");
+    }
+
+    const { body, files } = req;
+    const cinqueArticles = [];
+
+    let i = 0;
+    // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
+    while (body[`latitudeSelectioneeInput_${i}`]) {
+      console.log(`Trovato articolo ${i}:`);
+      // Recupera e controlla le coordinate
+      const latitude = parseFloat(body[`latitudeSelectioneeInput_${i}`]);
+      const longitude = parseFloat(body[`longitudeSelectioneeInput_${i}`]);
+
+      // Verifica che le coordinate siano numeriche
+      if (isNaN(latitude) || isNaN(longitude)) {
+        console.log("Errore: Coordinate non valide");
+        return res.status(400).send("Le coordinate devono essere numeriche.");
+      }
+      // Recupera il file caricato per questo articolo
+      const imageField = `image_${i}`;
+      const imageFile = body[imageField] || "image_3.png"; // Usa il valore da req.body
+      
+      // Creazione dei dati per l'articolo
+      const articleData = {
+        name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
+        category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
+       latitudeSelectionee: latitude,  // Latitudine
+        longitudeSelectionee: longitude,  // Longitudine
+        image: imageFile,  
+     };
+      
+      console.log(`Articolo ${i} dati:`, articleData);
+
+      // Verifica che tutti i campi obbligatori siano presenti
+      if (!articleData.name || !articleData.category || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
+        console.log("Errore: Manca uno dei campi obbligatori");
+        return res.status(400).send("Tutti i campi sono obbligatori");
+      }
+
+      // Aggiungi l'articolo all'array
+      cinqueArticles.push(articleData);
+      i++; // Incrementa l'indice per il prossimo articolo
+    }
+
+    // Verifica che siano stati trovati articoli
+    if (cinqueArticles.length === 0) {
+      return res.status(400).send("Nessun articolo da aggiungere.");
+    }
+
+    // Salva tutti gli articoli nel database
+    for (const articleData of cinqueArticles) {
+      const newArticle = new Article({
+        user: userId,
+        name: articleData.name,
+        category: articleData.category,
+      
+        latitudeSelectionee: articleData.latitudeSelectionee,
+        longitudeSelectionee: articleData.longitudeSelectionee,
+        image: articleData.image,
+      });
+
+      await newArticle.save();
+    }
+    const traArticles = await Article.find({ user: userId });
+    console.log("Articoli salvati nel database:", cinqueArticles);
 
     // Impostazione del messaggio di successo nella sessione
     req.session.message = {
@@ -424,22 +527,29 @@ router.post("/ajoute_articles", upload, async (req, res) => {
 
 router.get('/delete/:id', async (req, res) => {
   try {
-   // Récupérer l'ID de l'article depuis les paramètres de l'URL
     const articleId = req.params.id;
-    //const userId = req.session.user._id;
-     const userId = req.session.user ? req.session.user._id : null;
-   
-     console.log("ID articolo:", articleId); // Per controllare se l'ID è corretto
-     console.log("ID utente:", userId);
+    const userId = req.session.user ? req.session.user._id : null;
+    const isAdmin = req.session.user && req.session.user.email === 'coucou0@gmail.com';
 
-     let result;  // Dichiarare result all'esterno del blocco try
-  
-     try {
-    // Trouver l'article par ID et user loggé
-    const result = await Article.findOne({ _id: articleId,  user: userId });
-   
+    console.log("ID articolo:", articleId);
+    console.log("ID utente:", userId);
+    console.log("Admin calcolato:", isAdmin);
+
+    let result;
+
+    try {
+      // Se l'utente è admin, cerca solo per `_id`
+      if (isAdmin) {
+        // L'admin può eliminare qualsiasi articolo, non dipende dal campo `user`
+        result = await Article.findOne({ _id: articleId });
+      } else {
+        // Gli utenti normali possono eliminare solo i propri articoli
+        result = await Article.findOne({ _id: articleId, user: userId });
+      }
+
   // Vérifiez si l'article existe et appartient à l'user loggé
     if (!result) {
+      
       console.log("Articolo non trovato o non autorizzato");
       return res.status(404).send('Article non trouvé ou non autorisé à être supprimé');
     }
@@ -471,7 +581,7 @@ router.get('/delete/:id', async (req, res) => {
       console.log('Article supprimé avec succès');
 
       // Rediriger vers la page principale après suppression
-      res.redirect('/indexZoneAuthor');
+      res.redirect('/');
     } catch (err) {
     // Gérer les erreurs et les afficher dans la console
     console.error('Erreur lors de la suppression de l\'article:', err);
@@ -505,37 +615,44 @@ router.get("/edit/:id", isAuthenticated, isAuthor, async(req, res) => {
 });
 
 
-router.post("/edit/:id", async (req, res) => {
+router.post("/edit/:id", upload, async (req, res) => {
   try {
     let articleId = req.params.id;
     console.log("ID dell'articolo passato:", req.params.id);
-   
     //image: req.file.filename,
     // Trouver l'user par son ID
     let article = await Article.findById(articleId);
-    console.log("Articolo passato:", article);
-   
+    console.log("Articolo passato:", req.params.id);
+
     if (article) {
-      // Mettre à jour les infor
-        console.log("Immagine selezionata dal form:", req.body.image);
-
-     // Aggiorna i campi con i valori inviati dal form
-     article.name = req.body.name || article.name;
-     article.category = req.body.category || article.category;
-     article.image = req.body.image || article.image; // Assicurati che 'image' esista in req.body
-
+     // Aggiorna i campi con i valori inviati dal form dell' edit_article.ejs
+      article.name = req.body.name;
+      article.category = req.body.category || article.category;
+      article.image = req.body.image || article.image;
       article.latitudeSelectionee = req.body.latitudeSelectionee;
       article.longitudeSelectionee = req.body.longitudeSelectionee;
-       // Aggiorna l'immagine con quella selezionata dal <select>
-     
-     // 
-      // article.image = req.file.filename
+      
+     // article.image = req.file.filename
       // Vérifiez si une nouvelle image a été uploadée
-   
+      if (req.file) {
+        // Supprimer l'ancienne image si elle existe
+        if (article.image) {
+          console.log(article.image)
+          const oldImagePath = './uploads/' + article.image;
+          try {
+            fs.unlinkSync(oldImagePath);
+            console.log('Ancienne image supprimée avec succès');
+          } catch (err) {
+            console.error('Erreur lors de la suppression de l\'ancienne image:', err);
+          }
+        }
+        // Mettre à jour le chemin de la nouvelle image
+        article.image = req.file.filename;
+      }
 
       // Sauvegarder les modifications dans la base de données
       await article.save();
-      console.log("Articolo aggiornato:", article);
+
       // Rediriger vers la page principale avec un message de succès
       res.redirect('/indexZoneAuthor');
     } else {
