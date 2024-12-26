@@ -308,6 +308,19 @@ router.get("/addForm", isAuthenticated, (req, res) => {
 }
 });
 
+router.get("/addPentagone", isAuthenticated, (req, res) => {
+  // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
+  console.log("Accesso a /addPentagone - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
+
+  if (req.session.user) {
+  res.render("ajoute_pentagone", { title: 'Article Form Page', user: req.session.user});
+  
+} else {
+    // Log per verificare se si viene reindirizzati al login
+    console.log("Utente non autenticato, reindirizzamento a /login");
+  res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
+}
+});
 router.get('/api/check-articles', async (req, res) => {
   try {
       const userId = req.session.user._id;  // Ottieni l'ID dell'utente dalla sessione
@@ -326,9 +339,9 @@ router.post("/ajoute_articles", upload, async (req, res) => {
     const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
 
     // Conta gli articoli già aggiunti dall'utente
-    const existingArticles = await Article.countDocuments({ user: userId });
+    const existingTriangles  = await Article.countDocuments({ user: userId });
 
-    if (existingArticles >= 3) {
+    if (existingTriangles >= 3) {
       // Se l'utente ha già 3 articoli, blocca l'aggiunta
       return res.status(400).send("Puoi aggiungere al massimo 3 articoli.");
     }
@@ -396,6 +409,99 @@ router.post("/ajoute_articles", upload, async (req, res) => {
     }
     const traArticles = await Article.find({ user: userId });
     console.log("Articoli salvati nel database:", treArticles);
+
+    // Impostazione del messaggio di successo nella sessione
+    req.session.message = {
+      type: "success",
+      message: "Articoli aggiunti con successo!",
+    };
+
+    // Redirect alla home dopo il salvataggio degli articoli
+    return res.redirect("/indexZoneAuthor");
+
+  } catch (err) {
+    console.error("Errore durante l'aggiunta degli articoli:", err);
+    res.status(500).send("Errore durante l'invio degli articoli");
+  }
+});
+// ROUTE PER IL PENTAGONO
+router.post("/ajoute_pentagone", upload, async (req, res) => {
+  try {
+    console.log(req.body);
+ 
+    const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
+
+    // Conta gli articoli già aggiunti dall'utente
+    const existingArticles = await Article.countDocuments({ user: userId });
+
+    if (existingArticles >= 5) {
+      // Se l'utente ha già 3 articoli, blocca l'aggiunta
+      return res.status(400).send("Puoi aggiungere al massimo 5 articoli.");
+    }
+
+    const { body, files } = req;
+    const cinqueArticles = [];
+
+    let i = 0;
+    // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
+    while (body[`latitudeSelectioneeInput_${i}`]) {
+      console.log(`Trovato articolo ${i}:`);
+      // Recupera e controlla le coordinate
+      const latitude = parseFloat(body[`latitudeSelectioneeInput_${i}`]);
+      const longitude = parseFloat(body[`longitudeSelectioneeInput_${i}`]);
+
+      // Verifica che le coordinate siano numeriche
+      if (isNaN(latitude) || isNaN(longitude)) {
+        console.log("Errore: Coordinate non valide");
+        return res.status(400).send("Le coordinate devono essere numeriche.");
+      }
+      // Recupera il file caricato per questo articolo
+      const imageField = `image_${i}`;
+      const imageFile = body[imageField] || "image_3.png"; // Usa il valore da req.body
+      
+      // Creazione dei dati per l'articolo
+      const articleData = {
+        name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
+        category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
+       latitudeSelectionee: latitude,  // Latitudine
+        longitudeSelectionee: longitude,  // Longitudine
+        image: imageFile,  
+     };
+      
+      console.log(`Articolo ${i} dati:`, articleData);
+
+      // Verifica che tutti i campi obbligatori siano presenti
+      if (!articleData.name || !articleData.category || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
+        console.log("Errore: Manca uno dei campi obbligatori");
+        return res.status(400).send("Tutti i campi sono obbligatori");
+      }
+
+      // Aggiungi l'articolo all'array
+      cinqueArticles.push(articleData);
+      i++; // Incrementa l'indice per il prossimo articolo
+    }
+
+    // Verifica che siano stati trovati articoli
+    if (cinqueArticles.length === 0) {
+      return res.status(400).send("Nessun articolo da aggiungere.");
+    }
+
+    // Salva tutti gli articoli nel database
+    for (const articleData of cinqueArticles) {
+      const newArticle = new Article({
+        user: userId,
+        name: articleData.name,
+        category: articleData.category,
+      
+        latitudeSelectionee: articleData.latitudeSelectionee,
+        longitudeSelectionee: articleData.longitudeSelectionee,
+        image: articleData.image,
+      });
+
+      await newArticle.save();
+    }
+    const traArticles = await Article.find({ user: userId });
+    console.log("Articoli salvati nel database:", cinqueArticles);
 
     // Impostazione del messaggio di successo nella sessione
     req.session.message = {
