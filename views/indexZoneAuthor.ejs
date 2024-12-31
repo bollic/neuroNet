@@ -1,6 +1,5 @@
 <%- include('layout/header') %>
 
-
 <div class="container my-3">
   <div class="row">
     <div class="col-12 text-center">
@@ -28,389 +27,91 @@
 
       <div class="table-responsive">
         <% if (user) { %>
-          <h2>Bienvenue, <%= user.email %>!</h2> <br>  <button id="add-triangle" class="btn btn-primary">
-            <i class="fas fa-shapes"></i> Triangle
-          </button>
+          <h2>Bienvenue, <%= user.email %>!</h2> <br>  
           <a href="/logout">Se déconnecter</a>
         <% } else { %>
           <a href="/login">Se connecter</a>
           <a href="/signup">S'inscrire</a>
         <% } %>
-        <!-- Verifico se ci sono degli articles -->
-        <% if (typeof articles !== 'undefined' && articles.length > 0) { %>   
-          <table class="table table-hover table-bordered table-striped text-center">
-            <thead class="table-dark">
-              <tr>
-                <th>ID</th>
-                <th>Image</th>
-                <th>Name</th>
-                
-                <th>Category</th>
-                <th>idUtilisateur</th>                
-                <th>LAT LNG</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-             <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->               
-              <% articles.forEach((row, index) => { %>              
-                <tr class="align-middle">                
-                  <td><%= index %></td>                  
-                  <td><img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="60" /></td>
-                  <td><%= row.name %></td>
-                 
-                  <td><%= row.category %></td>
-                  <td><%= row.user._id %></td>                  
-                  <td><%= parseFloat(row.latitudeSelectionee).toFixed(2) %>,<%= parseFloat(row.longitudeSelectionee).toFixed(2) %></td>
-                 
-                  <td>
-                    <a href="/edit/<%= row._id %>" class="btn btn-sm btn-outline-success"><i class="fas fa-edit"></i></a>
-                    <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></a>
-                  </td>
+        </div>
+        <!-- Tabella degli articoli -->
+      <div class="table-responsive mt-4">
+      
+      
+ <script>
+  // Garantisce che filteredUsers e groupedByUser siano definite
+   if (typeof filteredUsers === 'undefined') var filteredUsers = [];
+  </script>
+
+     <!-- Verifico se ci sono degli articles -->
+     <% if (articles && articles.length > 0) { %>   
+          <!-- Visualizza un gruppo per ogni tipo (Punto 4: Migliorato il Layout) -->
+        
+            <h3 class="text-center text-primary">Tipo di articolo: </h3>
+            <table class="table table-hover table-bordered table-striped text-center mt-3">
+              <thead class="table-dark">
+                <tr>
+                  <th>ID</th>
+                  <th>Image</th>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Category</th>
+                  <th>Action</th>
                 </tr>
-     <!-- INIZIO FRONTEND 2: Logica aggiuntiva per elaborare groupedByMarkers -->
+              </thead>
+
+              <tbody>
+                <!-- INIZIO FRONTEND 1: Inizializzazione delle variabili lato client -->
                 <script>
-                // Inizializza filteredUsers come array vuoto per evitare errori
-  if (typeof filteredUsers === 'undefined') var filteredUsers = [];
-                
-                  
-                  filteredUsers.push({
-                    _id: "<%= row._id || '' %>",                
-                    name: "<%= row.name %>",
-                    user: "<%= row.user._id %>",      
-                    email: "<%= row.email %>",                    
-                    latitudeSelectionee: "<%= row.latitudeSelectionee %>",
-                    longitudeSelectionee: "<%= row.longitudeSelectionee %>",
-                    image: "<%= row.image %>",
-                    category: "<%= row.category %>"
-                  });
-                  console.log("User ID:", "<%= row._id %>");
-                </script>
-              <% }) %>
-            </tbody>
-          </table>
-        <% } else { %>
-          <div class="text-center mt-5">
-            <h1 class="text-secondary">Aucun article trouvé dans la base de données!</h1>
-            <a href="/ajoute_articles" class="btn btn-primary mt-3">Ajouter le premier article</a>
-          </div>  
-        <% } %>
+                  // Garantisce che filteredUsers e groupedByUser siano definite
+                   if (typeof filteredUsers === 'undefined') var filteredUsers = [];
+                  </script>
+               <!-- FINE FRONTEND 1 -->
+                  <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->            
+              <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->               
+              <% articles.forEach((row, index)=> { %> 
+                  <tr class="align-middle">                
+                    <td><%= index + 1 %></td> <!-- Mostra indice incrementato di 1 -->
+                    <td>
+                      <img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="60" />
+                    </td>
+                    <td><%= row.name %></td>
+                    <td><%= row.type %></td>
+                    <td><%= row.category %></td>
+                    <td>
+                      <a href="/edit/<%= row._id %>" class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-trash"></i>
+                      </a>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+            <% } else { %>
+              <h1 class="text-center text-secondary mt-5">Aucun article trouvé dans la base de données!</h1>
+            <% } %>
+      
       </div>
     </div>
   </div>
 </div>
 
+<script>
+  const articles = <%- JSON.stringify(articles || []) %>;
+</script>
 <!-- Map Initialization Script -->
-<script defer>
-  document.addEventListener("DOMContentLoaded", function() {
-    let map; // Declare map variable
-    let layerGroup = L.featureGroup(); // Initialize layerGroup once
-    var drawnItems = new L.FeatureGroup();
-    //let trianglePoints = []; // Memorizza i punti selezionati
-    const maxPoints = 3; // Numero massimo di punti per un triangolo
+<script>
+  // Dati raggruppati ricevuti dal server
+  const groupedArticles = <%- JSON.stringify(groupedArticles  || {}) %>;
+  console.log("Grouped By Type:", groupedArticles );
 
-    const addTriangleButton = document.getElementById("add-triangle");
-    const mapElement = document.getElementById("map");
-    // Recupera dati server-side
-         // Function to initialize the map (runs only once)
-    function initializeMap() {
-      map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
-        maxZoom: 19,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }).addTo(map);
-     
-      map.addLayer(drawnItems); // Add drawnItems layer to map     
-      layerGroup.addTo(map); // Add the feature group to the map
-    //  map.addLayer(drawnItems); Per il DB
-
-    var drawControl = new L.Control.Draw({
-       edit: {
-        featureGroup: drawnItems,  // Gruppo di poligoni che possono essere modificati
-        edit: true,                // Permetti la modifica dei poligoni
-        remove: false              // Non permettere la rimozione (puoi cambiarlo)
-    },
-    draw: false  // Disabilita la creazione di nuovi poligoni
-});
-map.addControl(drawControl);
-
-      // Evento per la modifica dei poligoni
-map.on('draw:edited', function(event) {
-        var layers = event.layers;
-        layers.eachLayer(function(layer) {
-          console.log(layer.getLatLngs()); // Mostra i nuovi vertici
-        });
-   });
-    // Aggiungi l'evento per il pulsante che abilita la modifica dei poligoni
-    document.getElementById('edit-polygons-btn').addEventListener('click', function () {
-    drawControl._toolbars.edit._modes.edit.handler.enable(); // Abilita la modalità di modifica
-  });
-    } // Fine della funzione initializeMap() 
-
-
-function updateMap() {
-    layerGroup.clearLayers();
-
-    const icons = {
-        "bon": L.icon({
-            iconSize: [19, 30],
-            iconAnchor: [8, 30],
-            popupAnchor: [2, -30],
-            shadowSize: [31, 30],
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png', // URL dell'ombra predefinita di Leaflet
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png'
-        }),
-        "moyen": L.icon({
-            iconSize: [19, 30],
-            iconAnchor: [8, 30],
-            popupAnchor: [2, -30],
-            shadowSize: [31, 30],
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png', // URL dell'ombra predefinita di Leaflet
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-grey.png'
-        }),
-        "bas": L.icon({
-            iconSize: [19, 30],
-            iconAnchor: [8, 30],
-            popupAnchor: [2, -30],
-            shadowSize: [31, 30],
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png', // URL dell'ombra predefinita di Leaflet
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png'
-        })
-    };
-    const polylineStyles = {
-        "bon": { color: 'blue', weight: 2 },
-        "moyen": { color: 'gray', weight: 2 },
-        "bas": { color: 'orange', weight: 2 }
-    };
-
-    const groupedMarkers = {
-        "bon": [],
-        "moyen": [],
-        "bas": []
-    };
-// Raggruppa gli articoli per categoria
-    filteredUsers.forEach((article) => {
-        const lat = parseFloat(article.latitudeSelectionee);
-        const lng = parseFloat(article.longitudeSelectionee);
-        const userIcon = icons[article.category] || icons['moyen'];
-
-        if (!isNaN(lat) && !isNaN(lng)) {
-            // Aggiungi il marker alla categoria corrispondente
-            groupedMarkers[article.category].push({ lat, lng, id: article._id});
-
-            const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
-            singleMarker.on('dragend', function(e) {
-                const newLatLng = e.target.getLatLng();
-                saveMapChanges(article._id, newLatLng.lat, newLatLng.lng);
-            });
-
-            singleMarker.bindPopup(`
-                <b>${article.name}</b><br>
-             <strong>ID user: ${article.user}</strong><br>
-                <strong>${article._id}</strong><br>
-                <img src="/uploads/${article.image}" alt="Immagine" class="img-thumbnail" width="100">
-            `);
-
-            layerGroup.addLayer(singleMarker);
-        }
-    });
-
-    // Crea i poligoni per ciascuna categoria
-    for (const category in groupedMarkers) {
-        const latLngs = groupedMarkers[category].map(article => [article.lat, article.lng]);
-        if (latLngs.length >= 2) {
-            const polygon = L.polygon(latLngs, polylineStyles[category]);
-            drawnItems.addLayer(polygon);
-        }
-    }
-
-
-    // Crea i raggi collegando i nodi corrispondenti
-    createRaggi(groupedMarkers);
-    console.log("Grouped Markers 1:", groupedMarkers);
-
-    // Adatta la mappa per includere tutti i marker e polilinee
-    if (layerGroup.getLayers().length > 0) {
-        map.fitBounds(layerGroup.getBounds());
-    }
-}
-
-function createRaggi(groupedMarkers) {
-  const verticesBon = {};
-    const verticesMoyen = {};
-    const verticesMauvais = {};
-
-    console.log("Grouped Markers:", groupedMarkers); // Controlla il contenuto di groupedMarkers
-     // Popola i vertici per "bon"
-     for (const [index, article] of groupedMarkers['bon'].entries()) {
-        console.log("Articolo Bon:", article); // Logga l'articolo corrente
-        // Usa l'indice come vertice
-        verticesBon[index + 1] = [article.lat, article.lng]; 
-        console.log(`Aggiunto vertice Bon: ${index + 1} -> [${article.lat}, ${article.lng}]`);
-    }
-    // Popola i vertici per "moyen"
-    for (const [index, article] of groupedMarkers['moyen'].entries()) {
-        console.log("Articolo Moyen:", article); // Logga l'articolo corrente
-        // Usa l'indice come vertice
-        verticesMoyen[index + 1] = [article.lat, article.lng]; 
-        console.log(`Aggiunto vertice Moyen: ${index + 1} -> [${article.lat}, ${article.lng}]`);
-    }
-
-    // Popola i vertici per "bas"
-    for (const [index, article] of groupedMarkers['bas'].entries()) {
-        console.log("Articolo Bas:", article); // Logga l'articolo corrente
-        // Usa l'indice come vertice
-        verticesMauvais[index + 1] = [article.lat, article.lng]; 
-        console.log(`Aggiunto vertice Bas: ${index + 1} -> [${article.lat}, ${article.lng}]`);
-    }
-
-    // Controlla il risultato finale
-    console.log("Vertices Bon:", verticesBon);
-    console.log("Vertices Moyen:", verticesMoyen);
-    console.log("Vertices Mauvais:", verticesMauvais);
-
-       // Disegna le polilinee tra i vertici Moyen e Mauvais
-       // Disegna le polilinee tra i vertici Bon, Moyen e Mauvais
-for (const key in verticesBon) {
-    if (verticesBon.hasOwnProperty(key)) {
-        const pointBon = verticesBon[key];
-        const pointMoyen = verticesMoyen[key];
-        const pointMauvais = verticesMauvais[key];
-
-        // Assicurati che tutti e tre i punti siano definiti
-        if (pointBon && pointMoyen && pointMauvais) {
-            // Tratto Bon -> Moyen
-            const polylineBonMoyen = L.polyline([pointBon, pointMoyen], { color: 'black', weight: 0.9 });
-            drawnItems.addLayer(polylineBonMoyen);
-            console.log(`Polilinea disegnata tra il vertice Bon ${key} e il vertice Moyen ${key}`);
-
-            // Tratto Moyen -> Mauvais
-            const polylineMoyenMauvais = L.polyline([pointMoyen, pointMauvais], { color: 'black', weight: 0.8 });
-            drawnItems.addLayer(polylineMoyenMauvais);
-            console.log(`Polilinea disegnata tra il vertice Moyen ${key} e il vertice Mauvais ${key}`);
-        }
-    }
-}
-
-    
-
-    // Stampa le coordinate per ogni vertice di Moyen
-    for (const [key, coords] of Object.entries(verticesMoyen)) {
-        console.log(`Vertice Moyen ${key}:`, coords); // Stampa le coordinate
-        // Usa coords[0] e coords[1] per lat e lng rispettivamente
-    }
-
-    // Se desideri anche stampare i vertici Mauvais
-    for (const [key, coords] of Object.entries(verticesMauvais)) {
-        console.log(`Vertice Mauvais ${key}:`, coords); // Stampa le coordinate
-        // Usa coords[0] e coords[1] per lat e lng rispettivamente
-    }
-}
-
-
-
-    // Funzione per gestire i clic sulla mappa per aggiungere punti al triangolo
-   /* function handleMapClick(event) {
-        const { lat, lng } = event.latlng;
-        trianglePoints.push({ lat, lng });
-
-        // Aggiungi un marker per feedback visivo
-        L.marker([lat, lng]).addTo(map);
-        alert(`Punto selezionato: (${lat.toFixed(5)}, ${lng.toFixed(5)})`);
-
-        if (trianglePoints.length === maxPoints) {
-            map.off("click", handleMapClick); // Rimuovi il listener per i clic
-            alert("Hai selezionato 3 punti! Creo il triangolo...");
-
-            // Disegna il triangolo sulla mappa
-            const latLngs = trianglePoints.map(point => [point.lat, point.lng]);
-            latLngs.push(latLngs[0]); // Chiudi il triangolo
-            const triangle = L.polygon(latLngs, { color: "green", weight: 2 });
-            drawnItems.addLayer(triangle);
-
-            // Invia i punti del triangolo al server
-            fetch("/add-triangle", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ points: trianglePoints }),
-            })
-                .then(response => {
-                    if (!response.ok) throw new Error(`Errore dal server: ${response.status}`);
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        alert("Triangolo salvato con successo!");
-                    } else {
-                        alert(`Errore durante il salvataggio: ${data.error}`);
-                    }
-                })
-                .catch(error => {
-                    console.error("Errore nella richiesta:", error);
-                });
-
-            // Resetta i punti del triangolo per il prossimo
-            trianglePoints = [];
-            map.on("click", handleMapClick); // Riattiva il listener
-        }
-    }
-*/
-    // Function to handle map visibility
-    function toggleMap() { 
-
-      const mapElement = document.getElementById('map');
-      const toggleButton = document.getElementById('toggle-map');
-   
-      if (mapElement.style.display === 'none') {
-        mapElement.style.display = 'block';
-        toggleButton.textContent = 'Efface la carte';
-
-        // Initialize map only once, then update content
-        if (!map) {
-          initializeMap();
-        }
-
-        setTimeout(() => {
-          map.invalidateSize(); // Ensure map is resized
-          updateMap(); // Update markers and polylines
-        }, 100); // Short delay to ensure rendering
-      } else {
-        mapElement.style.display = 'none';
-        toggleButton.textContent = 'Visualiser la carte';
-      }
-    }
-
-    // Attach event listener to toggle button
-    document.getElementById('toggle-map').addEventListener('click', toggleMap);
-  });
+  // Accesso ai gruppi
+  console.log("Triangoli:", groupedArticles ['triangle']);
+  console.log("Pentagoni:", groupedArticles ['pentagone']);
 </script>
-<script defer>
-   // Altri script per la mappa
-
-   // Funzione per salvare le modifiche della mappa
-   function saveMapChanges(articleId, newLat, newLng) {
-       fetch(`/api/articles/${articleId}`, {
-           method: 'PUT',
-           headers: {
-               'Content-Type': 'application/json'
-           },
-           body: JSON.stringify({ latitudeSelectionee: newLat, longitudeSelectionee: newLng })
-       })
-       .then(response => response.json())
-       .then(data => {
-           if (data.success) {
-            console.log("Calling API with ID:", articleId);
-               console.log("Modifica salvata nel database.", data.article);
-           } else {
-               console.error("Errore durante il salvataggio:", data.message);
-           }
-       })
-       .catch(error => console.error("Errore nel salvataggio della modifica:", error));
-   }
-
-  
-</script>
-
 
 <%- include('layout/footer') %>
+<script src="/js/dataAuthor.js" defer></script>

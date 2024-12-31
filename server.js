@@ -103,7 +103,6 @@ app.use((req, res, next) => {
     next();
 })
 
-app.use(express.static(path.join(__dirname, 'js')));
 // Setting EJS as templating engine
 app.set('views', path.join(__dirname, 'views'));
 app.set("view engine", "ejs");

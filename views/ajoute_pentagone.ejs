@@ -81,7 +81,7 @@ map.addEventListener("click", function(e) {
         }
 
 
- const form = document.getElementById("add-form");
+ const form = document.getElementById("add-triangle");
  form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -105,7 +105,7 @@ map.addEventListener("click", function(e) {
     alert("Mancano coordinate per il prossimo articolo!");
     return;
   }
-  const articleData = {
+  const pentagoneData = {
     name: form.querySelector("[name='name']").value,
     category: form.querySelector("[name='category']").value,
   
@@ -116,8 +116,8 @@ map.addEventListener("click", function(e) {
   };
 
   // Aggiungi l'articolo all'array
-  cinqueArticles.push(articleData);
-  console.log("Articolo aggiunto:", articleData);
+  cinqueArticles.push(pentagoneData);
+  console.log("Articolo aggiunto:", pentagoneData);
   console.log("Articoli totali:", cinqueArticles);
 
   // Controlla se sono stati aggiunti 5 articoli
@@ -137,7 +137,7 @@ map.addEventListener("click", function(e) {
 
     // Invia i dati al server
     try {
-      const response = await fetch("/ajoute_articles", { method: "POST", body: formData });
+      const response = await fetch("/ajoute_pentagone", { method: "POST", body: formData });
 
       if (response.ok) {
         alert("Tutti gli articoli aggiunti con successo!");
@@ -178,11 +178,11 @@ map.addEventListener("click", function(e) {
             </div>
        
             <div class="card-body p-4">
-                <form action="/ajoute_articles" method="POST" id="add-form" enctype="multipart/form-data">
+                <form action="/ajoute_pentagone" method="POST" id="add-pentagone" enctype="multipart/form-data">
                     <div class="mb-3">
                         <select id="category" name="category" value="category" placeholder="Content..." >
                             <option value="bon" selected>Content</option>
-                            <option value="moyen" >Moyen</option>
+                            <option value="moyen">Moyen</option>
                             <option value="bas">Pas content</option>    
                           </select><br>
                          
@@ -227,8 +227,7 @@ map.addEventListener("click", function(e) {
 
 <input type="hidden" id="latitudeSelectioneeInput_4" name="latitudeSelectioneeInput_4">
 <input type="hidden" id="longitudeSelectioneeInput_4" name="longitudeSelectioneeInput_4">
-<input type="hidden" id="latitudeSelectioneeInput_5" name="latitudeSelectioneeInput_5">
-<input type="hidden" id="longitudeSelectioneeInput_5" name="longitudeSelectioneeInput_5">
+
 
   Latitude Selectionée: <span id="latitudeSelectionee"></span>&deg;<br />
   Longitude Selectionée: <span id="longitudeSelectionee"></span>&deg;<br /> 
@@ -236,8 +235,8 @@ map.addEventListener("click", function(e) {
                     <% if (user) { %>
                       <input type="hidden" name="id" value="<%= user._id %>">
                     <% } %>
-                     
-                    <input type="hidden" name="type" value="pentagone">
+                    <input type="hidden" name="type" value="pentagone"> <!-- Assicurati che il valore sia dinamico -->
+                  
                                      
                     <div class="mb-3 d-grid">                      
                         <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />
@@ -251,8 +250,24 @@ map.addEventListener("click", function(e) {
   </div>
 
 </div>
-<script>
-    
 
+    
+    <!-- Script aggiuntivo per visualizzare il valore di 'type' -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // Trova l'input nascosto
+  const typeInput = document.querySelector("input[name='type']");
+  // Mostra il valore nella console
+  console.log("Valore di 'type'dal form:", typeInput.value);
+
+  // Visualizza il valore in un elemento della pagina (se necessario)
+  const displayElement = document.getElementById("type-display");
+  if (displayElement) {
+    displayElement.textContent = `Tipo di articolo: ${typeInput.value}`;
+  }
+});
 </script>
+</body>
+
+
 <%- include('layout/footer') %>

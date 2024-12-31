@@ -7,8 +7,68 @@ const mongoose = require('mongoose');
 const Article = require('../models/articles');
 const User = require('../models/users');
 
+// Ottieni ObjectId da Mongoose
+const ObjectId = mongoose.Types.ObjectId;
 const multer = require('multer');
 router.use(logger);
+
+
+
+router.get('/api/grouped-by-type', async (req, res) => {
+  try {
+    console.log("Inizio recupero articoli raggruppati per tipo");
+
+    // Verifica che la connessione al database sia stabile
+    if (!mongoose.connection.readyState) {
+      throw new Error('Database non connesso');
+    }
+
+    const userId = req.session.user ? req.session.user._id : null;
+    console.log('ID utente loggato:', userId); // Log per verificare l'ID utente
+
+    if (!userId) {
+      return res.status(401).send('Utente non autenticato');
+    }
+
+    // Recupera tutti gli articoli dell'utente con il tipo e il popolamento del campo 'user'
+    const articles = await Article.find({ user: userId }).populate('user');
+    console.log("Tutti gli articoli per l'utente:", articles);
+
+    // Raggruppa gli articoli per tipo
+    const groupedByType = articles.reduce((acc, article) => {
+      const type = article.type || 'Sconosciuto'; // Default se manca il tipo
+      // Log per ogni articolo in fase di elaborazione
+      console.log("Processing article:", article);
+      console.log("Type:", type);
+
+      if (!acc[type]) {
+        acc[type] = {
+          type: type, // Tipo dell'articolo
+          articles: []   // Inizializza l'array degli articoli di quel tipo
+        };
+        console.log(`Creato nuovo gruppo per il tipo ${type}`);
+      }
+
+      // Aggiungi l'articolo al gruppo per tipo
+      acc[type].articles.push(article);
+      console.log(`Articolo aggiunto al tipo ${type}:`, article.name);
+
+      return acc;
+    }, {});
+
+    // Log finale per vedere come è stato raggruppato
+    console.log("Articoli raggruppati per tipo:", groupedByType);
+
+    // Rispondi con gli articoli raggruppati
+    res.json(Object.values(groupedByType));
+
+  } catch (error) {
+    console.error('Errore nel recupero degli articoli per tipo:', error);
+    res.status(500).send('Errore nel recupero degli articoli per tipo');
+  }
+});
+
+
 //VADO A: qs e' l indirizzo web ed event. Links http://localhost:4000/login
 router.get("/login", (req, res) => {
   //recupero qs file da ejs
@@ -89,7 +149,7 @@ var upload = multer({
   { name: 'image_1', maxCount: 1 },
   { name: 'image_2', maxCount: 1 },
 ]);
-
+/*
 router.get('/',  async (req, res) => {
  try {
        // Recupera tutti gli articoli di tutti gli utenti
@@ -119,25 +179,132 @@ router.get('/',  async (req, res) => {
 
       return acc;
     }, {});
+    // Ottieni groupedByType dalla chiamata all'API
+    const response = await fetch('http://localhost:3000/api/grouped-by-type');
+    const groupedByType = await response.json(); // Parsing del risultato JSON
 
-     // Log finale per verificare il risultato del raggruppamento
-     console.log("Grouped articles by user:", groupedByUser);
-
+      // Log finale per verificare il risultato del raggruppamento
+      console.log("Grouped articles by user:", groupedByUser);
+      console.log("Grouped articles by type:", groupedByType);
+    
        // Rendi la pagina con gli articoli e l'user connesso
         res.render('index',  {
             title:'la liste des points',
               session: req.session, // Passer la session à la vue
               user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
               articles: articles,
-              groupedByUser: groupedByUser,             
+              groupedByUser: groupedByUser,  
+              groupedByType: groupedByType, // Passa groupedByType alla vista           
              })
             } catch (error) {
               console.error('Errore durante la ricerca degli articoli:', error);
               res.status(500).send('Erreur lors de la récupération des articles');
             }
 });
-// ROUTE TRASFORMATA
+*/
 
+router.get('/',  async (req, res) => {
+  try {
+        // Recupera tutti gli articoli di tutti gli utenti
+       const articles = await Article.find().populate('user'); // Popola il campo user per avere accesso a userID
+      
+       // Log per vedere tutti gli articoli prima del raggruppamento
+     console.log("All articles:", articles);
+ 
+     // Raggruppa gli articoli per userID
+     const groupedByUser = articles.reduce((acc, article) => {
+       const userId = article.user._id.toString(); // ottieni l'ID dell'utente
+   
+       // Log per ogni articolo in fase di elaborazione
+       console.log("Processing article:", article);
+       console.log("UserID:", userId);
+       
+       if (!acc[userId]) {
+         acc[userId] = {
+           user: article.user, // Dettagli utente per identificare chi ha creato la rete
+           articles: [],       // Array dei marker dell'utente
+         };
+         console.log(`Created new group for user ${userId}`);
+       }
+     // Aggiungi l'articolo al gruppo dell'utente
+     acc[userId].articles.push(article);
+      console.log(`Article added to user ${userId}:`, article.name);
+ 
+       return acc;
+     }, {});
+   
+ 
+       // Log finale per verificare il risultato del raggruppamento
+       console.log("Grouped articles by user:", groupedByUser);
+ 
+     
+        // Rendi la pagina con gli articoli e l'user connesso
+         res.render('index',  {
+             title:'la liste des points',
+               session: req.session, // Passer la session à la vue
+               user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
+               articles: articles,
+               groupedByUser: groupedByUser,  
+             
+              })
+             } catch (error) {
+               console.error('Errore durante la ricerca degli articoli:', error);
+               res.status(500).send('Erreur lors de la récupération des articles');
+             }
+ });
+ 
+
+ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
+  try {
+    // Recupera l'ID dell'utente autenticato
+    //const userId = req.session.user._id;
+  //  const articles = await Article.find();  // Récupère les articles depuis la base de données
+ //const articleId = req.params.id;
+  const userId = req.session.user ? req.session.user._id : null;
+      
+     if (!userId) {
+      // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
+      return res.status(401).send('Utente non autenticato');
+    } 
+    const articles = await Article.find({ user: userId }).populate('user'); 
+         // groupedByType: groupedArticles, 
+      // Raggruppa gli articoli per tipo
+      const groupedArticles = groupedByType(articles);
+    // Passa i dati raggruppati alla vista
+    res.render('indexZoneAuthor', { 
+      articles: articles || [], // Passa gli articoli
+      filteredUsers: [],
+      groupedMarkers: [],
+      groupedArticles,
+  
+       session: req.session, // Passer la session à la vue
+       user: req.session.user, // Vérifiez si un user est connecté
+     
+      
+    });
+  } catch (error) {
+      console.error(error);
+      res.status(500).send('Errore del server');
+  }
+});  
+
+
+// Funzione per raggruppare gli articoli
+function groupedByType(articles) {
+  const grouped = {};
+  articles.forEach((article) => {
+      const type = article.type || 'Sconosciuto'; 
+      if (!grouped[type]) {
+          grouped[type] = [];
+      }
+      grouped[type].push(article);
+  });
+  return grouped;
+}
+  
+
+// ROUTE TRASFORMATA
+/*
 router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
   try {
     // Recupera l'ID dell'utente autenticato
@@ -151,7 +318,21 @@ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
       return res.status(401).send('Utente non autenticato');
     } 
     const articles = await Article.find({ user: userId }).populate('user'); 
-      // Aggiungi un log per il debug
+      // Raggruppa gli articoli per tipo
+      const groupedByType = articles.reduce((acc, article) => {
+        const type = article.type || 'Sconosciuto'; // Default se manca il tipo
+        if (!acc[type]) {
+          acc[type] = [];
+        }
+        acc[type].push(article);
+        return acc;
+      }, {});
+    
+console.log("Articoli recuperati dal database:", articles.map(a => ({
+  id: a._id,
+  type: a.type
+})));
+    // Aggiungi un log per il debug
     console.log('Articoli trovati per l\'utente:', userId, articles);
 
     // Aggiungi log dettagliato
@@ -159,6 +340,7 @@ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
     articles.forEach((article, index) => {
       console.log(`Articolo ${index + 1} - - User ID: ${article.user._id}, Nome: ${article.name}`);
     });
+
 
      // Rendre la page avec les articles et l'user connecté
          res.render('indexZoneAuthor',  {
@@ -169,7 +351,8 @@ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
                session: req.session, // Passer la session à la vue
                user: req.session.user, // Vérifiez si un user est connecté
                 //id: userId,
-               articles: articles, // Passe les articles à la vue             
+               groupedByType: groupedByType, // Passa il groupedByType alla vista
+              
               })
              } catch (error) {
               console.error('Errore durante la ricerca degli articoli:', error);
@@ -177,6 +360,10 @@ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
                res.status(500).send('Erreur lors de la récupération des articles');
              }
  });
+*/
+
+
+ 
 // groupedByUser come variabile lato server
 //let groupedByUser = {}; // Popolalo con i tuoi dati, per esempio da un database
 // Rotta per restituire groupedByUser al client
@@ -188,6 +375,9 @@ router.get('/api/grouped-by-user', async (req, res) => {
     // Raggruppa gli articoli per userID
     const groupedByUser = articles.reduce((acc, article) => {
       const userId = article.user._id.toString();
+   // Log per ogni articolo in fase di elaborazione
+   console.log("Processing article:", article);
+   console.log("UserID:", userId);
 
       if (!acc[userId]) {
         acc[userId] = {
@@ -294,12 +484,12 @@ async function isAuthor(req, res, next) {
 
 //VADO A: qs e' l indirizzo web , cioe la ROUTE addForm, che vedo nell'internet
 // Links http://localhost:4000/addForm
-router.get("/addForm", isAuthenticated, (req, res) => {
+router.get("/addTriangle", isAuthenticated, (req, res) => {
   // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
-  console.log("Accesso a /addForm - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
+  console.log("Accesso a /addTriangle - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
 
   if (req.session.user) {
-  res.render("ajoute_articles", { title: 'Article Form Page', user: req.session.user});
+  res.render("ajoute_triangle", { title: 'Article Triangle Form Page', user: req.session.user});
   
 } else {
     // Log per verificare se si viene reindirizzati al login
@@ -332,7 +522,7 @@ router.get('/api/check-articles', async (req, res) => {
   }
 });
 
-router.post("/ajoute_articles", upload, async (req, res) => {
+router.post("/ajoute_triangle", upload, async (req, res) => {
   try {
     console.log(req.body);
  
@@ -408,17 +598,16 @@ if (type === "triangle") {
     }
 
     // Salva tutti gli articoli nel database
-    for (const articleData of trianglePoints ) {
+    for (const triangleData of trianglePoints ) {
       const newTriangle = new Article({
         user: userId,
-        name: articleData.name,
-        category: articleData.category,
+        name: triangleData.name,
+        category: triangleData.category,
       
-        latitudeSelectionee: articleData.latitudeSelectionee,
-        longitudeSelectionee: articleData.longitudeSelectionee,
-        type: "triangle", // Specifica che si tratta di un triangolo
-   
-        image: articleData.image,
+        latitudeSelectionee: triangleData.latitudeSelectionee,
+        longitudeSelectionee: triangleData.longitudeSelectionee,
+        type: triangleData.type,
+        image: triangleData.image,
       });
 
       await newTriangle.save();
@@ -453,6 +642,7 @@ router.post("/ajoute_pentagone", upload, async (req, res) => {
       user: userId,
       type: type,
      });
+     console.log(req.body.type);
 // Definisci il numero massimo di articoli per tipo
 let maxArticles = 0;
 if (type === "triangle") {
@@ -488,7 +678,7 @@ if (type === "triangle") {
       const imageFile = body[imageField] || "image_3.png"; // Usa il valore da req.body
       
       // Creazione dei dati per l'articolo
-      const articleData = {
+      const pentagoneData = {
         name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
         category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
        latitudeSelectionee: latitude,  // Latitudine
@@ -497,16 +687,16 @@ if (type === "triangle") {
         image: imageFile,  
      };
       
-      console.log(`Articolo ${i} dati:`, articleData);
+      console.log(`Articolo ${i} dati:`, pentagoneData);
 
       // Verifica che tutti i campi obbligatori siano presenti
-      if (!articleData.name || !articleData.category || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
+      if (!pentagoneData.name || !pentagoneData.category || !pentagoneData.latitudeSelectionee || !pentagoneData.longitudeSelectionee) {
         console.log("Errore: Manca uno dei campi obbligatori");
         return res.status(400).send("Tutti i campi sono obbligatori");
       }
 
       // Aggiungi l'articolo all'array
-      pentagonePoints.push(articleData);
+      pentagonePoints.push(pentagoneData);
       i++; // Incrementa l'indice per il prossimo articolo
     }
 
@@ -516,17 +706,17 @@ if (type === "triangle") {
     }
 
     // Salva tutti gli articoli nel database
-    for (const articleData of pentagonePoints) {
+    for (const pentagoneData of pentagonePoints) {
       const newPentagone = new Article({
         user: userId,
-        name: articleData.name,
-        category: articleData.category,
+        name: pentagoneData.name,
+        category: pentagoneData.category,
       
-        latitudeSelectionee: articleData.latitudeSelectionee,
-        longitudeSelectionee: articleData.longitudeSelectionee,
-        type: "pentagone", // Specifica che si tratta di un triangolo
+        latitudeSelectionee: pentagoneData.latitudeSelectionee,
+        longitudeSelectionee: pentagoneData.longitudeSelectionee,
+        type: pentagoneData.type, // Usa il valore dinamico
    
-          image: articleData.image,
+          image: pentagoneData.image,
       });
 
       await newPentagone.save();
@@ -781,5 +971,5 @@ function logger(req, res, next) {
   console.log(req.originalUrl)
   next()
 }
-
+module.exports = groupedByType;
 module.exports = router

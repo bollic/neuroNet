@@ -81,7 +81,7 @@ map.addEventListener("click", function(e) {
         }
 
 
- const form = document.getElementById("add-form");
+ const form = document.getElementById("add-triangle");
  form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
@@ -105,7 +105,7 @@ map.addEventListener("click", function(e) {
     alert("Mancano coordinate per il prossimo articolo!");
     return;
   }
-  const articleData = {
+  const triangleData = {
     name: form.querySelector("[name='name']").value,
     category: form.querySelector("[name='category']").value,
   
@@ -117,28 +117,28 @@ map.addEventListener("click", function(e) {
   };
 
   // Aggiungi l'articolo all'array
-  treArticles.push(articleData);
-  console.log("Articolo aggiunto:", articleData);
+  treArticles.push(triangleData);
+  console.log("Articolo aggiunto:", triangleData);
   console.log("Articoli totali:", treArticles);
 
   // Controlla se sono stati aggiunti 3 articoli
   if (treArticles.length === 3) {
     // Prepara i dati per l'invio al server
-    const formData = new FormData();
+    const formTriangleData = new FormData();
     treArticles.forEach((article, index) => {
-      formData.append(`articles[${index}][name]`, article.name);
-      formData.append(`articles[${index}][category]`, article.category);
+      formTriangleData.append(`articles[${index}][name]`, article.name);
+      formTriangleData.append(`articles[${index}][category]`, article.category);
  
-      formData.append(`articles[${index}][latitudeSelectionee]`, article.latitudeSelectionee);
-      formData.append(`articles[${index}][longitudeSelectionee]`, article.longitudeSelectionee);
-      formData.append(`articles[${index}][type]`, "triangle");
+      formTriangleData.append(`articles[${index}][latitudeSelectionee]`, article.latitudeSelectionee);
+      formTriangleData.append(`articles[${index}][longitudeSelectionee]`, article.longitudeSelectionee);
+      formTriangleData.append(`articles[${index}][type]`, "triangle");
  
-      formData.append(`articles[${index}][image]`, article.image);
+      formTriangleData.append(`articles[${index}][image]`, article.image);
     });
 
     // Invia i dati al server
     try {
-      const response = await fetch("/ajoute_articles", { method: "POST", body: formData });
+      const response = await fetch("/ajoute_triangle", { method: "POST", body: formTriangleData });
 
       if (response.ok) {
         alert("Tutti gli articoli aggiunti con successo!");
@@ -179,7 +179,7 @@ map.addEventListener("click", function(e) {
             </div>
        
             <div class="card-body p-4">
-                <form action="/ajoute_articles" method="POST" id="add-form" enctype="multipart/form-data">
+                <form action="/ajoute_triangle" method="POST" id="add-triangle" enctype="multipart/form-data">
                     <div class="mb-3">
                         <select id="category" name="category" value="category" placeholder="Content..." >
                             <option value="bon">Content</option>
