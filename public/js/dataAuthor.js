@@ -5,9 +5,10 @@
     var drawnItems = new L.FeatureGroup();
     //let trianglePoints = []; // Memorizza i punti selezionati
     const maxPoints = 3; // Numero massimo di punti per un triangolo
- 
+    //const map = document.getElementById('map');
+      
     const addTriangleButton = document.getElementById("add-triangle");
-    const mapElement = document.getElementById("map");
+    //const mapElement = document.getElementById("map");
     // Recupera dati server-side
          // Function to initialize the map (runs only once)
     function initializeMap() {
@@ -240,18 +241,8 @@ for (const key in verticesBon) {
         console.log(`Vertice Mauvais ${key}:`, coords); // Stampa le coordinate
         // Usa coords[0] e coords[1] per lat e lng rispettivamente
     }
-}
-   
-    // Function to handle map visibility
-    function toggleMap() { 
-
-      const mapElement = document.getElementById('map');
-      const toggleButton = document.getElementById('toggle-map');
-   
-      if (mapElement.style.display === 'none') {
-        mapElement.style.display = 'block';
-        toggleButton.textContent = 'Efface la carte';
-
+}  
+    //  const mapElement = document.getElementById('map');      
         // Initialize map only once, then update content
         if (!map) {
           initializeMap();
@@ -261,16 +252,7 @@ for (const key in verticesBon) {
           map.invalidateSize(); // Ensure map is resized
           updateMap(); // Update markers and polylines
         }, 100); // Short delay to ensure rendering
-      } else {
-        mapElement.style.display = 'none';
-        toggleButton.textContent = 'Visualiser la carte';
-      }
-    }
-
-    // Attach event listener to toggle button
-    document.getElementById('toggle-map').addEventListener('click', toggleMap);
-  });
-
+       
 
   ///SECONDO SCRIPT
   function saveMapChanges(articleId, newLat, newLng) {
@@ -291,4 +273,7 @@ for (const key in verticesBon) {
         }
     })
     .catch(error => console.error("Errore nel salvataggio della modifica:", error));
-}
+
+    };
+
+}); 

@@ -798,7 +798,7 @@ router.get('/delete/:id', async (req, res) => {
       console.log('Article supprimé avec succès');
 
       // Rediriger vers la page principale après suppression
-      res.redirect('/');
+      res.redirect('/indexZoneAuthor');
     } catch (err) {
     // Gérer les erreurs et les afficher dans la console
     console.error('Erreur lors de la suppression de l\'article:', err);

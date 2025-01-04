@@ -1,15 +1,19 @@
-<%- include('layout/header') %>
+<%- include('layout/headerZoneAuthor') %>
 
 <div class="container my-3">
   <div class="row">
     <div class="col-12 text-center">
-      <!-- Pulsante per visualizzare la mappa -->
-      <button id="toggle-map" class="btn btn-primary">Visualiser la carte</button>
+      <a href="/addTriangle">
+        <button id="add-triangle" class="btn-custom">  <i class="fas fa-caret-up"></i> Triangle</button>
+      </a>
+      <a href="/addPentagone">
+        <button id="add-pentagone" class="btn-custom">  <i class="fas fa-shapes"></i>Pentagone</button>
+      </a>
     </div>
   </div>
  
   <!-- Mappa -->
-  <div id="map" style='width: 100%; height: 300px; display: none; transition: all 0.3s ease-in-out'>
+  <div id="map" style='width: 100%; height: 300px; margin-top: 10px; display: block; transition: all 0.3s ease-in-out'>
   </div>
 </div>
 <div class='container'>
@@ -47,7 +51,6 @@
      <% if (articles && articles.length > 0) { %>   
           <!-- Visualizza un gruppo per ogni tipo (Punto 4: Migliorato il Layout) -->
         
-            <h3 class="text-center text-primary">Tipo di articolo: </h3>
             <table class="table table-hover table-bordered table-striped text-center mt-3">
               <thead class="table-dark">
                 <tr>

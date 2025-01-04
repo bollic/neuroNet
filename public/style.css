@@ -10,8 +10,50 @@ body {
  .container, .container-fluid {
     padding: 20px 15px;
  }
- 
  .navbar {
-    padding: 15px;
+   margin-bottom: 0;
+ }
+ .navbar {
+    padding: 2px;
+ }
+ 
+ /* CSS per il pulsante custom */
+.btn-custom {
+   background-color: #718fe7;
+   border: 2px solid #4e73df;
+   color: white;
+   padding: 8px 16px;
+   font-size: 12px;
+   font-weight: 500;
+   border-radius: 30px;
+   transition: background-color 0.3s ease, transform 0.2s ease-in-out;
+   display: inline-flex;
+   align-items: center;
+   gap: 5px;
+ }
+ 
+ .btn-custom i {
+   font-size: 18px;
+ }
+ 
+.btn-custom:hover {
+   background-color: #4e73df; /* Colore di sfondo più scuro al passaggio del mouse */
+   border-color: #2e59d9; /* Colore del bordo più scuro al passaggio del mouse */
+   transform: translateY(-1px); /* Effetto di sollevamento */
+ }
+ 
+ .btn-custom:active {
+   transform: translateY(0);
+   background-color: #2e59d9; /* Colore di sfondo scuro al clic */
+   border-color: #1d4f96; /* Colore del bordo più scuro al clic */
+ }
+ 
+ /* Aggiungi l'ombra per far sembrare i pulsanti più leggeri */
+ .btn-custom {
+   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+ }
+ 
+ .btn-custom:focus {
+   outline: none;
  }
  
