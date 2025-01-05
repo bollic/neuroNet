@@ -529,10 +529,7 @@ router.post("/ajoute_triangle", upload, async (req, res) => {
     const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
     const type = req.body.type; // Es: "triangle" o "pentagone"
     // Conta gli articoli già aggiunti dall'utente
-    const existingTriangles  = await Article.countDocuments({ 
-      user: userId,
-      type: type, // Aggiunge un campo specifico per distinguere le figure
-    });
+
 
 // Definisci il numero massimo di articoli per tipo
 let maxArticles = 0;
@@ -543,10 +540,15 @@ if (type === "triangle") {
 } else {
   return res.status(400).send("Tipo di articolo non valido.");
 }
-
+    const existingTriangles  = await Article.countDocuments({ 
+      user: userId,
+      type: type, // Aggiunge un campo specifico per distinguere le figure
+    });
+    console.log(`existingTriangles: ${existingTriangles}:`);
+      console.log(`MaxArticles: ${maxArticles}:`);
     if (existingTriangles >= maxArticles) {
       // Se l'utente ha già 3 articoli, blocca l'aggiunta
-      return res.status(400).send("Puoi aggiungere al massimo  ${maxArticles} articoli di tipo ${type}.");
+      return res.status(400).send(`Puoi aggiungere al massimo  ${maxArticles} articoli di tipo ${type}`);
     }
 
     const { body, files } = req;

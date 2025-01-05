@@ -6,8 +6,8 @@
         // Inizializza la mappa centrata sulla posizione dell'articolo
         let lat = parseFloat("<%= article.latitudeSelectionee %>");
         let lng = parseFloat("<%= article.longitudeSelectionee %>");
-      let map = L.map("map", { center: [43.2, 1.30], zoom: 7 });
-   
+
+      let map = L.map("map", { center: [lat, lng], zoom: 7 });
     // Aggiungi il layer di OpenStreetMap
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
         preload: true,
@@ -77,7 +77,7 @@
     <div class="col-lg-6 mx-auto mt-4">
          <div class="card shadow">
             <div class="card-header bg-success">
-             <h3 class="text-light">Edit User (<%= article.name %>)</h3>
+             <h3 class="text-light">Modifier(<%= article.name %>)</h3>
             </div>
             
             <div class="card-body p-4">
@@ -124,7 +124,7 @@
                         <img src="/uploads/<%= article.image %>" alt="Current Image" class="img-thumbnail mt-1" width="100">
                      <% } %>                                  
                     <div class="mb-3 d-grid">                      
-                        <input type="submit" name="submit" value="User" class="btn btn-success btn-lg"  />
+                        <input type="submit" name="submit" value="Envoi" class="btn btn-success btn-lg"  />
                     </div>
                 </form>
             </div>

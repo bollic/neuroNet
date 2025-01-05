@@ -143,7 +143,7 @@ function updateMap() {
 
     singleMarker.bindPopup(`
         <b>${article.name}</b><br>
-        <strong>ID user: ${article.user}</strong><br>
+        <strong>ID user: ${article.user._id}</strong><br>
         <strong>${article._id}</strong><br>
         <img src="/uploads/${article.image}" alt="Immagine" class="img-thumbnail" width="100">
     `);
