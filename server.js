@@ -22,10 +22,10 @@ mongoose.connect(process.env.DATABASE_URL, {
         console.log('Connexion à MongoDB réussie !');
         // Elimina articoli orfani
         (async () => {
-          const toDelete = await Article.find({ email: "coucou5@gmail.com" });
+          const toDelete = await Article.find({ email: "coucou@gmail.com" });
 console.log("Articoli da eliminare:", toDelete);
           try {
-            const deleted = await Article.deleteMany({ email: "coucou5@gmail.com"});
+            const deleted = await Article.deleteMany({ email: "coucou@gmail.com"});
             console.log(`${deleted.deletedCount} articoli eliminati.`);
           
              // Log per verificare l'operazione
