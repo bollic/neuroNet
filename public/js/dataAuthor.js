@@ -106,8 +106,44 @@ function updateMap() {
             
     // Raggruppa gli articoli per tipo usando la funzione già esistente
     const groupedArticlesByType = groupedArticles;
+    console.log("groupedArticlesByType['triangle']:", groupedArticlesByType['triangle']);
 
-    // Crea marker e poligoni per ciascun tipo e categoria
+     // **Nuovo codice: Raggruppa i triangoli per gruppo**
+     const groupedTriangles = Object.keys(groupedArticlesByType['triangle'] || {}).reduce((acc, groupKey) => {
+        const triangles = groupedArticlesByType['triangle'][groupKey];
+        acc[groupKey] = triangles; // Aggiungi i triangoli di quel gruppo
+        return acc;
+    }, {});
+    
+    console.log("Grouped Triangles by Group:", groupedTriangles);
+    
+    // **Crea poligoni per ogni gruppo di triangoli**
+    Object.keys(groupedTriangles).forEach((group) => {
+        const triangles = groupedTriangles[group];
+        console.log(`Rendering triangles for group: ${group}`, triangles);
+       
+            // Crea il poligono per il gruppo corrente
+    const latLngs = triangles.map((article) => [
+        parseFloat(article.latitudeSelectionee),
+        parseFloat(article.longitudeSelectionee),
+    ]);
+    const category = triangles[0]?.category; // O sostituisci con il nome corretto della proprietà
+
+    // **Inserisci qui la parte che crea il poligono per tipo e categoria**
+    if (latLngs.length >= 3) { // Almeno 3 punti per un poligono valido
+        // In base alla categoria, applichiamo lo stile appropriato
+        const polygon = L.polygon(latLngs, polylineStyles[category]);
+        drawnItems.addLayer(polygon); // Aggiungi il poligono al layer
+    }
+
+       /* if (latLngs.length >= 3) { // Almeno 3 punti per formare un triangolo
+            const polygon = L.polygon(latLngs, { color: 'red', weight: 2 });
+            drawnItems.addLayer(polygon); // Aggiungi il poligono al layer
+        }*/
+    });
+
+  
+  // **Codice esistente: gestione dei marker**
     Object.keys(groupedArticlesByType).forEach((type) => {
         const articlesOfType = groupedArticlesByType[type];
 
@@ -117,11 +153,18 @@ function updateMap() {
             "moyen": [],
             "bas": []
         };
-
+        Object.values(articlesOfType).forEach((articles) => {
+            articles.forEach((article) => {
+              const category = article.category || 'moyen'; // Default 'moyen'
+              groupedMarkersByCategory[category].push(article);
+            });
+          });
+          
+        /* 
         articlesOfType.forEach((article) => {
             const category = article.category || 'moyen'; // Default 'moyen'
             groupedMarkersByCategory[category].push(article);
-        });
+        });*/
 
         // Crea marker e poligoni per ciascuna categoria nel tipo corrente
         Object.keys(groupedMarkersByCategory).forEach((category) => {
@@ -149,22 +192,16 @@ function updateMap() {
     `);
     layerGroup.addLayer(singleMarker);
 });
-
-// Crea il poligono per questo tipo e categoria
-const latLngs = markers.map((article) => [parseFloat(article.latitudeSelectionee), parseFloat(article.longitudeSelectionee)]);
-if (latLngs.length >= 3) { // Almeno 3 punti per un poligono valido
-    const polygon = L.polygon(latLngs, polylineStyles[category]);
-    drawnItems.addLayer(polygon);
-}
-}
-});
-});
+  
+         }
+      });
+   });
 
 
 
     // Crea i raggi collegando i nodi corrispondenti
-    createRaggi(groupedMarkers);
-    console.log("Grouped Markers 1:", groupedMarkers);
+    createRaggi(groupedArticles);
+    console.log("Grouped Markers 1:", groupedArticles);
 
     // Adatta la mappa per includere tutti i marker e polilinee
     if (layerGroup.getLayers().length > 0) {
@@ -172,76 +209,57 @@ if (latLngs.length >= 3) { // Almeno 3 punti per un poligono valido
     }
 }
 
-function createRaggi(groupedMarkers) {
-  const verticesBon = {};
-    const verticesMoyen = {};
-    const verticesMauvais = {};
+function createPolylinesBetweenGroups(group1, group2, color = 'black', weight = 0.8) {
+    group1.forEach((triangle1, index) => {
+        const triangle2 = group2[index]; // Assumi che abbiano lo stesso indice
 
-    console.log("Grouped Markers:", groupedMarkers); // Controlla il contenuto di groupedMarkers
-     // Popola i vertici per "bon"
-     for (const [index, article] of groupedMarkers['bon'].entries()) {
-        console.log("Articolo Bon:", article); // Logga l'articolo corrente
-        // Usa l'indice come vertice
-        verticesBon[index + 1] = [article.lat, article.lng]; 
-        console.log(`Aggiunto vertice Bon: ${index + 1} -> [${article.lat}, ${article.lng}]`);
-    }
-    // Popola i vertici per "moyen"
-    for (const [index, article] of groupedMarkers['moyen'].entries()) {
-        console.log("Articolo Moyen:", article); // Logga l'articolo corrente
-        // Usa l'indice come vertice
-        verticesMoyen[index + 1] = [article.lat, article.lng]; 
-        console.log(`Aggiunto vertice Moyen: ${index + 1} -> [${article.lat}, ${article.lng}]`);
-    }
+        if (triangle1 && triangle2) {
+            // Controlla e converti le coordinate
+            const lat1 = parseFloat(triangle1.latitudeSelectionee);
+            const lng1 = parseFloat(triangle1.longitudeSelectionee);
+            const lat2 = parseFloat(triangle2.latitudeSelectionee);
+            const lng2 = parseFloat(triangle2.longitudeSelectionee);
 
-    // Popola i vertici per "bas"
-    for (const [index, article] of groupedMarkers['bas'].entries()) {
-        console.log("Articolo Bas:", article); // Logga l'articolo corrente
-        // Usa l'indice come vertice
-        verticesMauvais[index + 1] = [article.lat, article.lng]; 
-        console.log(`Aggiunto vertice Bas: ${index + 1} -> [${article.lat}, ${article.lng}]`);
-    }
+            const isValidTriangle1 = !isNaN(lat1) && !isNaN(lng1);
+            const isValidTriangle2 = !isNaN(lat2) && !isNaN(lng2);
 
-    // Controlla il risultato finale
-    console.log("Vertices Bon:", verticesBon);
-    console.log("Vertices Moyen:", verticesMoyen);
-    console.log("Vertices Mauvais:", verticesMauvais);
-
-       // Disegna le polilinee tra i vertici Moyen e Mauvais
-       // Disegna le polilinee tra i vertici Bon, Moyen e Mauvais
-for (const key in verticesBon) {
-    if (verticesBon.hasOwnProperty(key)) {
-        const pointBon = verticesBon[key];
-        const pointMoyen = verticesMoyen[key];
-        const pointMauvais = verticesMauvais[key];
-
-        // Assicurati che tutti e tre i punti siano definiti
-        if (pointBon && pointMoyen && pointMauvais) {
-            // Tratto Bon -> Moyen
-            const polylineBonMoyen = L.polyline([pointBon, pointMoyen], { color: 'black', weight: 0.9 });
-            drawnItems.addLayer(polylineBonMoyen);
-            console.log(`Polilinea disegnata tra il vertice Bon ${key} e il vertice Moyen ${key}`);
-
-            // Tratto Moyen -> Mauvais
-            const polylineMoyenMauvais = L.polyline([pointMoyen, pointMauvais], { color: 'black', weight: 0.8 });
-            drawnItems.addLayer(polylineMoyenMauvais);
-            console.log(`Polilinea disegnata tra il vertice Moyen ${key} e il vertice Mauvais ${key}`);
+            if (isValidTriangle1 && isValidTriangle2) {
+                const point1 = [lat1, lng1];
+                const point2 = [lat2, lng2];
+                const polyline = L.polyline([point1, point2], { color, weight });
+                drawnItems.addLayer(polyline);
+                console.log(`Polilinea tra ${point1} e ${point2}`);
+            } else {
+                console.warn("Coordinate non valide per i triangoli:", triangle1, triangle2);
+            }
+        } else {
+            console.warn("Triangoli mancanti a questo indice:", index, triangle1, triangle2);
         }
-    }
+    });
 }
 
+function createRaggi(groupedArticles) {
+    const triangles = groupedArticles['triangle'] || {};
 
-    // Stampa le coordinate per ogni vertice di Moyen
-    for (const [key, coords] of Object.entries(verticesMoyen)) {
-        console.log(`Vertice Moyen ${key}:`, coords); // Stampa le coordinate
-        // Usa coords[0] e coords[1] per lat e lng rispettivamente
-    }
+    const originalTriangles = triangles['original'] || [];
+    const scaled1Triangles = triangles['scaled1'] || [];
+    const scaled2Triangles = triangles['scaled2'] || [];
 
-    // Se desideri anche stampare i vertici Mauvais
-    for (const [key, coords] of Object.entries(verticesMauvais)) {
-        console.log(`Vertice Mauvais ${key}:`, coords); // Stampa le coordinate
-        // Usa coords[0] e coords[1] per lat e lng rispettivamente
-    }
-}  
+    console.log("Original Triangles:", originalTriangles);
+    console.log("Scaled1 Triangles:", scaled1Triangles);
+    console.log("Scaled2 Triangles:", scaled2Triangles);
+    // Creazione polilinee tra scaled1 e scaled2
+    createPolylinesBetweenGroups(scaled1Triangles, scaled2Triangles, 'black', 0.8);
+
+    // Creazione polilinee tra original e scaled1
+    createPolylinesBetweenGroups(originalTriangles, scaled1Triangles, 'white', 1.2);
+    // Ad esempio: Collegare i vertici tra scaled1 e scaled2
+  
+
+    
+    
+}
+
     //  const mapElement = document.getElementById('map');      
         // Initialize map only once, then update content
         if (!map) {

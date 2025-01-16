@@ -27,8 +27,13 @@ const articleSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-     type: { type: String,             
-      },
+    type: { 
+        type: String,             
+    },
+    group: { 
+        type: String, // Specifica che il campo `group` è una stringa
+        required: true // Facoltativo: aggiungi questa opzione se è obbligatorio
+    },
     created: {
         type: Date,
         required: true,

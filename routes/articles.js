@@ -267,15 +267,31 @@ router.get('/',  async (req, res) => {
       return res.status(401).send('Utente non autenticato');
     } 
     const articles = await Article.find({ user: userId }).populate('user'); 
-         // groupedByType: groupedArticles, 
       // Raggruppa gli articoli per tipo
-      const groupedArticles = groupedByType(articles);
+    const groupedArticles = groupedByType(articles);
+    
+    const originalTriangles = groupedArticles['triangle']?.['original'] || [];
+    // Accedi direttamente ai triangoli del gruppo 'scaled1'
+    const scaled1Triangles = groupedArticles['triangle']?.['scaled1'] || [];
+     // Accedi direttamente ai triangoli del gruppo 'scaled1'
+     const scaled2Triangles = groupedArticles['triangle']?.['scaled2'] || [];
+   
+    // Log per debug
+     console.log("Grouped Articles:", groupedArticles);
+     console.log("Scaled1 Triangles:", scaled1Triangles);
+     console.log("Scaled2 Triangles:", scaled2Triangles);
+     console.log("Original Triangles:", originalTriangles);
+       // Log per verificare i dati raggruppati
+    console.log("Articoli raggruppati lato server:", groupedArticles);
     // Passa i dati raggruppati alla vista
     res.render('indexZoneAuthor', { 
       articles: articles || [], // Passa gli articoli
       filteredUsers: [],
-      groupedMarkers: [],
-      groupedArticles,
+   
+      groupedArticles, // Passa tutti i dati raggruppati
+      scaled1Triangles, // Passa i triangoli specifici del gruppo 'scaled1'
+      scaled2Triangles,
+      originalTriangles,
   
        session: req.session, // Passer la session à la vue
        user: req.session.user, // Vérifiez si un user est connecté
@@ -288,20 +304,21 @@ router.get('/',  async (req, res) => {
   }
 });  
 
-
-// Funzione per raggruppare gli articoli
 function groupedByType(articles) {
   const grouped = {};
   articles.forEach((article) => {
-      const type = article.type || 'Sconosciuto'; 
-      if (!grouped[type]) {
-          grouped[type] = [];
-      }
-      grouped[type].push(article);
+    const type = article.type || 'Sconosciuto';
+    if (!grouped[type]) {
+      grouped[type] = {};
+    }
+    const group = article.group || 'ungrouped'; // Default a "ungrouped"
+    if (!grouped[type][group]) {
+      grouped[type][group] = [];
+    }
+    grouped[type][group].push(article);
   });
   return grouped;
-}
-  
+}  
 
 // ROUTE TRASFORMATA
 /*
@@ -498,6 +515,22 @@ router.get("/addTriangle", isAuthenticated, (req, res) => {
 }
 });
 
+//VADO A: qs e' l indirizzo web , cioe la ROUTE addForm, che vedo nell'internet
+// Links http://localhost:4000/addToileTriangle
+router.get("/addToileTriangle", isAuthenticated, (req, res) => {
+  // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
+  console.log("Accesso a /addTriangle - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
+
+  if (req.session.user) {
+  res.render("ajoute_toileTriangle", { title: 'Toile à Triangle Form Page', user: req.session.user});
+  
+} else {
+    // Log per verificare se si viene reindirizzati al login
+    console.log("Utente non autenticato, reindirizzamento a /login");
+  res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
+}
+});
+
 router.get("/addPentagone", isAuthenticated, (req, res) => {
   // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
   console.log("Accesso a /addPentagone - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
@@ -520,6 +553,196 @@ router.get('/api/check-articles', async (req, res) => {
       console.error("Errore nel recupero degli articoli:", err);
       res.status(500).send("Errore nel recupero degli articoli");
   }
+});
+
+router.post("/ajoute_toileTriangle", upload, async (req, res) => {
+  try {
+    console.log(req.body);
+ 
+    const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
+    const type = req.body.type; // Es: "triangle" o "pentagone"
+    // Conta gli articoli già aggiunti dall'utente
+
+// Definisci il numero massimo di articoli per tipo
+let maxArticles = 0;
+if (type === "triangle") {
+  maxArticles = 3;
+} else if (type === "pentagone") {
+  maxArticles = 5;
+} else {
+  return res.status(400).send("Tipo di articolo non valido.");
+}
+    const existingTriangles  = await Article.countDocuments({ 
+      user: userId,
+      type: type, // Aggiunge un campo specifico per distinguere le figure
+    });
+    console.log(`existingTriangles: ${existingTriangles}:`);
+      console.log(`MaxArticles: ${maxArticles}:`);
+    if (existingTriangles >= maxArticles) {
+      // Se l'utente ha già 3 articoli, blocca l'aggiunta
+      return res.status(400).send(`Puoi aggiungere al massimo  ${maxArticles} articoli di tipo ${type}`);
+    }
+
+    const { body } = req;
+    const trianglePoints = [];
+    const trianglePointsDue = [];
+    const trianglePointsTre = [];
+
+    let i = 0;
+    // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
+    while (body[`latitudeSelectioneeInput_${i}`]) {
+      console.log(`Trovato articolo ${i}:`);
+      // Recupera e controlla le coordinate
+      const latitude = parseFloat(body[`latitudeSelectioneeInput_${i}`]);
+      const longitude = parseFloat(body[`longitudeSelectioneeInput_${i}`]);
+
+      // Verifica che le coordinate siano numeriche
+      if (isNaN(latitude) || isNaN(longitude)) {
+        console.log("Errore: Coordinate non valide");
+        return res.status(400).send("Le coordinate devono essere numeriche.");
+      }
+      // Recupera il file caricato per questo articolo
+      const imageField = `image_${i}`;
+      const imageFile = body[imageField] || "image_3.png"; // Usa il valore da req.body
+      
+      // Creazione dei dati per l'articolo
+      const articleData = {
+        name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
+        category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
+        latitudeSelectionee: latitude,  // Latitudine
+        longitudeSelectionee: longitude,  // Longitudine
+        type: "triangle",
+        image: imageFile,  
+        group: "original", // Aggiungi il gruppo iniziale
+     };
+      
+      console.log(`Articolo ${i} dati:`, articleData);
+
+      // Verifica che tutti i campi obbligatori siano presenti
+      if (!articleData.name || !articleData.category || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
+        console.log("Errore: Manca uno dei campi obbligatori");
+        return res.status(400).send("Tutti i campi sono obbligatori");
+      }
+
+  // Logica di aggiunta degli articoli agli array
+      trianglePoints.push(articleData);
+      trianglePointsDue.push(articleData);
+      trianglePointsTre.push(articleData);
+
+      i++; // Incrementa l'indice per il prossimo articolo
+}
+
+    // Verifica che siano stati trovati articoli
+    if (trianglePoints.length === 0) {
+      return res.status(400).send("Nessun articolo da aggiungere.");
+    }
+
+    // Calcola il centroide del triangolo originale
+   const calculateCentroid = (points) => {
+        const centerLat = points.reduce((sum, p) => sum + p.latitudeSelectionee, 0) / points.length;
+        const centerLng = points.reduce((sum, p) => sum + p.longitudeSelectionee, 0) / points.length;
+        return { centerLat, centerLng };
+   };
+// Espandi i punti rispetto al centroide
+const scaleTriangle = (points, scale) => {
+  const { centerLat, centerLng } = calculateCentroid(points);
+  console.log("Centroide:", centerLat, centerLng);
+  return points.map((point) => {
+    const newPoint = {
+      ...point,
+      latitudeSelectionee: centerLat + (point.latitudeSelectionee - centerLat) * scale,
+      longitudeSelectionee: centerLng + (point.longitudeSelectionee - centerLng) * scale,
+    };
+    console.log("Punto originale:", point);
+    console.log("Punto scalato:", newPoint);
+    return newPoint;
+  });
+};
+    // 1.Salva tutti gli articoli triangleData nel database
+    for (const triangleData of trianglePoints ) {
+      console.log('Triangle Points:', trianglePoints);
+      const newTriangle = new Article({
+        user: userId,
+        group: "original",
+        name: triangleData.name,
+        category: triangleData.category,      
+        latitudeSelectionee: triangleData.latitudeSelectionee,
+        longitudeSelectionee: triangleData.longitudeSelectionee,
+        type: triangleData.type,
+        image: triangleData.image,
+      });
+
+      await newTriangle.save();
+    }
+
+    console.log("Articoli salvati nel database:", trianglePoints);
+
+// 2. Calcola e salva il secondo triangolo (ingrandito)
+// Crea una copia profonda prima di eseguire lo scaling
+const scaledTrianglePointsDue = scaleTriangle(JSON.parse(JSON.stringify(trianglePoints)), 1.5);
+console.log('Scaled Triangle Points Due:', scaledTrianglePointsDue);
+//const scaledTrianglePointsDue = scaleTriangle(trianglePointsDue, 1.5);
+for (const triangleData of scaledTrianglePointsDue) {
+  const newTriangle = new Article({
+    user: userId,
+    group: "scaled1",
+    name: triangleData.name,
+    category: triangleData.category,
+    latitudeSelectionee: triangleData.latitudeSelectionee,
+    longitudeSelectionee: triangleData.longitudeSelectionee,
+    type: triangleData.type,
+    image: triangleData.image,
+  });
+
+  await newTriangle.save();
+}
+console.log("Articoli salvati nel database:", scaledTrianglePointsDue);
+
+    // 3. Salva tutti gli articoli triangleDataTre nel database
+    const scaledTrianglePointsTre = scaleTriangle(JSON.parse(JSON.stringify(trianglePoints)), 2.0);
+    console.log('Scaled Triangle Points Tre:', scaledTrianglePointsTre);
+  
+    for (const triangleData of scaledTrianglePointsTre ) {
+      const newTriangle = new Article({
+        user: userId,
+        group: "scaled2",
+        name: triangleData.name,
+        category: triangleData.category,
+      
+        latitudeSelectionee: triangleData.latitudeSelectionee,
+        longitudeSelectionee: triangleData.longitudeSelectionee,
+        type: triangleData.type,
+        image: triangleData.image,
+      });
+
+      await newTriangle.save();
+    }
+ 
+    console.log("Articoli salvati nel database:", scaledTrianglePointsTre);
+    // Impostazione del messaggio di successo nella sessione
+    req.session.message = {
+      type: "success",
+      message: "Articoli aggiunti con successo!",
+    };
+
+    const allTriangles = [...trianglePoints, ...scaledTrianglePointsDue, ...scaledTrianglePointsTre];
+
+    const groupedTriangles = allTriangles.reduce((acc, triangle) => {
+      if (!acc[triangle.group]) acc[triangle.group] = [];
+      acc[triangle.group].push(triangle);
+      return acc;
+    }, {});
+    
+    console.log("Grouped Triangles by Group:", groupedTriangles);
+
+    // Redirect alla home dopo il salvataggio degli articoli
+    return res.redirect("/indexZoneAuthor");
+
+  } catch (err) {
+    console.error("Errore durante l'aggiunta degli articoli:", err);
+    res.status(500).send("Errore durante l'invio degli articoli");
+  }
+
 });
 
 router.post("/ajoute_triangle", upload, async (req, res) => {
@@ -553,7 +776,7 @@ if (type === "triangle") {
 
     const { body, files } = req;
     const trianglePoints = [];
-
+    
     let i = 0;
     // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
     while (body[`latitudeSelectioneeInput_${i}`]) {
@@ -599,7 +822,7 @@ if (type === "triangle") {
       return res.status(400).send("Nessun articolo da aggiungere.");
     }
 
-    // Salva tutti gli articoli nel database
+    // 1.Salva tutti gli articoli triangleData nel database
     for (const triangleData of trianglePoints ) {
       const newTriangle = new Article({
         user: userId,
