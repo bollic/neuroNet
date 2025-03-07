@@ -6,7 +6,7 @@
     let map = L.map("map", { center: [46.2, 2.9], zoom: 5 });
     let layerGroup = L.featureGroup().addTo(map);
    let treArticles=[];
-   let selectedCoordinates = []; // Array per memorizzare le coordinate dei 3 punti
+   let selectedCoordinates = []; 
 
     // Ajouter le fond de carte
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
@@ -18,7 +18,7 @@
 
     // Ajouter un événement de clic sur la carte pour afficher les coordonnées
     let myLocation = L.layerGroup().addTo(map);
-   // map.addEventListener("click", mapClick);
+   
 
    
 let popup = L.popup();
@@ -70,7 +70,7 @@ map.addEventListener("click", function(e) {
 
  // Funzione per verificare il numero di articoli già presenti
         async function checkMaxArticles() {
-            const response = await fetch('/api/check-articles'); // Percorso per verificare il numero di articoli
+            const response = await fetch('/api/check-articles');
             const data = await response.json();
 
             if (data.count >= 3) {
@@ -109,9 +109,8 @@ map.addEventListener("click", function(e) {
     name: form.querySelector("[name='name']").value,
     category: form.querySelector("[name='category']").value,
   
-    latitudeSelectionee: point.lat, // Usa la latitudine del punto corrente
-    longitudeSelectionee: point.lng, // Usa la longitudine del punto corrente
-   
+    latitudeSelectionee: point.lat, 
+    longitudeSelectionee: point.lng, 
     type: form.querySelector("[name='type']").value,
      image: form.querySelector("[name='image']").value
   };
@@ -131,7 +130,7 @@ map.addEventListener("click", function(e) {
  
       formTriangleData.append(`articles[${index}][latitudeSelectionee]`, article.latitudeSelectionee);
       formTriangleData.append(`articles[${index}][longitudeSelectionee]`, article.longitudeSelectionee);
-      formTriangleData.append(`articles[${index}][type]`, "triangle");
+      formTriangleData.append(`articles[${index}][type]`, article.type);
  
       formTriangleData.append(`articles[${index}][image]`, article.image);
     });
@@ -221,7 +220,7 @@ map.addEventListener("click", function(e) {
                       <input type="hidden" name="id" value="<%= user._id %>">
                     <% } %>
                   
-                   <input type="hidden" name="type" value="triangle">
+                   <input type="hidden" name="type" value="trepunti">
                  
                     <div class="mb-3 d-grid">                      
                         <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />

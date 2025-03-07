@@ -131,7 +131,11 @@ map.addControl(drawControl);
     if (!groupedByUser || Object.keys(groupedByUser).length === 0) {
         console.error('GroupedByUser è vuoto o non valido:', groupedByUser);
         return;
-    };
+    }
+
+    layerGroup.clearLayers(); // Rimuove tutti i marker e i poligoni esistenti
+
+    // Stili per i poligoni
     const polylineStyles = {
     "bon": { color: 'blue', weight: 2, fillColor: 'blue', fillOpacity: 0.0 },
     "moyen": { color: 'gray', weight: 2, fillColor: 'gray', fillOpacity: 0.0 },
@@ -142,6 +146,7 @@ map.addControl(drawControl);
             "moyen": [],
             "bas": []
         };
+    // Icone per i marker
     const icons = {
         "bon": L.icon({
           iconSize: [19, 30],
@@ -178,92 +183,48 @@ map.addControl(drawControl);
     
     console.log("Dati per l'utente:", userId, userArticlesGrouped); // Stampa i dati dell'utente
     console.log("Tipo di userArticlesGrouped:", typeof userArticlesGrouped);
-    console.log("Valore di userArticlesGrouped:", userArticlesGrouped);
-    console.log('User Articles Grouped:', userArticlesGrouped);
+console.log("Valore di userArticlesGrouped:", userArticlesGrouped);
+
 
 
 // 🔹 Itera su ogni tipo di dati dentro userArticlesGrouped
-
 Object.keys(userArticlesGrouped).forEach((groupKey) => {
-    const groupArticles  = userArticlesGrouped[groupKey];
-    console.log("Dati per il gruppo:", groupKey, groupArticles );
+    const userData = userArticlesGrouped[groupKey];
+    console.log("Dati per il gruppo:", groupKey, userData);
 });
    // 🔹 Gestione dei poligoni per 'trepunti'
-   console.log("Articoli di tipo trepunti:", userArticlesGrouped.trepunti);
-
    if (userArticlesGrouped?.trepunti) {
         Object.keys(userArticlesGrouped.trepunti).forEach(groupKey => {
             const groupArticles = userArticlesGrouped.trepunti[groupKey];
-                 if (groupArticles.length < 3) {
-                  console.log("Non abbastanza coordinate per creare il poligono", latLngs);
-                                                }
-                if (groupArticles.length >= 3) {
-    console.log("I VERTICI SONO 3? Creazione poligono con", groupArticles.length, "articoli");
 
-    const latLngs = groupArticles
-        .filter(article => article.coordinates && Array.isArray(article.coordinates) && article.coordinates.length >= 2)
-        .map(article => [
-            parseFloat(article.coordinates[0]),  
-            parseFloat(article.coordinates[1])   
-        ]);
+            if (groupArticles.length >= 3) {
+                const latLngs = groupArticles.map(article => [
+                    parseFloat(article.latitudeSelectionee || 0),
+                    parseFloat(article.longitudeSelectionee || 0)
+                ]);
 
-    console.log("Ecco le coordinate per il poligono", latLngs);
-    console.log("📍 Dati per il poligono:", JSON.stringify(latLngs, null, 2));
-
-    if (latLngs.length >= 3) {
-        const category = groupArticles[0]?.category || 'bas';
-        const polygon = L.polygon(latLngs, polylineStyles[category] || polylineStyles['bas']);
-        console.log("🟢 Poligono creato:", polygon);
-
-        layerGroup.addLayer(polygon);
-map.fitBounds(polygon.getBounds());
- // 🔥 Sposta la vista sulla zona del poligono
-console.log("🔎 LayerGroup contiene:", layerGroup.getLayers());
-
-    } else {
-        console.log("⚠️ Non abbastanza punti validi per creare un poligono.");
-    }
-};
-
-          
+                const category = groupArticles[0]?.category || 'moyen';
+                const polygon = L.polygon(latLngs, polylineStyles[category]);
+                layerGroup.addLayer(polygon);
+            }
         });
     }
 
     // 🔹 Gestione dei poligoni per 'triangle'
-    console.log("Articoli di tipo triangle:", userArticlesGrouped.triangle);
-
     if (userArticlesGrouped?.triangle) {
         Object.keys(userArticlesGrouped.triangle).forEach(groupKey => {
             const groupArticles = userArticlesGrouped.triangle[groupKey];
-            if (groupArticles.length < 3) {
-    console.log("Non abbastanza coordinate per creare il poligono", latLngs);
-}
+
             if (groupArticles.length >= 3) {
-               console.log("I VERTICI SONO 3? Creazione poligono con", groupArticles.length, "articoli");
+                const latLngs = groupArticles.map(article => [
+                    parseFloat(article.latitudeSelectionee || 0),
+                    parseFloat(article.longitudeSelectionee || 0)
+                ]);
 
-              const latLngs = groupArticles
-             .filter(article => article.coordinates && Array.isArray(article.coordinates) && article.coordinates.length >= 2)
-             .map(article => [
-              parseFloat(article.coordinates[0]),  
-              parseFloat(article.coordinates[1])   
-             ]);
-
-              if (latLngs.length >= 3) {
-            const category = groupArticles[0]?.category || 'bas';
-           const polygon = L.polygon(latLngs, polylineStyles[category] || polylineStyles['bas']);
-            console.log("🟢 Poligono creato:", polygon);
-
-            layerGroup.addLayer(polygon);
-            map.fitBounds(polygon.getBounds());
-            // 🔥 Sposta la vista sulla zona del poligono
-            console.log("🔎 LayerGroup contiene:", layerGroup.getLayers());
-
-               } else {
-              console.log("⚠️ Non abbastanza punti validi per creare un poligono.");
-                      }
-            } //  FINE  if (userArticlesGrouped?.triangle) {
-
-
+                const category = groupArticles[0]?.category || 'moyen';
+                const polygon = L.polygon(latLngs, polylineStyles[category]);
+                layerGroup.addLayer(polygon);
+            }
         });
     }
  // **GESTIONE DEI MARKER**
@@ -290,123 +251,106 @@ const latLngs = userArticlesGrouped?.trepunti?.trePunti?.map(article => [
 ]) || [];
 
         if (latLngs.length >= 3) {
-          const category = userArticlesGrouped?.trepunti?.trePunti?.[0]?.category || 'bas';
+          const category = userArticlesGrouped?.trepunti?.trePunti?.[0]?.category || 'moyen';
+
+           // const category = articles[0]?.category || 'moyen';
             const polygon = L.polygon(latLngs, polylineStyles[category]);
             layerGroup.addLayer(polygon);
-        };  
+        }  
       
         // Itera sui dati dell'utente per ogni articolo
         Object.values(userArticlesGrouped).forEach(group => {
-          console.log("Dati per il gruppo:", group);
-            // Verifica se group è un oggetto (non un array)
-       if (Array.isArray(group)) {
-    // Se è un array, puoi usare forEach
           group.forEach(article => {
-              // Verifica se le coordinate esistono e accedi agli indici corretti
-      if (article.coordinates && Array.isArray(article.coordinates) && article.coordinates.length >= 2) {
-        const lat = parseFloat(article.coordinates[0]); // latitudine
-        const lng = parseFloat(article.coordinates[1]); // longitudine
-
-           // Log dettagliato per vedere cosa stiamo ricevendo
-    
-      console.log("Lat (parsed): ", lat, "Lng (parsed): ", lng);
-               // Se le coordinate non sono numeriche, logga un avviso
-      if (isNaN(lat) || isNaN(lng)) {
-        console.log("ATTENZIONE: Coordinate non valide per l'articolo", article);
-      } else {
-        console.log("Coordinate articolo:", lat, lng);
-      }
-    } else {
-        console.log("ATTENZIONE: Le coordinate sono mancanti o non valide per l'articolo", article);
-      }
+          const lat = parseFloat(article.latitude || article.latitudeSelectionee);
+          const lng = parseFloat(article.longitude || article.longitudeSelectionee);
+          console.log("Coordinate articolo:", lat, lng);
           });
-        } else {
-    // Se group è un oggetto, usa Object.values per ottenere un array
-    Object.values(group).forEach(innerGroup => {
-      console.log("innerGroup non è un array:", innerGroup);
-           // Verifica se innerGroup è un array prima di chiamare forEach
+ const groupedByUser = <%- JSON.stringify(groupedByUser) %>;
+  
+  console.log("Grouped Articles data:", groupedArticlesT)
+  //🔹 2° parte (groupedArticlesByType)
+ // Raggruppa gli articoli per tipo usando la funzione già esistente
+ /*
+     const groupedArticlesByType = groupedArticles;
+    console.log("groupedArticlesByType['trepunti']:", groupedArticlesByType['trepunti']);
       
-      // Verifica se ogni proprietà dell'oggetto è un array e iteriamo su quelle
-      if (innerGroup.original && Array.isArray(innerGroup.original)) {
-        innerGroup.original.forEach(article => {
-            // Verifica se l'articolo ha la proprietà coordinates e se è un array
-            if (article.coordinates && Array.isArray(article.coordinates) && article.coordinates.length === 2) {
-       
-          const lat = parseFloat(article.coordinates[0]);
-          const lng = parseFloat(article.coordinates[1]);   
-        
-          // Se le coordinate non sono numeriche, logga un avviso
-          if (isNaN(lat) || isNaN(lng)) {
-            console.log("ATTENZIONE: Coordinate non valide per l'articolo (scaled1)", article);
-          } else {
-            console.log("Coordinate articolo (scaled1):", lat, lng);
-          }
-        } else {
-            console.log("ATTENZIONE: Le coordinate sono mancanti o non valide per l'articolo (original)", article);
-            console.log("Contenuto delle coordinate:", article.coordinates);
-          }
-        });
-      }
-      if (innerGroup.scaled1 && Array.isArray(innerGroup.scaled1)) {
-        innerGroup.scaled1.forEach(article => {
-          if (article.coordinates && Array.isArray(article.coordinates) && article.coordinates.length === 2) {       
-          const lat = parseFloat(article.coordinates[0]); 
-          const lng = parseFloat(article.coordinates[1]);
-          // Se le coordinate non sono numeriche, logga un avviso
-          if (isNaN(lat) || isNaN(lng)) {
-            console.log("ATTENZIONE: Coordinate non valide per l'articolo (scaled1)", article);
-          } else {
-            console.log("Coordinate articolo (scaled1):", lat, lng);
-          } 
-        } else {
-            console.log("ATTENZIONE: Le coordinate sono mancanti o non valide per l'articolo (original)", article);
-            console.log("Contenuto delle coordinate:", article.coordinates);
-          }
-        });
-      }
-      if (innerGroup.scaled2 && Array.isArray(innerGroup.scaled2)) {
-        innerGroup.scaled2.forEach(article => {
-          if (article.coordinates && Array.isArray(article.coordinates) && article.coordinates.length === 2) {
-       
-          const lat = parseFloat(article.coordinates[0]);
-          const lng = parseFloat(article.coordinates[1]);    // Log dettagliato per vedere cosa stiamo ricevendo
-       // Log dettagliato per vedere cosa stiamo ricevendo
-   
-          // Se le coordinate non sono numeriche, logga un avviso
-          if (isNaN(lat) || isNaN(lng)) {
-            console.log("ATTENZIONE: Coordinate non valide per l'articolo (scaled1)", article);
-          } else {
-            console.log("Coordinate articolo (scaled1):", lat, lng);
-          }
-        } else {
-              console.log("Contenuto delle coordinate:", article.coordinates);
-          }
-        });
-      }
-      if (innerGroup.trePunti && Array.isArray(innerGroup.trePunti)) {
-        innerGroup.trePunti.forEach(article => {
-          const lat = parseFloat(article.coordinates[0]);
-          const lng = parseFloat(article.coordinates[1]);    // Log dettagliato per vedere cosa stiamo ricevendo
-    // Log dettagliato per vedere cosa stiamo ricevendo
-     console.log("Articolo (scaled1):", article);
-        
-          console.log("Lat (parsed): ", lat, "Lng (parsed): ", lng);
+// **Nuovo codice: Raggruppa gli articoli di tipo 'trepunti' per gruppo 'trePunti'**
+const groupedTrePunti = Object.keys(groupedArticlesByType['trepunti'] || {}).reduce((acc, groupKey) => {
+    const trePuntiArticles = groupedArticlesByType['trepunti'][groupKey];
+    acc[groupKey] = trePuntiArticles; // Aggiungi gli articoli di tipo 'trepunti' per quel gruppo
+    return acc;
+}, {});
 
-          // Se le coordinate non sono numeriche, logga un avviso
-          if (isNaN(lat) || isNaN(lng)) {
-            console.log("ATTENZIONE: Coordinate non valide per l'articolo (scaled1)", article);
-          } else {
-            console.log("Coordinate articolo (scaled1):", lat, lng);
-          }
-        });
-      }
-    });
-   
-  }  
-  const groupedByUserData = <%- JSON.stringify(groupedByUser) %>;
-console.log("Grouped Articles data:", groupedByUserData);
- 
- 
+console.log("Grouped trePunti by Group:", groupedTrePunti);
+
+// **Crea poligoni per ogni gruppo di articoli 'trepunti'**
+Object.keys(groupedTrePunti).forEach((group) => {
+    const trePuntiArticles = groupedTrePunti[group];
+    console.log(`Rendering trePunti for group: ${group}`, trePuntiArticles);
+
+    // Crea il poligono per il gruppo corrente
+    const latLngs = trePuntiArticles.map((article) => [
+        parseFloat(article.latitudeSelectionee),
+        parseFloat(article.longitudeSelectionee),
+    ]);
+    const category = trePuntiArticles[0]?.category; // Usa la categoria del primo articolo del gruppo
+
+    // **Crea il poligono se ci sono almeno 3 punti**
+    if (latLngs.length >= 3) { 
+        // In base alla categoria, applichiamo lo stile appropriato
+        const polygon = L.polygon(latLngs, polylineStyles[category]);
+        drawnItems.addLayer(polygon); // Aggiungi il poligono al layer sulla mappa
+    }
+});
+
+     // **Nuovo codice: Raggruppa i triangoli per gruppo**
+     const groupedTriangles = Object.keys(groupedArticlesByType['triangle'] || {}).reduce((acc, groupKey) => {
+        const triangles = groupedArticlesByType['triangle'][groupKey];
+        acc[groupKey] = triangles; // Aggiungi i triangoli di quel gruppo
+        return acc;
+    }, {});
+    
+    console.log("Grouped Triangles by Group:", groupedTriangles);
+    
+    // **Crea poligoni per ogni gruppo di triangoli**
+    Object.keys(groupedTriangles).forEach((group) => {
+        const triangles = groupedTriangles[group];
+       const latLngs = triangles.map((article) => [
+        parseFloat(article.latitudeSelectionee),
+        parseFloat(article.longitudeSelectionee),
+    ]);
+    const category = triangles[0]?.category; // O sostituisci con il nome corretto della proprietà
+
+    if (latLngs.length >= 3) { 
+        const polygon = L.polygon(latLngs, polylineStyles[category]);
+        drawnItems.addLayer(polygon); 
+    }
+});
+
+
+
+     // **Codice esistente: gestione dei marker**
+     Object.keys(groupedArticlesByType).forEach((type) => {
+      const groupedArticlesByType = groupedArticles;
+        const articlesOfType = groupedArticlesByType[type];
+
+        // Raggruppa gli articoli per categoria dentro ogni tipo
+        const groupedMarkersByCategory = {
+            "bon": [],
+            "moyen": [],
+            "bas": []
+        };
+        Object.values(articlesOfType).forEach((articles) => {
+            articles.forEach((article) => {
+              const category = article.category || 'moyen'; // Default 'moyen'
+              groupedMarkersByCategory[category].push(article);
+            });
+          });
+          
+        // Crea marker e poligoni per ciascuna categoria nel tipo corrente
+       
+   }); 
+ */
         });
 
         // DUE Crea i raggi collegando i nodi corrispondenti
@@ -452,6 +396,7 @@ function createRaggi(groupedMarkers) {
     console.log("Vertices Moyen:", verticesMoyen);
     console.log("Vertices Mauvais:", verticesMauvais);
 
+       // Disegna le polilinee tra i vertici Moyen e Mauvais
        // Disegna le polilinee tra i vertici Bon, Moyen e Mauvais
 for (const key in verticesBon) {
     if (verticesBon.hasOwnProperty(key)) {
@@ -564,18 +509,7 @@ for (const key in verticesBon) {
 
 <script>
   const groupedByUser = <%- JSON.stringify(groupedByUser ) %>;
-  
-  console.log("2. Riga 268. Grouped articles by user:", groupedByUser);
-  const userIdTest = '6783c76b4369bb079de8d01a';
-
-if (!groupedByUser[userIdTest]) {
-  console.error(`Errore: Nessun dato per userId ${userIdTest}`);
-} else if (!groupedByUser[userIdTest].groupedByType) {
-  console.error(`Errore: Nessun groupedByType per userId ${userIdTest}`);
-} else {
-  console.log(`OK: Trovati i dati per userId ${userIdTest}`);
-  console.log("GroupedByType:", JSON.stringify(groupedByUser[userIdTest].groupedByType, null, 2));
-}
+  console.log("Grouped By User data:", groupedByUser);
 </script>
 
 <%- include('layout/footer') %>

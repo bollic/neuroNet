@@ -23,8 +23,7 @@
 <div class='container'>
   <div class="row my-4">
     <div class="col-lg-12">
-       <!-- Pulsante per visualizzare la mappa -->
-    
+       <!-- Pulsante per visualizzare la mappa -->    
       <% if (message) { %> 
         <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
           <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -70,12 +69,10 @@
               <tbody>
                 <!-- INIZIO FRONTEND 1: Inizializzazione delle variabili lato client -->
                 <script>
-                  // Garantisce che filteredUsers e groupedByUser siano definite
-                   if (typeof filteredUsers === 'undefined') var filteredUsers = [];
+                     if (typeof filteredUsers === 'undefined') var filteredUsers = [];
                   </script>
-               <!-- FINE FRONTEND 1 -->
-                  <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->            
-              <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->               
+         <!-- FINE FRONTEND 1 -->
+                 <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->               
               <% articles.forEach((row, index)=> { %> 
                   <tr class="align-middle">                
                     <td><%= index + 1 %></td> <!-- Mostra indice incrementato di 1 -->

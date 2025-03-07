@@ -13,7 +13,6 @@ const multer = require('multer');
 router.use(logger);
 
 
-
 router.get('/api/grouped-by-type', async (req, res) => {
   try {
     console.log("Inizio recupero articoli raggruppati per tipo");
@@ -38,7 +37,7 @@ router.get('/api/grouped-by-type', async (req, res) => {
     const groupedByType = articles.reduce((acc, article) => {
       const type = article.type || 'Sconosciuto'; // Default se manca il tipo
       // Log per ogni articolo in fase di elaborazione
-      console.log("Processing article:", article);
+     
       console.log("Type:", type);
 
       if (!acc[type]) {
@@ -67,6 +66,61 @@ router.get('/api/grouped-by-type', async (req, res) => {
     res.status(500).send('Errore nel recupero degli articoli per tipo');
   }
 });
+
+/*
+router.get('/api/grouped-by-type', async (req, res) => {
+  try {
+    console.log("Inizio recupero articoli raggruppati per tipo");
+
+    // Verifica che la connessione al database sia stabile
+    if (!mongoose.connection.readyState) {
+      throw new Error('Database non connesso');
+    }
+
+    const userId = req.session.user ? req.session.user._id : null;
+    console.log('ID utente loggato:', userId); // Log per verificare l'ID utente
+
+    if (!userId) {
+      return res.status(401).send('Utente non autenticato');
+    }
+
+    // Recupera tutti gli articoli dell'utente con il tipo e il popolamento del campo 'user'
+    const articles = await Article.find({ user: userId }).populate('user');
+    console.log("Tutti gli articoli per l'utente:", articles);
+
+    // Raggruppa gli articoli per tipo
+    const groupedByType = articles.reduce((acc, article) => {
+      const type = article.type || 'Sconosciuto'; // Default se manca il tipo
+      // Log per ogni articolo in fase di elaborazione
+     
+      console.log("Type:", type);
+
+      if (!acc[type]) {
+        acc[type] = {
+          type: type, // Tipo dell'articolo
+          articles: []   // Inizializza l'array degli articoli di quel tipo
+        };
+        console.log(`Creato nuovo gruppo per il tipo ${type}`);
+      }
+
+      // Aggiungi l'articolo al gruppo per tipo
+      acc[type].articles.push(article);
+      console.log(`Articolo aggiunto al tipo ${type}:`, article.name);
+
+      return acc;
+    }, {});
+
+    // Log finale per vedere come è stato raggruppato
+    console.log("Articoli raggruppati per tipo:", groupedByType);
+
+    // Rispondi con gli articoli raggruppati
+    res.json(Object.values(groupedByType));
+
+  } catch (error) {
+    console.error('Errore nel recupero degli articoli per tipo:', error);
+    res.status(500).send('Errore nel recupero degli articoli per tipo');
+  }
+});*/
 
 
 //VADO A: qs e' l indirizzo web ed event. Links http://localhost:4000/login
@@ -149,110 +203,145 @@ var upload = multer({
   { name: 'image_1', maxCount: 1 },
   { name: 'image_2', maxCount: 1 },
 ]);
-/*
-router.get('/',  async (req, res) => {
- try {
-       // Recupera tutti gli articoli di tutti gli utenti
-      const articles = await Article.find().populate('user'); // Popola il campo user per avere accesso a userID
-     
-      // Log per vedere tutti gli articoli prima del raggruppamento
-    console.log("All articles:", articles);
 
-    // Raggruppa gli articoli per userID
-    const groupedByUser = articles.reduce((acc, article) => {
-      const userId = article.user._id.toString(); // ottieni l'ID dell'utente
-  
-      // Log per ogni articolo in fase di elaborazione
-      console.log("Processing article:", article);
-      console.log("UserID:", userId);
-      
-      if (!acc[userId]) {
-        acc[userId] = {
-          user: article.user, // Dettagli utente per identificare chi ha creato la rete
-          articles: [],       // Array dei marker dell'utente
-        };
-        console.log(`Created new group for user ${userId}`);
-      }
-    // Aggiungi l'articolo al gruppo dell'utente
-    acc[userId].articles.push(article);
-     console.log(`Article added to user ${userId}:`, article.name);
-
-      return acc;
-    }, {});
-    // Ottieni groupedByType dalla chiamata all'API
-    const response = await fetch('http://localhost:3000/api/grouped-by-type');
-    const groupedByType = await response.json(); // Parsing del risultato JSON
-
-      // Log finale per verificare il risultato del raggruppamento
-      console.log("Grouped articles by user:", groupedByUser);
-      console.log("Grouped articles by type:", groupedByType);
+function groupArticles(articles) {
+  // si scorrono  gli articoli uno a uno con REDUCE
+  // si crea un accumulatore vuoto con acc 
+  // dove si accumulano userId, type e group
+  return      articles.reduce((acc, article) => {
+    const userId = article.user._id.toString();
+    const type = article.type || 'Sconosciuto';
+    const group = article.group || 'ungrouped';
     
-       // Rendi la pagina con gli articoli e l'user connesso
-        res.render('index',  {
-            title:'la liste des points',
-              session: req.session, // Passer la session à la vue
-              user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
-              articles: articles,
-              groupedByUser: groupedByUser,  
-              groupedByType: groupedByType, // Passa groupedByType alla vista           
-             })
-            } catch (error) {
-              console.error('Errore durante la ricerca degli articoli:', error);
-              res.status(500).send('Erreur lors de la récupération des articles');
-            }
-});
-*/
+ //   console.log(`Articolo elaborato - UserId: ${userId}, Tipo: ${type}, Gruppo: ${group}`);  // Aggiungi log
+
+  
+    // Se l'utente non è ancora presente, lo inizializziamo
+    if (!acc[userId]) {
+      acc[userId] = { 
+        articles: [], 
+        groupedByType: {} // Aggiungiamo il raggruppamento per tipo!
+      };
+    }
+
+    acc[userId].articles.push(article); // Manteniamo la lista di articoli "piatta"
+
+    // Ora raggruppiamo anche per tipo e gruppo
+    if (!acc[userId].groupedByType[type]) {
+      acc[userId].groupedByType[type] = {};
+    }
+    if (!acc[userId].groupedByType[type][group]) {
+      acc[userId].groupedByType[type][group] = [];
+    }
+    
+    // Aggiungiamo l'articolo dentro il raggruppamento
+    acc[userId].groupedByType[type][group].push({
+      id: article._id,
+      coordinates: [article.latitudeSelectionee, article.longitudeSelectionee],
+      category: article.category
+    });
+
+    return acc;
+  }, {});
+}
+
+function gruppoArticles(articles) {
+  // si scorrono  gli articoli uno a uno con REDUCE
+  // si crea un accumulatore vuoto con acc 
+  // dove si accumulano userId, type e group
+  return      articles.reduce((acc, article) => {
+    const userId = article.user._id.toString();
+    const type = article.type || 'Sconosciuto';
+    const group = article.group || 'ungrouped';
+    
+ //   console.log(`Articolo elaborato - UserId: ${userId}, Tipo: ${type}, Gruppo: ${group}`);  // Aggiungi log
+
+  
+    // Se l'utente non è ancora presente, lo inizializziamo
+    if (!acc[userId]) {
+      acc[userId] = { 
+        articles: [], 
+        groupedByType: {} // Aggiungiamo il raggruppamento per tipo!
+      };
+    }
+
+    acc[userId].articles.push(article); // Manteniamo la lista di articoli "piatta"
+
+    // Ora raggruppiamo anche per tipo e gruppo
+    if (!acc[userId].groupedByType[type]) {
+      acc[userId].groupedByType[type] = {};
+    }
+    if (!acc[userId].groupedByType[type][group]) {
+      acc[userId].groupedByType[type][group] = [];
+    }
+    
+    // Aggiungiamo l'articolo dentro il raggruppamento
+    acc[userId].groupedByType[type][group].push({
+      id: article._id,
+      coordinates: [article.latitudeSelectionee, article.longitudeSelectionee],
+      category: article.category, 
+      name: article.name,
+      image: article.image
+    });
+
+    return acc;
+  }, {});
+}
 
 router.get('/',  async (req, res) => {
-  try {
-        // Recupera tutti gli articoli di tutti gli utenti
-       const articles = await Article.find().populate('user'); // Popola il campo user per avere accesso a userID
-      
-       // Log per vedere tutti gli articoli prima del raggruppamento
-     console.log("All articles:", articles);
- 
-     // Raggruppa gli articoli per userID
-     const groupedByUser = articles.reduce((acc, article) => {
-       const userId = article.user._id.toString(); // ottieni l'ID dell'utente
-   
-       // Log per ogni articolo in fase di elaborazione
-       console.log("Processing article:", article);
-       console.log("UserID:", userId);
-       
-       if (!acc[userId]) {
-         acc[userId] = {
-           user: article.user, // Dettagli utente per identificare chi ha creato la rete
-           articles: [],       // Array dei marker dell'utente
-         };
-         console.log(`Created new group for user ${userId}`);
-       }
-     // Aggiungi l'articolo al gruppo dell'utente
-     acc[userId].articles.push(article);
-      console.log(`Article added to user ${userId}:`, article.name);
- 
-       return acc;
-     }, {});
-   
- 
-       // Log finale per verificare il risultato del raggruppamento
-       console.log("Grouped articles by user:", groupedByUser);
- 
-     
-        // Rendi la pagina con gli articoli e l'user connesso
-         res.render('index',  {
+  try {       
+    //  console.log("Sto per eseguire la query...");
+     const articles = await Article.find().populate('user'); // Popola il campo user per avere accesso a userID    
+   //  console.log("Articoli recuperati:", articles); // Verifica i dati degli articoli
+     const groupedByUser = groupArticles(articles);    
+    // Raggruppa gli articoli per tipo
+       // const groupedArticlesT = groupedByType(articles);
+ const originalTriangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['original'] || [];
+const scaled1Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled1'] || [];
+const scaled2Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled2'] || [];
+const singleTriangle = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['trepunti']?.['trePunti'] || [];
+
+     res.render('index',  {
              title:'la liste des points',
                session: req.session, // Passer la session à la vue
                user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
-               articles: articles,
+               articles: articles || [], // Passa gli articoli         
                groupedByUser: groupedByUser,  
-             
-              })
+       
+               singleTriangle, 
+               scaled1Triangles,
+               scaled2Triangles,
+               originalTriangles,                        
+       })
              } catch (error) {
                console.error('Errore durante la ricerca degli articoli:', error);
                res.status(500).send('Erreur lors de la récupération des articles');
              }
  });
  
+ function groupedByType(articles) {
+  return articles.reduce((acc, article) => {
+    const userId = article.user._id.toString();
+    const type = article.type || 'Sconosciuto';
+    const group = article.group || 'ungrouped';
+
+    acc[userId] = acc[userId] || {};
+    acc[userId][type] = acc[userId][type] || {};
+    acc[userId][type][group] = acc[userId][type][group] || [];
+    
+    acc[userId][type][group].push({
+      id: article._id,
+      coordinates: [article.latitudeSelectionee, article.longitudeSelectionee],
+      category: article.category,
+      name: article.name,  // ✅ Aggiunto
+      image: article.image // ✅ Aggiunto
+    });
+    
+    return acc;
+  }, {});
+}
+console.log("Grouped Articles with name & image:", JSON.stringify(groupedByType, null, 2));
+
 
  router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
   try {
@@ -266,35 +355,39 @@ router.get('/',  async (req, res) => {
       // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
       return res.status(401).send('Utente non autenticato');
     } 
-    const articles = await Article.find({ user: userId }).populate('user'); 
-      // Raggruppa gli articoli per tipo
-    const groupedArticles = groupedByType(articles);
-    
-    const originalTriangles = groupedArticles['triangle']?.['original'] || [];
-    // Accedi direttamente ai triangoli del gruppo 'scaled1'
-    const scaled1Triangles = groupedArticles['triangle']?.['scaled1'] || [];
-     // Accedi direttamente ai triangoli del gruppo 'scaled1'
-     const scaled2Triangles = groupedArticles['triangle']?.['scaled2'] || [];
-   
-    // Log per debug
-     console.log("Grouped Articles:", groupedArticles);
-     console.log("Scaled1 Triangles:", scaled1Triangles);
-     console.log("Scaled2 Triangles:", scaled2Triangles);
-     console.log("Original Triangles:", originalTriangles);
-       // Log per verificare i dati raggruppati
-    console.log("Articoli raggruppati lato server:", groupedArticles);
+    const articles = await Article.find({ user: userId }).populate('user');
+  console.log("Articles from DB:", articles);
+  console.log("Articles prima del raggruppamento:", JSON.stringify(articles, null, 2));
+
+    // Raggruppa gli articoli per utente e poi per tipo
+    const groupedByUser = gruppoArticles(articles);
+    const groupedByType = groupedByUser[userId]?.groupedByType || {};
+
+const originalTriangles = groupedByType['triangle']?.['original'] || [];
+const scaled1Triangles = groupedByType['triangle']?.['scaled1'] || [];
+const scaled2Triangles = groupedByType['triangle']?.['scaled2'] || [];
+const singleTriangle = groupedByType['trepunti']?.['trePunti'] || [];
+
+   // Log per debug
+   console.log("Grouped Articles (con name & image):", JSON.stringify(groupedByUser, null, 2));
+   console.log("Grouped by Type:", JSON.stringify(groupedByType, null, 2));
+   console.log("Original Triangles:", originalTriangles);
+   console.log("Scaled1 Triangles:", scaled1Triangles);
+   console.log("Scaled2 Triangles:", scaled2Triangles);
+   console.log("Single Triangle:", singleTriangle);
+
     // Passa i dati raggruppati alla vista
     res.render('indexZoneAuthor', { 
       articles: articles || [], // Passa gli articoli
       filteredUsers: [],
-   
-      groupedArticles, // Passa tutti i dati raggruppati
+      groupedArticles: groupedByType, 
+     // groupedArticles: groupedByType, 
       scaled1Triangles, // Passa i triangoli specifici del gruppo 'scaled1'
       scaled2Triangles,
       originalTriangles,
-  
-       session: req.session, // Passer la session à la vue
-       user: req.session.user, // Vérifiez si un user est connecté
+      singleTriangle,
+      session: req.session, // Passer la session à la vue
+      user: req.session.user, // Vérifiez si un user est connecté
      
       
     });
@@ -304,125 +397,31 @@ router.get('/',  async (req, res) => {
   }
 });  
 
-function groupedByType(articles) {
-  const grouped = {};
-  articles.forEach((article) => {
-    const type = article.type || 'Sconosciuto';
-    if (!grouped[type]) {
-      grouped[type] = {};
-    }
-    const group = article.group || 'ungrouped'; // Default a "ungrouped"
-    if (!grouped[type][group]) {
-      grouped[type][group] = [];
-    }
-    grouped[type][group].push(article);
-  });
-  return grouped;
-}  
 
-// ROUTE TRASFORMATA
-/*
-router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
-  try {
-    // Recupera l'ID dell'utente autenticato
-    //const userId = req.session.user._id;
-  //  const articles = await Article.find();  // Récupère les articles depuis la base de données
- //const articleId = req.params.id;
-  const userId = req.session.user ? req.session.user._id : null;
-      
-     if (!userId) {
-      // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
-      return res.status(401).send('Utente non autenticato');
-    } 
-    const articles = await Article.find({ user: userId }).populate('user'); 
-      // Raggruppa gli articoli per tipo
-      const groupedByType = articles.reduce((acc, article) => {
-        const type = article.type || 'Sconosciuto'; // Default se manca il tipo
-        if (!acc[type]) {
-          acc[type] = [];
-        }
-        acc[type].push(article);
-        return acc;
-      }, {});
-    
-console.log("Articoli recuperati dal database:", articles.map(a => ({
-  id: a._id,
-  type: a.type
-})));
-    // Aggiungi un log per il debug
-    console.log('Articoli trovati per l\'utente:', userId, articles);
-
-    // Aggiungi log dettagliato
-    console.log('ID utente loggato:', userId);
-    articles.forEach((article, index) => {
-      console.log(`Articolo ${index + 1} - - User ID: ${article.user._id}, Nome: ${article.name}`);
-    });
-
-
-     // Rendre la page avec les articles et l'user connecté
-         res.render('indexZoneAuthor',  {
-            articles: articles || [], // Passa un array vuoto se non ci sono articoli
-      filteredUsers: [],
-      groupedMarkers: [],
-             title:'la liste tes points',
-               session: req.session, // Passer la session à la vue
-               user: req.session.user, // Vérifiez si un user est connecté
-                //id: userId,
-               groupedByType: groupedByType, // Passa il groupedByType alla vista
-              
-              })
-             } catch (error) {
-              console.error('Errore durante la ricerca degli articoli:', error);
-
-               res.status(500).send('Erreur lors de la récupération des articles');
-             }
- });
-*/
-
-
- 
-// groupedByUser come variabile lato server
-//let groupedByUser = {}; // Popolalo con i tuoi dati, per esempio da un database
-// Rotta per restituire groupedByUser al client
-// In routes/articles.js o simile
 router.get('/api/grouped-by-user', async (req, res) => {
   try {
-    const articles = await Article.find().populate('user'); // Recupera articoli e popola il campo 'user'
+    const articles = await Article.find().populate('user');
     
-    // Raggruppa gli articoli per userID
+    // Usa la STESSA logica di raggruppamento del route principale /
     const groupedByUser = articles.reduce((acc, article) => {
       const userId = article.user._id.toString();
-   // Log per ogni articolo in fase di elaborazione
-   console.log("Processing article:", article);
-   console.log("UserID:", userId);
-
       if (!acc[userId]) {
         acc[userId] = {
-          user: article.user,  // Dettagli dell'utente
-          articles: [],        // Array per gli articoli
+          user: article.user,
+          articles: [],
+          groupedByType: groupedByType([article]) // Inizializza subito il groupedByType
         };
+      } else {
+        acc[userId].articles.push(article);
+        acc[userId].groupedByType = groupedByType(acc[userId].articles); // Aggiorna il groupedByType
       }
-      acc[userId].articles.push({
-        _id: article._id,
-        name: article.name,
-        latitude: article.latitudeSelectionee,
-        longitude: article.longitudeSelectionee,
-        category: article.category,
-        image: article.image
-      });
       return acc;
     }, {});
 
-
-    if (!groupedByUser) {
-      console.error('Dati mancanti o non validi per groupedByUser');
-      return res.status(500).json({ error: 'Dati non trovati' });
-  }
-  console.log('Dati raggruppati da inviare:', groupedByUser);
-    res.json(groupedByUser); // Restituisci il risultato in formato JSON
+    res.json(groupedByUser);
   } catch (error) {
-    console.error('Errore nel recupero degli articoli:', error);
-    res.status(500).send('Errore nel recupero degli articoli');
+    console.error('Errore:', error);
+    res.status(500).json({ error: 'Errore nel recupero dati' });
   }
 });
 
@@ -556,9 +555,10 @@ router.get('/api/check-articles', async (req, res) => {
 });
 
 router.post("/ajoute_toileTriangle", upload, async (req, res) => {
+  
   try {
-    console.log(req.body);
- 
+   
+    console.log("Dati ricevuti dal form:", req.body); 
     const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
     const type = req.body.type; // Es: "triangle" o "pentagone"
     // Conta gli articoli già aggiunti dall'utente
@@ -665,13 +665,13 @@ const scaleTriangle = (points, scale) => {
         user: userId,
         group: "original",
         name: triangleData.name,
-        category: triangleData.category,      
+        category: "bon",      
         latitudeSelectionee: triangleData.latitudeSelectionee,
         longitudeSelectionee: triangleData.longitudeSelectionee,
         type: triangleData.type,
         image: triangleData.image,
       });
-
+      console.log(triangleData);
       await newTriangle.save();
     }
 
@@ -687,7 +687,7 @@ for (const triangleData of scaledTrianglePointsDue) {
     user: userId,
     group: "scaled1",
     name: triangleData.name,
-    category: triangleData.category,
+    category: "moyen",
     latitudeSelectionee: triangleData.latitudeSelectionee,
     longitudeSelectionee: triangleData.longitudeSelectionee,
     type: triangleData.type,
@@ -707,7 +707,7 @@ console.log("Articoli salvati nel database:", scaledTrianglePointsDue);
         user: userId,
         group: "scaled2",
         name: triangleData.name,
-        category: triangleData.category,
+        category: "bas",
       
         latitudeSelectionee: triangleData.latitudeSelectionee,
         longitudeSelectionee: triangleData.longitudeSelectionee,
@@ -742,7 +742,6 @@ console.log("Articoli salvati nel database:", scaledTrianglePointsDue);
     console.error("Errore durante l'aggiunta degli articoli:", err);
     res.status(500).send("Errore durante l'invio degli articoli");
   }
-
 });
 
 router.post("/ajoute_triangle", upload, async (req, res) => {
@@ -756,7 +755,7 @@ router.post("/ajoute_triangle", upload, async (req, res) => {
 
 // Definisci il numero massimo di articoli per tipo
 let maxArticles = 0;
-if (type === "triangle") {
+if (type === "trepunti") {
   maxArticles = 3;
 } else if (type === "pentagone") {
   maxArticles = 5;
@@ -798,9 +797,10 @@ if (type === "triangle") {
       const articleData = {
         name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
         category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
-       latitudeSelectionee: latitude,  // Latitudine
+        latitudeSelectionee: latitude,  // Latitudine
         longitudeSelectionee: longitude,  // Longitudine
-        type: "triangle",
+        type: "trepunti",
+        group: "trePunti", // Aggiungi il gruppo iniziale
          image: imageFile,  
      };
       
@@ -832,6 +832,7 @@ if (type === "triangle") {
         latitudeSelectionee: triangleData.latitudeSelectionee,
         longitudeSelectionee: triangleData.longitudeSelectionee,
         type: triangleData.type,
+         group: 'trePunti', 
         image: triangleData.image,
       });
 
@@ -991,7 +992,6 @@ router.get('/delete/:id', async (req, res) => {
 
   // Vérifiez si l'article existe et appartient à l'user loggé
     if (!result) {
-      
       console.log("Articolo non trovato o non autorizzato");
       return res.status(404).send('Article non trouvé ou non autorisé à être supprimé');
     }
@@ -1004,11 +1004,8 @@ router.get('/delete/:id', async (req, res) => {
     }  
       // Si l'article a une image associée, supprimer l'image
       if (result && result.image) {  
-        // Controlla se l'immagine esiste
         // Construire le chemin de l'image
-        const imagePath = './uploads/' + result.image;
-
-      // Supprimer le fichier image de manière synchrone
+           // Supprimer le fichier image de manière synchrone
          try {
           fs.unlinkSync(imagePath);
         const imagePath = './uploads/' + result.image;
@@ -1106,88 +1103,21 @@ router.post("/edit/:id", upload, async (req, res) => {
   }
 });
 
-
-/*
-// Route per aggiornare la posizione dell'articolo
-router.put("/api/articles/:id", async (req, res) => {
-  try {
-    const articleId = req.params.id;
-    
-    console.log("ID dell'articolo passato:", req.params.id);
-    //image: req.file.filename,
-    // Trouver l'user par son ID
-    const updatedArticle  = await Article.findByIdAndUpdate(
-      articleId,
-    
-    );
-    console.log("Articolo passato:", req.params.id);
-
-    if (updatedArticle) {
-      // Mettre à jour les informations de l'user
-      article.name = req.body.name;
-      article.latitudeSelectionee = req.body.latitudeSelectionee;
-      article.longitudeSelectionee = req.body.longitudeSelectionee;
-     // article.image = req.file.filename
-      // Vérifiez si une nouvelle image a été uploadée
-      if (req.file) {
-        // Supprimer l'ancienne image si elle existe
-        if (article.image) {
-          console.log(article.image)
-          const oldImagePath = './uploads/' + article.image;
-          try {
-            fs.unlinkSync(oldImagePath);
-            console.log('Ancienne image supprimée avec succès');
-          } catch (err) {
-            console.error('Erreur lors de la suppression de l\'ancienne image:', err);
-          }
-        }
-        // Mettre à jour le chemin de la nouvelle image
-        article.image = req.file.filename;
-      }
-
-      // Sauvegarder les modifications dans la base de données
-      await article.save();
-
-      // Rediriger vers la page principale avec un message de succès
-      res.redirect('/');
-    } else {
-      res.status(404).send('user non trouvé');
-    }
-  } catch (err) {
-    console.error('Erreur lors de la mise à jour de l\'article:', err);
-    res.status(500).send('Erreur lors de la mise à jour de l\'article');
-  }
-});*/
-
-/*
-router
-  .route("/:id")
-  .get((req, res) => {
-    console.log(req.user)
-    res.send(`Get User With ID ${req.params.id}`)
-  })
-  .put((req, res) => {
-    res.send(`Update User With ID ${req.params.id}`)
-  })
-  .delete((req, res) => {
-    res.send(`Delete User With ID ${req.params.id}`)
-  })
-*/
-/*
-router.param("id", (req, res, next, id) => {
-  req.user = users[id]
-  next()
-})*/
 router.param("id", async (req, res, next, id) => {
+  console.log("🔍 Controllo ID ricevuto:", id);
   try {
     const article = await Article.findById(id);
     if (!article) {
+      console.log("⚠️ Nessun articolo trovato con questo ID:", id);
       return res.status(404).send('Article non trouvé');
     }
+    console.log("✅ Articolo trovato:", article);
     req.article = article;
     next();
   } catch (err) {
     console.error(err);
+    console.error("❌ Errore nel recupero dell'articolo:", err);
+
     res.status(500).send('Erreur serveur lors de la récupération de l\'article');
   }
 });
