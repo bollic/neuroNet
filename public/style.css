@@ -1,12 +1,77 @@
 body {
-    background-color: #f8f9fa; /* Sfondo leggero */
-    color: #343a40; /* Testo scuro */
- }
- 
+  background-color: #f8f9fa; /* Sfondo leggero */
+  color: #343a40; /* Testo scuro */
+}
+
+/* Sidebar nascosta inizialmente */
+.sidebar {
+  width: 350px; /* Sidebar più larga */
+  max-height: 300vh;
+  overflow-y: auto; /* Scorrimento se serve */
+  background: white;
+  padding: 10px;
+  position: fixed;
+  left: -350px;
+  top: 0;
+  height: 100%;
+  transition: 0.3s;
+  z-index: 1000;
+  border-right: 2px solid #ccc;
+}
+
+/* Quando la sidebar è attiva */
+.sidebar.active {
+  left: 0;
+}
+
+.sidebar .table-responsive {
+  max-height: 100vh; /* Limita l'altezza della tabella */
+  overflow-y: auto;
+}
+
+.sidebar table {
+  font-size: 14px; /* Testo più piccolo */
+}
+
+.sidebar th, .sidebar td {
+  padding: 5px;
+  text-align: center;
+}
+
+.sidebar img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+
+/* Stile pulsante chiusura */
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+/* Lista articoli */
+.article-list {
+  list-style: none;
+  padding: 0;
+}
+
+.article-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid #ddd;
+}
+
  h1, h2, .navbar-brand {
     margin-bottom: 20px;
  }
- 
  .container, .container-fluid {
     padding: 10px 5px;
  }

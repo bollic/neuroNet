@@ -1,5 +1,8 @@
-
-  document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function() {
+    const sidebar = document.getElementById("sidebar");
+  
+    
+  
     let map; 
     let layerGroup = L.featureGroup(); 
     var drawnItems = new L.FeatureGroup();
@@ -93,12 +96,7 @@ function updateMap() {
         "moyen": { color: 'gray', weight: 2,  fillColor: 'gray', fillOpacity: 0.0},
         "bas": { color: 'red', weight: 2, fillColor: 'orange', fillOpacity: 0.0}
     };
-
-    const groupedMarkers = {
-        "bon": [],
-        "moyen": [],
-        "bas": []
-    };
+   
    // **Nuovo codice: Itera su tutti i gruppi di trepunti**
    const groupedArticlesByType = groupedArticles;
 
@@ -313,9 +311,6 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
          }
       });
    });
-
-
-  
    
     // Crea i raggi collegando i nodi corrispondenti
     createRaggi(groupedArticles);
