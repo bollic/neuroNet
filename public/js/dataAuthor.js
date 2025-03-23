@@ -1,27 +1,42 @@
-document.addEventListener("DOMContentLoaded", function() {
-    const sidebar = document.getElementById("sidebar");
-  
-    
-  
+document.addEventListener("DOMContentLoaded", function() {    
     let map; 
     let layerGroup = L.featureGroup(); 
     var drawnItems = new L.FeatureGroup();
-    //let trianglePoints = []; // Memorizza i punti selezionati
   
-    //const map = document.getElementById('map');
-      
-  
-    //const mapElement = document.getElementById("map");
-    // Recupera dati server-side
-         // Function to initialize the map (runs only once)
-    function initializeMap() {
-      map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
+    const sidebar = document.getElementById('sidebar');
+   const mapContainer = document.querySelector('.map-container');
+    // Inizializza la mappa
+   // initializeMap();
+    
+    // Gestione eventi Bootstrap
+    sidebar.addEventListener('shown.bs.collapse', function() {
+        document.body.classList.add('sidebar-open');
+        setTimeout(() => map.invalidateSize(), 300);
+    });
 
+    sidebar.addEventListener('hidden.bs.collapse', function() {
+        document.body.classList.remove('sidebar-open');
+        map.invalidateSize();
+    });
+
+    // Chiusura click esterno
+    document.addEventListener('click', function(event) {
+        if (!sidebar.contains(event.target) && 
+            !event.target.closest('.navbar-toggler') && 
+            sidebar.classList.contains('show')) {
+            bootstrap.Collapse.getInstance(sidebar).hide();
+        }
+    });
+    
+    // Aggiorna la mappa dopo il rendering iniziale
+    setTimeout(() => map.invalidateSize(), 500);
+    
+      function initializeMap() {
+      map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
         maxZoom: 19,
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       }).addTo(map);
-     
       map.addLayer(drawnItems); // Add drawnItems layer to map     
       layerGroup.addTo(map); // Add the feature group to the map
     //  map.addLayer(drawnItems); Per il DB
@@ -44,9 +59,9 @@ map.on('draw:edited', function(event) {
         });
    });
     // Aggiungi l'evento per il pulsante che abilita la modifica dei poligoni
-    document.getElementById('edit-polygons-btn').addEventListener('click', function () {
-    drawControl._toolbars.edit._modes.edit.handler.enable(); // Abilita la modalità di modifica
-  });
+  //  document.getElementById('edit-polygons-btn').addEventListener('click', function () {
+  //  drawControl._toolbars.edit._modes.edit.handler.enable(); // Abilita la modalità di modifica
+ /// });
     } // Fine della funzione initializeMap() 
 
 console.log("Triangolo con groupedArticles:", groupedArticles['trepunti']);
@@ -54,7 +69,6 @@ console.log("Triangoli con groupedArticles:", groupedArticles['triangle']);
 console.log("Pentagoni con groupedArticles:", groupedArticles['pentagone']);
  
 // Ora puoi accedere a `groupedArticles['triangle']` e `groupedArticles['pentagon']` per elaborare i rispettivi articoli
-
 function updateMap() {
        // Interrompi subito se `filteredUsers` non è definito
        if (typeof articles === 'undefined') {
@@ -296,7 +310,6 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
         saveMapChanges(article.id, newLatLng.lat, newLatLng.lng);
     });
 
-
     console.log("Popup Data - Nome:", article.name, "Immagine:", article.image);
 
     const popupContent = `
@@ -307,7 +320,6 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
     singleMarker.bindPopup(popupContent);
     layerGroup.addLayer(singleMarker);
 });
-  
          }
       });
    });
@@ -373,11 +385,7 @@ function createRaggi(groupedArticles) {
     createPolylinesBetweenGroups(originalTriangles, scaled1Triangles, 'white', 1.2);
     // Ad esempio: Collegare i vertici tra scaled1 e scaled2
   
-
-    
-    
 }
-
     //  const mapElement = document.getElementById('map');      
         // Initialize map only once, then update content
         if (!map) {

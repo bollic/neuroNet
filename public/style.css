@@ -1,50 +1,163 @@
 body {
   background-color: #f8f9fa; /* Sfondo leggero */
   color: #343a40; /* Testo scuro */
+  position: relative; /* Aggiunto per gestire l'overlay */
+}
+/* Fissa la navbar sopra tutto */
+.navbar { position: sticky; top: 0; z-index: 1000; }
+ /* Mobile: Sidebar nascosta e pulsante hamburger visibile */
+ @media (max-width: 991.98px) {
+  /* Stili specifici per mobile */
+  .navbar-brand {
+    flex-grow: 1;
+    text-align: left;
+  }
+
+  .navbar-toggler {
+    order: 2;
+    position: static !important;
+    margin-left: 0.5rem;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  /* Stili sidebar mobile */
+  #sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    height: 100vh;
+    width: 280px;
+    margin-top: 60px;
+    z-index: 999;
+    background: white;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+    transition: left 0.3s ease;
+    overflow-y: auto;
+  }
+
+  #sidebar.show {
+    left: 0 !important;
+    transform: none !important;
+  }
+
+  #sidebar.collapse:not(.show) {
+    display: none;
+  }
+
+  #sidebar.collapsing {
+    transition: none;
+  }
+
+  /* Overlay mappa */
+  body.sidebar-open .map-container {
+    margin-left: 280px;
+  }
+
+  body.sidebar-open::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 280px;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 998;
+  }
 }
 
-/* Sidebar nascosta inizialmente */
-.sidebar {
-  width: 350px; /* Sidebar più larga */
-  max-height: 300vh;
-  overflow-y: auto; /* Scorrimento se serve */
-  background: white;
-  padding: 10px;
-  position: fixed;
-  left: -350px;
-  top: 0;
-  height: 100%;
-  transition: 0.3s;
-  z-index: 1000;
-  border-right: 2px solid #ccc;
+/* Sposta questi stili FUORI dal media query mobile */
+.close-btn {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+  font-size: 1.5rem;
+  z-index: 1002;
+  background: none;
+  border: none;
+  color: #666;
 }
 
-/* Quando la sidebar è attiva */
-.sidebar.active {
-  left: 0;
+.pagination-controls {
+  margin-bottom: 10px;
 }
 
-.sidebar .table-responsive {
-  max-height: 100vh; /* Limita l'altezza della tabella */
-  overflow-y: auto;
+.pagination-controls label {
+  margin-right: 1px;
 }
 
-.sidebar table {
-  font-size: 14px; /* Testo più piccolo */
+.map-container {
+  position: relative;
+  margin-left: 0;
+  transition: margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  height: 100vh;
+  z-index: 1;
 }
 
-.sidebar th, .sidebar td {
-  padding: 5px;
-  text-align: center;
+/* Media query per desktop */
+@media (min-width: 992px) {
+  .navbar-brand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  #sidebar {
+    position: static;
+    transform: none !important;
+    height: auto;
+    width: 30%;
+    box-shadow: none;
+    z-index: auto;
+  }
+
+  .map-container {
+    width: calc(100% - 280px);
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+
+  .navbar-toggler,
+  .close-btn {
+    display: none;
+  }
+}
+/* Aggiungi QUESTA SEZIONE */
+@media (min-width: 992px) {
+  .navbar-brand {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 769px) {
+  #sidebar {
+    position: static;
+    transform: none !important;
+    height: auto;
+    width: 30%;
+    box-shadow: none;
+    z-index: auto;
+  }
+  .map-container {
+    width: calc(100% - 280px);
+    margin-left: 10px;
+    margin-right: 10px;
+  }
+  .navbar-toggler,
+  .close-btn {
+      display: none;
+  }
+}
+/* Desktop: Sidebar sempre visibile */
+@media (min-width: 769px) {
+  .navbar-toggler {
+    display: none;
+  }
 }
 
-.sidebar img {
-  width: 40px;
-  height: 40px;
-  object-fit: cover;
-}
-
-/* Stile pulsante chiusura */
+/* Pulsante per chiudere la sidebar */
 .close-btn {
   background: none;
   border: none;
@@ -54,34 +167,19 @@ body {
   top: 10px;
   right: 10px;
 }
-
-/* Lista articoli */
-.article-list {
-  list-style: none;
-  padding: 0;
+.pagination-controls {
+  margin-bottom: 10px;
+}
+.pagination-controls label {
+  margin-right: 1px;
 }
 
-.article-list li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 0;
-  border-bottom: 1px solid #ddd;
-}
 
- h1, h2, .navbar-brand {
-    margin-bottom: 20px;
- }
  .container, .container-fluid {
-    padding: 10px 5px;
+    padding: 5px 5px;
  }
- .navbar {
-   margin-bottom: 0;
- }
- .navbar {
-    padding: 2px;
- }
- 
+
+
  /* CSS per il pulsante custom */
 .btn-custom {
    background-color: #718fe7;

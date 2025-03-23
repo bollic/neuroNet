@@ -4,56 +4,54 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-
-  <title>thytryt</title> 
+  <title>thytryt</title>
   <link rel="stylesheet" href="/style.css">
-  <!-- Preload critical CSS and JS -->
-    <link rel="preload" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" as="style">
-    <!-- Leaflet CSS -->
- 
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" >
-  <!-- Add Bootstrap css -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin="anonymous"  />
-      <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-  <!-- CSS di Leaflet.draw -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
- 
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.1.3/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css">
 </head>
 <body>
 
-  
-
-  
 <nav class="navbar navbar-expand-lg navbar-light bg-light py-0">
-<div class="container">
-  <a href="/utilisateurs" class="navbar-brand">
-    <img src="../img/pike.png" width="80" height="60"></img></a>
-  <button class="navbar-toggler" data-bs-target="#my-nav" data-bs-toggle="collapse" aria-controls="my-nav" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
-  </button> 
-  <div id="my-nav" class="collapse navbar-collapse">
-    <ul class="navbar-nav ms-auto">
-      <li class="nav-item active">
-        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i>Home</a>
-      </li>
-    
-      <li class="nav-item active">
-        <a class="nav-link" href="/indexZoneAuthor"><i class="fas fa-user-plus me-1"></i>Ma zone</a>
-      </li>
-      <li class="nav-item active">
-        <a class="nav-link" href="/login"><i class="fas fa-user-plus me-1"></i>Log in</a>
-      </li>
+  <div class="container">
+    <div class="d-flex w-100 align-items-center">
+      <!-- Logo a sinistra su mobile -->
+      <a href="/" class="navbar-brand">Pike</a>
+         <!-- Hamburger a destra -->
+      <button class="navbar-toggler  ms-auto" 
+              data-bs-target="#my-nav" 
+              data-bs-toggle="collapse" 
+              aria-controls="my-nav"
+              aria-expanded="false"
+              aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </div>
   
-      <li class="nav-item active">
-        <a class="nav-link" href="/signup"><i class="fas fa-user-plus me-1"></i>Sign up</a>
-      </li>
-      <button id="edit-polygons-btn" class="btn btn-warning">Modifier la toile</button>
 
-    </ul>
+    <div id="my-nav" class="collapse navbar-collapse">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/">
+            <i class="fas fa-home me-1"></i>Home
+          </a>
+        </li>    
+        <li class="nav-item active">
+          <a class="nav-link" href="/indexZoneAuthor">
+            <i class="fas fa-user-plus me-1"></i>Ma zone
+          </a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/login">
+            <i class="fas fa-sign-in-alt me-1"></i>Log in
+          </a>
+        </li>
+        <li class="nav-item active">
+          <a class="nav-link" href="/signup">
+            <i class="fas fa-user-plus me-1"></i>Sign up
+          </a>
+        </li>
+      </ul>
+    </div>
   </div>
-</div>
-
 </nav>
