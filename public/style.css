@@ -114,7 +114,7 @@ body {
 
   .map-container {
     width: calc(100% - 280px);
-    margin-left: 10px;
+    margin-left: 100px;
     margin-right: 10px;
   }
 

@@ -74,7 +74,7 @@ console.log("Articoli da eliminare:", toDelete);
 */
 // Assurez-vous que votre application sait où se trouve le répertoire 'uploads'
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+app.use(express.static(path.join(__dirname, 'public')));
 
 //app.use(express.static("uploads")); 
 app.use(express.static("public"))

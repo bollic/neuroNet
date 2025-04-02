@@ -1,0 +1,238 @@
+<%- include('layout/header') %>
+ <!-- Code de la carte Leaflet -->
+ <script defer>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Initialiser la carte avec Leaflet
+    let map = L.map("map", { center: [46.2, 2.9], zoom: 5 });
+    let layerGroup = L.featureGroup().addTo(map);
+   let troisMarker=[];
+   let selectedCoordinates = []; 
+
+    // Ajouter le fond de carte
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
+      preload: true,
+      maxZoom: 19,
+      formatData: "webp",
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // Ajouter un événement de clic sur la carte pour afficher les coordonnées
+    let myLocation = L.layerGroup().addTo(map);
+   
+
+   
+let popup = L.popup();
+function onMapClick(e) {
+    popup
+        .setLatLng(e.latlng)
+        .setContent(
+            "You clicked the map at -<br>" + 
+            "<b>lon:</b> " + e.latlng.lng + "<br>" + 
+            "<b>lat:</b> " + e.latlng.lat
+        )
+        .openOn(map);
+}
+map.addEventListener("click", onMapClick);
+
+ // Listener per il clic sulla mappa
+map.addEventListener("click", function(e) {
+  if (selectedCoordinates.length < 3) {
+    // Aggiungi un marker sulla mappa
+    L.marker(e.latlng).addTo(myLocation);
+
+    // Memorizza le coordinate selezionate
+    selectedCoordinates.push(e.latlng);
+        // Aggiorna i campi nascosti per ogni articolo (latitudine e longitudine)
+        const pointIndex = selectedCoordinates.length - 1;
+   // Aggiorna i valori dei campi hidden per latitudine e longitudine per l'articolo corrente
+   document.getElementById(`latitudeSelectioneeInput_${pointIndex}`).value = e.latlng.lat;
+    document.getElementById(`longitudeSelectioneeInput_${pointIndex}`).value = e.latlng.lng;
+ 
+    // Aggiorna i campi nascosti con le coordinate selezionate
+    document.getElementById('latitudeSelectionee').textContent = 
+      selectedCoordinates.map(coord => coord.lat).join(', ');
+    document.getElementById('longitudeSelectionee').textContent = 
+      selectedCoordinates.map(coord => coord.lng).join(', ');
+  } else {
+    alert("Hai già selezionato 3 punti!");
+  }
+});
+
+
+    const allMarker = document.getElementById("get-marker");
+    allMarker.addEventListener("click", async () => {
+      console.log("All marker clicked");
+      layerGroup.clearLayers();
+    });
+
+ // Funzione per verificare il numero di articoli già presenti
+        async function checkMaxArticles() {
+            const response = await fetch('/api/check-articles');
+            const data = await response.json();
+
+            if (data.count >= 3) {
+                alert("Puoi aggiungere solo 3 articoli.");
+                return false;
+            }
+            return true;
+        }
+
+
+ const form = document.getElementById("add-trois-marker");
+ form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  // Verifica se ci sono punti selezionati
+  if (selectedCoordinates.length === 0) {
+    alert("Seleziona almeno un punto sulla mappa!");
+    return;
+  }
+
+  // Verifica se ci sono abbastanza coordinate per il nuovo articolo
+  if (troisMarker.length >= 3 || selectedCoordinates.length < 3 - troisMarker.length) {
+    alert("Puoi aggiungere al massimo 3 articoli con coordinate valide!");
+    return;
+  }
+   // Associa le coordinate al nuovo articolo
+   const pointIndex = troisMarker.length; 
+  const point = selectedCoordinates[pointIndex];
+// Ciclo per creare articoli con tutte le coordinate
+    // Verifica che il punto esista
+    if (!point) {
+    alert("Mancano coordinate per il prossimo articolo!");
+    return;
+  }
+  const troisMarkerData = {
+    name: form.querySelector("[name='name']").value,
+    category: form.querySelector("[name='category']").value,
+  
+    latitudeSelectionee: point.lat, 
+    longitudeSelectionee: point.lng, 
+    type: form.querySelector("[name='type']").value,
+     image: form.querySelector("[name='image']").value
+  };
+
+  // Aggiungi l'articolo all'array
+  troisMarker.push(troisMarkerData);
+  console.log("Articolo aggiunto:", troisMarkerData);
+  console.log("Articoli totali:", troisMarker);
+
+  if (troisMarker.length === 3) {
+
+    const formTroisData = new FormData();
+    troisMarker.forEach((article, index) => {
+      formTroisData.append(`articles[${index}][name]`, article.name);
+      formTroisData.append(`articles[${index}][category]`, article.category);
+ 
+      formTroisData.append(`articles[${index}][latitudeSelectionee]`, article.latitudeSelectionee);
+      formTroisData.append(`articles[${index}][longitudeSelectionee]`, article.longitudeSelectionee);
+      formTroisData.append(`articles[${index}][type]`, article.type);
+ 
+      formTroisData.append(`articles[${index}][image]`, article.image);
+    });
+
+    // Invia i dati al server
+    try {
+      const response = await fetch("/ajoute_trois_marker", { method: "POST", body: formTroisData });
+
+      if (response.ok) {
+        alert("Tutti gli articoli aggiunti con successo!");
+        window.location.reload();
+      } else {
+        alert("Errore nella spedizione degli articoli!");
+      }
+    } catch (err) {
+      console.error("Errore durante l'invio:", err);
+    }
+  } else {
+    // Messaggio per indicare quanti articoli mancano
+    alert(`Articolo aggiunto. Mancano ${3 - troisMarker.length} articoli.`);
+  }
+
+  // Resetta il form per il prossimo articolo
+  form.reset();
+    });
+
+  });
+</script>
+<!-- Div où la carte sera affichée -->
+<div id="map" style='width: 100%; height: 400px;'></div>
+<div class='container'>   
+  <div class="row"> 
+    <div class="col-lg-6 mx-auto mt-4">
+
+     <% if (message) { %> 
+        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
+          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+          <i class="fas fa-exclamation-circle me-2"></i>   
+          <strong><%= message.message %></strong>     
+        </div>
+     <% } %>
+         <div class="card shadow">
+            <div class="card-header bg-primary">
+             <h3 class="text-light">Add New User</h3>
+            </div>
+       
+            <div class="card-body p-4">
+                <form action="/ajoute_trois_marker" method="POST" id="add-trois-marker" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <select id="category" name="category" value="category" placeholder="Content..." >
+                            <option value="bon">Content</option>
+                            <option value="moyen" selected>Moyen</option>
+                            <option value="bas">Pas content</option>    
+                          </select><br>
+                         
+                        <label for="name">Name</label>
+                        <input type="text" name="name" class="form-control form-control-lg" 
+                        placeholder="Enter name" value="Default Name"  required />
+                    </div>
+                              
+                    <div class="mb-3">
+                        <label for="image_1" class="form-label">Image</label>
+                        <input type="hidden" name="image_1" value="image_1.png" class="form-control form-control-lg" required />
+                    </div>
+                    <div class="mb-3">
+                      <label for="image_2" class="form-label">Image</label>
+                      <input type="hidden" name="image_2" value="image_2.png" class="form-control form-control-lg" required />
+                  </div>
+                  <div class="mb-3">
+                    <label for="image_3" class="form-label">Image</label>
+                    <input type="hidden" name="image_3" value="image_3.png" class="form-control form-control-lg" required />
+                </div>
+                <input type="hidden" name="group" value="trepunti">
+  <!-- Questi sono i campi hidden per ciascun articolo, legati ai punti selezionati sulla mappa -->
+<input type="hidden" id="latitudeSelectioneeInput_0" name="latitudeSelectioneeInput_0">
+<input type="hidden" id="longitudeSelectioneeInput_0" name="longitudeSelectioneeInput_0">
+
+<input type="hidden" id="latitudeSelectioneeInput_1" name="latitudeSelectioneeInput_1">
+<input type="hidden" id="longitudeSelectioneeInput_1" name="longitudeSelectioneeInput_1">
+
+<input type="hidden" id="latitudeSelectioneeInput_2" name="latitudeSelectioneeInput_2">
+<input type="hidden" id="longitudeSelectioneeInput_2" name="longitudeSelectioneeInput_2">
+
+  Latitude Selectionée: <span id="latitudeSelectionee"></span>&deg;<br />
+  Longitude Selectionée: <span id="longitudeSelectionee"></span>&deg;<br /> 
+
+                    <% if (user) { %>
+                      <input type="hidden" name="id" value="<%= user._id %>">
+                    <% } %>
+                  
+                   <input type="hidden" name="type" value="troismarker">
+                 
+                    <div class="mb-3 d-grid">                      
+                        <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />
+                    </div>
+                </form>
+            </div>
+         </div>
+
+    </div>
+
+  </div>
+
+</div>
+<script>
+    
+
+</script>
+<%- include('layout/footer') %>

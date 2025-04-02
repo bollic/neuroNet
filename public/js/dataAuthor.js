@@ -1,13 +1,94 @@
+
 document.addEventListener("DOMContentLoaded", function() {    
     let map; 
-    let layerGroup = L.featureGroup(); 
-    var drawnItems = new L.FeatureGroup();
-  
-    const sidebar = document.getElementById('sidebar');
-   const mapContainer = document.querySelector('.map-container');
-    // Inizializza la mappa
-   // initializeMap();
+    let layerGroup;  
+    let drawnItems;  
+    async function updateArticleName(marker, newName, newCategory) {
+        try {
+            const response = await fetch(`/edit/${marker.options.articleData.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newName,
+                    category: newCategory,
+                    latitudeSelectionee: marker.getLatLng().lat,
+                    longitudeSelectionee: marker.getLatLng().lng
+                })
+            });
     
+            const data = await response.json();
+            if (data.success) {
+                marker.setPopupContent(`
+                    <b>${newName}</b><br>
+                    <b>${newCategory}</b><br>
+                    <img src="/uploads/${marker.options.articleData.image}" width="100">
+                `);
+            }
+    
+            console.log(`🔄 Nome aggiornato nel DB!  ${newName}`);
+            console.log(`🔄 Category aggiornato nel DB! ${newCategory}`);
+            
+        } catch (error) {
+            console.error("📛 Errore durante il salvataggio:", error);
+            alert("Non è stato possibile salvare. Ricarica la pagina e riprova.");
+        }
+    }
+/*
+    function updateArticleName(marker, newName) {
+        const articleData = marker.options.articleData;
+        if (!articleData?.id) {
+            console.error("Struttura marker errata:", marker.options);
+            alert("Configurazione marker non valida");
+            return;
+        }
+    
+        const payload = {
+            name: newName,
+            latitudeSelectionee: marker.getLatLng().lat,
+            longitudeSelectionee: marker.getLatLng().lng
+        };
+    
+        console.log("Invio a /edit:", { 
+            id: articleData.id,
+             payload,            
+             endpoint: `${window.location.origin}/edit/${articleData.id}`
+            });
+    
+        fetch(`/edit/${articleData.id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'include' // Importante per le sessioni/cookie
+        })
+        .then(async response => {
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(
+                    errorData.message || 
+                    `Errore ${response.status}: ${response.statusText}`
+                );
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("Aggiornamento riuscito:", data);
+            marker.setPopupContent(`<b>${data.newName || newName}</b>`);
+            marker.options.articleData.name = data.newName || newName; // Sync dati
+        })
+        .catch(error => {
+            console.error("Errore dettagliato:", {
+                error: error.message,
+                stack: error.stack
+            });
+            alert(`Salvataggio fallito: ${error.message}`);
+        });
+    }
+*/
+    const sidebar = document.getElementById('sidebar');
+   const mapContainer = document.querySelector('.map-container');    
     // Gestione eventi Bootstrap
     sidebar.addEventListener('shown.bs.collapse', function() {
         document.body.classList.add('sidebar-open');
@@ -31,37 +112,64 @@ document.addEventListener("DOMContentLoaded", function() {
     // Aggiorna la mappa dopo il rendering iniziale
     setTimeout(() => map.invalidateSize(), 500);
     
-      function initializeMap() {
+function initializeMap() {
       map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
+        
+        layerGroup = L.featureGroup().addTo(map);  // Marker
+        drawnItems = L.featureGroup().addTo(map);  // Poligoni
+ 
+    // TileLayer con attribuzioni
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
         maxZoom: 19,
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       }).addTo(map);
-      map.addLayer(drawnItems); // Add drawnItems layer to map     
-      layerGroup.addTo(map); // Add the feature group to the map
-    //  map.addLayer(drawnItems); Per il DB
+    
+   
+     // Draw control (come nella tua versione)
+     var drawControl = new L.Control.Draw({
+        edit: { 
+            featureGroup: drawnItems,
+            edit: true,
+            remove: false
+        },
+        draw: false
+    });
 
-    var drawControl = new L.Control.Draw({
-       edit: {
-        featureGroup: drawnItems,  // Gruppo di poligoni che possono essere modificati
-        edit: true,                // Permetti la modifica dei poligoni
-        remove: false              // Non permettere la rimozione (puoi cambiarlo)
-    },
-    draw: false  // Disabilita la creazione di nuovi poligoni
-});
-map.addControl(drawControl);
-
+  // Event handling (eccellente nella tua versione)
+    map.addControl(drawControl);
       // Evento per la modifica dei poligoni
-map.on('draw:edited', function(event) {
-        var layers = event.layers;
-        layers.eachLayer(function(layer) {
-          console.log(layer.getLatLngs()); // Mostra i nuovi vertici
+      map.on('draw:edited', function(e) {
+        e.layers.eachLayer(async (layer) => {
+            if (layer instanceof L.Polygon) {
+                const newCoords = layer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]);
+                console.log('Nuove coordinate poligono:', newCoords);
+    
+                // Usa il primo punto come riferimento per trovare l'articolo nel DB
+                const [lat, lng] = newCoords[0]; 
+    
+                try {
+                    const response = await fetch('/api/update-polygon-coords', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            lat,
+                            lng,
+                            newCoordinates: newCoords
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        console.log('✅ Poligono aggiornato nel DB');
+                    }
+                } catch (error) {
+                    console.error('Errore salvataggio:', error);
+                }
+            }
         });
-   });
-    // Aggiungi l'evento per il pulsante che abilita la modifica dei poligoni
-  //  document.getElementById('edit-polygons-btn').addEventListener('click', function () {
-  //  drawControl._toolbars.edit._modes.edit.handler.enable(); // Abilita la modalità di modifica
- /// });
+    });
+   
+
     } // Fine della funzione initializeMap() 
 
 console.log("Triangolo con groupedArticles:", groupedArticles['trepunti']);
@@ -122,7 +230,7 @@ Object.keys(groupedArticles['trepunti'] || {}).forEach(groupName => {
     const latLngs = trePuntiGroup.map(trePunto => {
         const lat = parseFloat(trePunto.coordinates[0]);
         const lng = parseFloat(trePunto.coordinates[1]);
-
+        return [lat, lng]; // DA [lng, lat] A [lat, lng]
         // Semplifica il controllo sulle coordinate
         if (!isNaN(lat) && !isNaN(lng)) {
             return [lng, lat];
@@ -295,30 +403,82 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
 
   // Aggiungi i marker per questo tipo e categoria
   markers.forEach((article) => {
-   
-    console.log("Article Data:", article);
-    console.log("Nome:", article.name, "Immagine:", article.image);
- 
+    
+    // Controllo di sicurezza per l'ID (cerca sia _id che id)
+    const articleId = article._id || article.id;
+    if (!articleId) {
+        console.error("Article senza ID:", article);
+        return; // Salta questo articolo
+    }
     const lat = parseFloat(article.coordinates[0]);
     const lng = parseFloat(article.coordinates[1]);
-   // console.log("ID per saveMapChanges:", article._id);
-        console.log("ID mostrato nel popup:", article.id);
-    const singleMarker = L.marker([lat, lng], { icon: userIcon, draggable: true });
-   
-    singleMarker.on('dragend', function(e) {
-        const newLatLng = e.target.getLatLng();
-        saveMapChanges(article.id, newLatLng.lat, newLatLng.lng);
+    
+  //  const articleId = article._id || article.id; // Usa _id come priorità, altrimenti id
+
+    const marker = L.marker([lat, lng], {
+        icon: userIcon,
+        draggable: true,
+        articleData: {
+            _id: article._id || article.id,  // MongoDB style
+        id: (article._id || article.id).toString(), // Stringa garantita
+        originalId: article._id,         // Originale non convertito
+         name: article.name,
+            category: article.category,
+            image: article.image,
+            coordinates: article.coordinates
+        }
     });
-
-    console.log("Popup Data - Nome:", article.name, "Immagine:", article.image);
-
+    console.log("Marker creato con ID:", marker.options.articleData);
+    
     const popupContent = `
-        <b>${article.name ? article.name : "Nome non disponibile"}</b><br>
-        <img src="/uploads/${article.image ? article.image : 'placeholder.png'}" alt="Immagine" class="img-thumbnail" width="100">
+        <b>${article.name}</b><br>
+          <b>${article.category}</b><br>
+        <img src="/uploads/${article.image || 'placeholder.png'}" 
+             class="img-thumbnail" 
+             width="100"
+             onerror="this.src='/uploads/placeholder.png'">
     `;
     
-    singleMarker.bindPopup(popupContent);
-    layerGroup.addLayer(singleMarker);
+    marker.bindPopup(popupContent, {
+        editable: true,      // Abilita modifica testo
+        removable: true,     // Mostra pulsante rimozione
+        className: 'custom-popup-' + article.category, // Per stili CSS specifici
+        minWidth: 200        // Larghezza minima popup
+    });
+    marker.on('popupcontentchanged', function(e) {
+        const content = e.popup.getContent();
+        const newName = content.match(/<b>(.*?)<\/b>/)?.[1];      // Primo <b>
+        const newCategory = content.match(/<b>(.*?)<\/b>/g)?.[1]?.replace(/<\/?b>/g, '');  // Secondo <b>
+        
+        if (newName && newCategory) {
+            updateArticleName(this, newName, newCategory);
+        }
+    });
+    
+    
+// Poi nell'evento dragend:
+marker.on('dragend', function(e) {
+    const marker = e.target;
+    const markerData = marker.options.articleData;
+    const newPos = marker.getLatLng();
+  
+   // CERCA PRIMA 'id' POI '_id' (inverti l'ordine del controllo)
+        const articleId = markerData.id || markerData._id;
+        if (articleId) {
+            saveMapChanges(articleId, newPos.lat, newPos.lng);
+        } else {
+            console.error("ID mancante. Dati marker completi:", markerData);
+        }
+});
+    // Gestione spostamento marker
+  /*  marker.on('dragend', function(e) {
+        const newPos = e.target.getLatLng();
+          console.log(`Marker spostato a: ${newPos.lat}, ${newPos.lng}`);
+        saveMapChanges(article._id, newPos.lat, newPos.lng);
+    });*/
+    
+    layerGroup.addLayer(marker);
+   
 });
          }
       });
@@ -329,8 +489,9 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
     console.log("Grouped Markers 1:", groupedArticles);
 
     // Adatta la mappa per includere tutti i marker e polilinee
-    if (layerGroup.getLayers().length > 0) {
-        map.fitBounds(layerGroup.getBounds());
+    const allLayers = L.featureGroup([layerGroup, drawnItems]);
+    if (allLayers.getLayers().length > 0) {
+        map.fitBounds(allLayers.getBounds());
     }
 }
 
@@ -397,51 +558,56 @@ function createRaggi(groupedArticles) {
           updateMap(); // Update markers and polylines
         }, 100); // Short delay to ensure rendering
        
-
-  ///SECONDO SCRIPT
-  function saveMapChanges(articleId, newLat, newLng) {
-    // Parsing e verifica delle coordinate
-    const parsedLat = parseFloat(newLat);
-    const parsedLng = parseFloat(newLng);
-    const isValidLat = !isNaN(parsedLat) && parsedLat >= -90 && parsedLat <= 90;
-    const isValidLng = !isNaN(parsedLng) && parsedLng >= -180 && parsedLng <= 180;
-    const isValidArticleId = articleId && typeof articleId === 'string';
-
-
-    if (isValidLat && isValidLng && isValidArticleId) {
-        console.log(`Coordinate valide: lat=${parsedLat}, lng=${parsedLng}`);
-        console.log("Calling API with ID:", articleId);
-
-        fetch(`/api/articles/${articleId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ latitudeSelectionee: parsedLat, longitudeSelectionee: parsedLng })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Errore nel server: ' + response.status);
+        function saveMapChanges(articleId, newLat, newLng) {
+            if (!articleId) {
+                console.error("ID articolo mancante");
+                return;
             }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                console.log("Modifica salvata nel database.", data.article);
-            } else {
-                console.error("Errore durante il salvataggio:", data.message);
-            }
-        })
-        .catch(error => console.error("Errore nel salvataggio della modifica:", error));
-
-    } else {
-        console.warn("Coordinate o ID articolo non validi:", {
-            articleId,
-            newLat,
-            newLng
-        });
-    }
-    };
+        
+            const parsedLat = parseFloat(newLat);
+            const parsedLng = parseFloat(newLng);
+            console.log("Salvataggio modifiche per:", {
+                articleId: articleId,
+                latitudeSelectionee: parsedLat,  // Modificato qui
+                longitudeSelectionee: parsedLng  // Modificato qui
+            });
+        
+        /*    console.log("Salvataggio modifiche per:", {
+                articleId: articleId,   lat: parsedLat,
+                lng: parsedLng
+            });*/
+        
+            fetch(`/api/articles/${articleId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    latitudeSelectionee: parsedLat,  // Usa questi nomi
+                    longitudeSelectionee: parsedLng  // che corrispondono al modello
+                })
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    console.log("✅ Modifica salvata con successo", data);
+                    // Aggiorna le coordinate localmente
+                    const marker = layerGroup.getLayers().find(l => 
+                        l.options.articleData.id === articleId || 
+                        l.options.articleData._id === articleId
+                    );
+                    if (marker) {
+                        marker.setLatLng([parsedLat, parsedLng]);
+                    }
+                } else {
+                    console.error("Errore nel salvataggio:", data.message);
+                }
+            })
+            .catch(error => {
+                console.error("Errore durante il salvataggio:", error);
+            });
+        }
 
 
 }); 

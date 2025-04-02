@@ -10,6 +10,9 @@
 <div class="container my-3">
   <div class="row">
     <div class="col-12 text-center">
+      <a href="/addTroisMarker">
+        <button id="add-trois-marker" class="btn-custom">  <i class="fas fa-caret-up"></i> Trois points</button>
+      </a>
       <a href="/addTriangle">
         <button id="add-triangle" class="btn-custom">  <i class="fas fa-caret-up"></i> Triangle</button>
       </a>
@@ -38,7 +41,7 @@
           </select>
         </div>
   
-  <h3>Lista Articoli</h3>
+  <h3>Lista SINISTRA Articoli</h3>
   <% if (articles && articles.length > 0) { %>
     <div class="table-responsive">
       <table class="table table-hover table-bordered table-striped text-center">
@@ -53,15 +56,13 @@
           <% articles.forEach((row, index) => { %>
             <tr class="align-middle">
                <td>
-                <div style="border: 2px solid <%= categoryColors[row.category] || 'red' %>; border-radius: 50%; display: inline-block; padding: 2px;">
+                <div style="border:3px solid <%= categoryColors[row.category] || 'red' %>; border-radius: 50%; display:inline-block; padding: 0px">
                   <img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="50" />
                 </div>
             </td>         
               <td><%= row.name %></td>
               <td>
-                <a href="/edit/<%= row._id %>" class="btn btn-sm btn-outline-success">
-                  <i class="fas fa-edit"></i>
-                </a>
+               
                 <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger">
                   <i class="fas fa-trash"></i>
                 </a>
