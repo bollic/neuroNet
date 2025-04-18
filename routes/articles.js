@@ -177,10 +177,10 @@ function gruppoArticles(articles) {
   // si scorrono  gli articoli uno a uno con REDUCE
   // si crea un accumulatore vuoto con acc 
   // dove si accumulano userId, type e group
-  console.log("🚀 Chiamata a gruppoArticles() con", articles.length, "articoli");
+  //console.log("🚀 Chiamata a gruppoArticles() con", articles.length, "articoli");
   
   return      articles.reduce((acc, article) => {
-    console.log(`🔹 Articolo ID: ${article._id}, Type: ${article.type}, Group: ${article.group}`);
+ //   console.log(`🔹 Articolo ID: ${article._id}, Type: ${article.type}, Group: ${article.group}`);
     
     const userId = article.user._id.toString();
     const type = article.type || 'Sconosciuto';
@@ -220,6 +220,44 @@ function gruppoArticles(articles) {
   }, {});
 }
 
+router.get('/', isOffice,  async (req, res) => {
+  try {       
+    const userId = req.session.user ? req.session.user._id : null;
+      
+     if (!userId) {
+      // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
+      return res.status(401).send('Utente non autenticato');
+    } 
+    //  console.log("Sto per eseguire la query...");
+     const articles = await Article.find().populate('user'); // Popola il campo user per avere accesso a userID    
+   //  console.log("Articoli recuperati:", articles); // Verifica i dati degli articoli
+     const groupedByUser = groupArticles(articles);    
+    // Raggruppa gli articoli per tipo
+       // const groupedArticlesT = groupedByType(articles);
+ const originalTriangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['original'] || [];
+const scaled1Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled1'] || [];
+const scaled2Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled2'] || [];
+const singleTriangle = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['trepunti']?.['trePunti'] || [];
+
+     res.render('index',  {
+             title:'la liste des points',
+               session: req.session, // Passer la session à la vue
+               user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
+               articles: articles || [], // Passa gli articoli         
+               groupedByUser: groupedByUser,  
+       
+               singleTriangle, 
+               scaled1Triangles,
+               scaled2Triangles,
+               originalTriangles,                        
+       })
+             } catch (error) {
+               console.error('Errore durante la ricerca degli articoli:', error);
+               res.status(500).send('Erreur lors de la récupération des articles');
+             }
+ });
+ 
+/*
 router.get('/',  async (req, res) => {
   try {       
     //  console.log("Sto per eseguire la query...");
@@ -250,7 +288,7 @@ const singleTriangle = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType[
                res.status(500).send('Erreur lors de la récupération des articles');
              }
  });
- 
+ */
  function groupedByType(articles) {
   return articles.reduce((acc, article) => {
     const userId = article.user._id.toString();
@@ -273,7 +311,7 @@ const singleTriangle = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType[
     return acc;
   }, {});
 }
-console.log("Grouped Articles with name & image:", JSON.stringify(groupedByType, null, 2));
+//console.log("Grouped Articles with name & image:", JSON.stringify(groupedByType, null, 2));
 
 // Esempio nel tuo file server.js o simile
 const categoryColors = {
@@ -310,7 +348,7 @@ const categoryColors = {
     const articles = await Article.find({ user: userId }).limit(30).populate('user');
     
     // console.log("Articles from DB:", articles);
-  console.log("Articles prima del raggruppamento:", JSON.stringify(articles, null, 2));
+  //console.log("Articles prima del raggruppamento:", JSON.stringify(articles, null, 2));
 
     // Raggruppa gli articoli per utente e poi per tipo
     const groupedByUser = gruppoArticles(articles);
@@ -322,19 +360,18 @@ const scaled2Triangles = groupedByType['triangle']?.['scaled2'] || [];
 const singleTriangle = groupedByType['trepunti']?.['trePunti'] || [];
 
    // Log per debug
-   console.log("Grouped Articles (con name & image):", JSON.stringify(groupedByUser, null, 2));
-   console.log("Grouped by Type:", JSON.stringify(groupedByType, null, 2));
-   console.log("Original Triangles:", originalTriangles);
-   console.log("Scaled1 Triangles:", scaled1Triangles);
-   console.log("Scaled2 Triangles:", scaled2Triangles);
-   console.log("Single Triangle:", singleTriangle);
+   //console.log("Grouped Articles (con name & image):", JSON.stringify(groupedByUser, null, 2));
+   //console.log("Grouped by Type:", JSON.stringify(groupedByType, null, 2));
+  // console.log("Original Triangles:", originalTriangles);
+  // console.log("Scaled1 Triangles:", scaled1Triangles);
+  // console.log("Scaled2 Triangles:", scaled2Triangles);
+   // console.log("Single Triangle:", singleTriangle);
 
     // Passa i dati raggruppati alla vista
     res.render('indexZoneAuthor', { 
       articles: articles || [], // Passa gli articoli
       filteredUsers: [],
       groupedArticles: groupedByType, 
-     // groupedArticles: groupedByType, 
       scaled1Triangles, // Passa i triangoli specifici del gruppo 'scaled1'
       scaled2Triangles,
       originalTriangles,
@@ -350,8 +387,8 @@ const singleTriangle = groupedByType['trepunti']?.['trePunti'] || [];
   }
 });  
 
-    console.log("Articles from DB:", articles);
-  console.log("Articles prima del raggruppamento:", JSON.stringify(articles, null, 2));
+   // console.log("Articles from DB:", articles);
+ // console.log("Articles prima del raggruppamento:", JSON.stringify(articles, null, 2));
 
     // Raggruppa gli articoli per utente e poi per tipo
     const groupedByUser = gruppoArticles(articles);
@@ -363,19 +400,18 @@ const scaled2Triangles = groupedByType['triangle']?.['scaled2'] || [];
 const singleTriangle = groupedByType['trepunti']?.['trePunti'] || [];
 
    // Log per debug
-   console.log("Grouped Articles (con name & image):", JSON.stringify(groupedByUser, null, 2));
-   console.log("Grouped by Type:", JSON.stringify(groupedByType, null, 2));
-   console.log("Original Triangles:", originalTriangles);
-   console.log("Scaled1 Triangles:", scaled1Triangles);
-   console.log("Scaled2 Triangles:", scaled2Triangles);
-   console.log("Single Triangle:", singleTriangle);
+   //console.log("Grouped Articles (con name & image):", JSON.stringify(groupedByUser, null, 2));
+   //console.log("Grouped by Type:", JSON.stringify(groupedByType, null, 2));
+  // console.log("Original Triangles:", originalTriangles);
+  // console.log("Scaled1 Triangles:", scaled1Triangles);
+  // console.log("Scaled2 Triangles:", scaled2Triangles);
+   //console.log("Single Triangle:", singleTriangle);
 
     // Passa i dati raggruppati alla vista
     res.render('indexZoneAuthor', { 
       articles: articles || [], // Passa gli articoli
       filteredUsers: [],
       groupedArticles: groupedByType, 
-     // groupedArticles: groupedByType, 
       scaled1Triangles, // Passa i triangoli specifici del gruppo 'scaled1'
       scaled2Triangles,
       originalTriangles,
@@ -419,28 +455,92 @@ router.get('/api/grouped-by-user', async (req, res) => {
   }
 });
 
+// Route modificata per gestire SOLO i dati testuali
+router.post('/edit/:id', async (req, res) => {
+  try {
+       const updatedArticle = await Article.findByIdAndUpdate(
+          req.params.id,
+          {
+              $set: {
+                  name: req.body.name,
+                  category: req.body.category,
+                //  latitudeSelectionee: req.body.latitudeSelectionee,
+                 // longitudeSelectionee: req.body.longitudeSelectionee
+              }
+          },
+          { new: true }
+      );
 
+      console.log("✅ Aggiornato:", updatedArticle.name);
+      console.log("✅ Aggiornato:", updatedArticle.category);
+      res.json({ success: true,
+                 newName: updatedArticle.name,
+                 newCategory: updatedArticle.category
+                });
+     } catch (err) {
+      console.error("❌ Errore DB:", err);
+      res.status(500).json({ success: false });
+  }
+});
+// Route per aggiornare la posizione
+router.post('/api/update-polygon-coords', async (req, res) => {
+  try {
+      const article = await Article.findOne({ 
+          latitudeSelectionee: req.body.lat,
+          longitudeSelectionee: req.body.lng 
+      });
+      await Article.updateMany(
+          { group: article.group }, 
+          { $set: { 
+              latitudeSelectionee: req.body.newCoordinates[0][0],
+              longitudeSelectionee: req.body.newCoordinates[0][1],
+          }}
+      );
+      res.json({ success: true });
+  } catch (err) {
+      console.error("Errore DB:", err);
+      res.status(500).json({ success: false });
+  }
+});
 // Route per aggiornare la posizione dell'articolo
 router.put('/api/articles/:id', async (req, res) => {
   try {
-      const { latitudeSelectionee, longitudeSelectionee } = req.body;
       const updatedArticle = await Article.findByIdAndUpdate(
-        req.params.id,  // Id dell'articolo da aggiornare
-        { latitudeSelectionee, longitudeSelectionee },  // Campi da aggiornare
-        { new: true }  // Opzione per restituire l'articolo aggiornato
+          req.params.id,
+          {
+              name: req.body.name,
+              category: req.body.category,
+              latitudeSelectionee: req.body.latitudeSelectionee,
+              longitudeSelectionee: req.body.longitudeSelectionee
+          },
+          { new: true }
       );
 
       if (!updatedArticle) {
-          return res.status(404).json({ success: false, message: "Articolo non trovato." });
+          return res.status(404).json({ 
+              success: false, 
+              message: "Articolo non trovato" 
+          });
       }
 
-      res.json({ success: true, article: updatedArticle });
+      res.json({
+          success: true,
+          updatedArticle: {
+              name: updatedArticle.name,
+              category: updatedArticle.category,
+              latitudeSelectionee: updatedArticle.latitudeSelectionee,
+              longitudeSelectionee: updatedArticle.longitudeSelectionee
+          }
+      });
+
   } catch (error) {
       console.error("Errore nell'aggiornamento:", error);
-      res.status(500).json({ success: false, message: "Errore del server." });
+      res.status(500).json({ 
+          success: false, 
+          message: "Errore interno del server" 
+      });
   }
 });
-
 
 // Route de déconnexion
 router.get('/logout', (req, res) => {
@@ -449,8 +549,25 @@ router.get('/logout', (req, res) => {
   });
 });
 
+// Middleware pour vérifier si l'user est connecté
+function isOffice(req, res, next) {
+  const user = req.session && req.session.user;
 
+  if (!user) {
+    console.log("Utente non autenticato, reindirizzamento a /login");
+    req.session.redirectTo = req.originalUrl;
+    return res.redirect('/login');
+  }
 
+  const officeEmails = ['office1@gmail.com', 'office2@gmail.com'];
+
+  if (officeEmails.includes(user.email)) {
+    return next(); // Autorizzato
+  } else {
+    console.log("Accesso negato - non sei un impiegato d'ufficio");
+    return res.status(403).send('Accesso negato: solo per impiegati in ufficio');
+  }
+}
 
 // Middleware pour vérifier si l'user est connecté
 function isAuthenticated(req, res, next) {
@@ -565,10 +682,8 @@ router.get('/api/check-articles', async (req, res) => {
   }
 });
 
-router.post("/ajoute_toileTriangle", upload, async (req, res) => {
-  
-  try {
-   
+router.post("/ajoute_toileTriangle", upload, async (req, res) => {  
+  try { 
     console.log("Dati ricevuti dal form:", req.body); 
     const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
     const type = req.body.type; // Es: "triangle" o "pentagone"
@@ -602,7 +717,7 @@ if (type === "triangle") {
     let i = 0;
     // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
     while (body[`latitudeSelectioneeInput_${i}`]) {
-      console.log(`Trovato articolo ${i}:`);
+     // console.log(`Trovato articolo ${i}:`);
       // Recupera e controlla le coordinate
       const latitude = parseFloat(body[`latitudeSelectioneeInput_${i}`]);
       const longitude = parseFloat(body[`longitudeSelectioneeInput_${i}`]);
@@ -754,117 +869,49 @@ console.log("Articoli salvati nel database:", scaledTrianglePointsDue);
     res.status(500).send("Errore durante l'invio degli articoli");
   }
 });
-
-router.post("/ajoute_triangle", upload, async (req, res) => {
+router.post("/ajoute_triangle", async (req, res) => {
   try {
-
-    console.log("📥 Dati ricevuti:", req.body);
-    // Assicurati che group sia incluso
-    const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
-    const type = req.body.type; // Es: "triangle" o "pentagone"
-    // Conta gli articoli già aggiunti dall'utente
-
-
-// Definisci il numero massimo di articoli per tipo
-let maxArticles = 0;
-if (type === "trepunti") {
-  maxArticles = 3;
-} else if (type === "pentagone") {
-  maxArticles = 5;
-} else {
-  return res.status(400).send("Tipo di articolo non valido.");
-}
-    const existingTriangles  = await Article.countDocuments({ 
-      user: userId,
-      type: type, // Aggiunge un campo specifico per distinguere le figure
+    const userId = req.session.user?._id;
+    const articles = req.body.articles;
+       
+    // Validazione
+    if (!Array.isArray(articles)) { // Parentesi mancante aggiunta
+      return res.status(400).json({ message: "Formato dati non valido" });
+    }
+    // Anche la riga successiva va corretta
+  if (articles.length !== 3) {
+    return res.status(400).json({ message: "Richiesti esattamente 3 articoli" });
+  }
+    // Controllo articoli esistenti
+    const existingCount = await Article.countDocuments({ 
+      user: userId, 
+      type: "trepunti"
     });
-    console.log(`existingTriangles: ${existingTriangles}:`);
-      console.log(`MaxArticles: ${maxArticles}:`);
-    if (existingTriangles >= maxArticles) {
-      // Se l'utente ha già 3 articoli, blocca l'aggiunta
-      return res.status(400).send(`Puoi aggiungere al massimo  ${maxArticles} articoli di tipo ${type}`);
-    }
-
-    const { body, files } = req;
-    const trianglePoints = [];
     
-    let i = 0;
-    // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
-    while (body[`latitudeSelectioneeInput_${i}`]) {
-      console.log(`Trovato articolo ${i}:`);
-      // Recupera e controlla le coordinate
-      const latitude = parseFloat(body[`latitudeSelectioneeInput_${i}`]);
-      const longitude = parseFloat(body[`longitudeSelectioneeInput_${i}`]);
-
-      // Verifica che le coordinate siano numeriche
-      if (isNaN(latitude) || isNaN(longitude)) {
-        console.log("Errore: Coordinate non valide");
-        return res.status(400).send("Le coordinate devono essere numeriche.");
-      }
-      // Recupera il file caricato per questo articolo
-      const imageField = `image_${i}`;
-      const imageFile = body[imageField] || "image_3.png"; // Usa il valore da req.body
-      
-      // Creazione dei dati per l'articolo
-      const articleData = {
-        name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
-        category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
-        latitudeSelectionee: latitude,  // Latitudine
-        longitudeSelectionee: longitude,  // Longitudine
-        type: "trepunti",
-        group: "trePunti", // Aggiungi il gruppo iniziale
-         image: imageFile,  
-     };
-      
-      console.log(`Articolo ${i} dati:`, articleData);
-
-      // Verifica che tutti i campi obbligatori siano presenti
-      if (!articleData.name || !articleData.category || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
-        console.log("Errore: Manca uno dei campi obbligatori");
-        return res.status(400).send("Tutti i campi sono obbligatori");
-      }
-
-      // Aggiungi l'articolo all'array
-      trianglePoints.push(articleData);
-      i++; // Incrementa l'indice per il prossimo articolo
+    if (existingCount >= 3) {
+      return res.status(400).json({ message: "Limite massimo di 3 articoli raggiunto" });
     }
 
-    // Verifica che siano stati trovati articoli
-    if (trianglePoints.length === 0) {
-      return res.status(400).send("Nessun articolo da aggiungere.");
-    }
-
-    // 1.Salva tutti gli articoli triangleData nel database
-    for (const triangleData of trianglePoints ) {
-      const newTriangle = new Article({
+    // Salvataggio
+    const savedArticles = await Article.insertMany(
+      articles.map(article => ({
         user: userId,
-        name: triangleData.name,
-        category: triangleData.category,
-      
-        latitudeSelectionee: triangleData.latitudeSelectionee,
-        longitudeSelectionee: triangleData.longitudeSelectionee,
-        type: triangleData.type,
-         group: 'trePunti', 
-        image: triangleData.image,
-      });
+        ...article,
+        latitudeSelectionee: parseFloat(article.latitudeSelectionee),
+        longitudeSelectionee: parseFloat(article.longitudeSelectionee)
+      }))
+    );
 
-      await newTriangle.save();
-    }
- 
-    console.log("Articoli salvati nel database:", trianglePoints);
-
-    // Impostazione del messaggio di successo nella sessione
     req.session.message = {
       type: "success",
-      message: "Articoli aggiunti con successo!",
+      message: "Articoli aggiunti con successo!"
     };
 
-    // Redirect alla home dopo il salvataggio degli articoli
-    return res.redirect("/indexZoneAuthor");
+    res.status(200).json({ success: true });
 
   } catch (err) {
-    console.error("Errore durante l'aggiunta degli articoli:", err);
-    res.status(500).send("Errore durante l'invio degli articoli");
+    console.error("Errore:", err);
+    res.status(500).json({ message: "Errore interno del server" });
   }
 });
 
@@ -1178,140 +1225,8 @@ router.get("/edit/:id", isAuthenticated, isAuthor, async(req, res) => {
     }
 });
 
-// Route modificata per gestire SOLO i dati testuali
-router.post('/edit/:id', async (req, res) => {
-  try {
-       const updatedArticle = await Article.findByIdAndUpdate(
-          req.params.id,
-          {
-              $set: {
-                  name: req.body.name,
-                  category: req.body.category,
-                  latitudeSelectionee: req.body.latitudeSelectionee,
-                  longitudeSelectionee: req.body.longitudeSelectionee
-              }
-          },
-          { new: true }
-      );
 
-      console.log("✅ Aggiornato:", updatedArticle.name);
-      console.log("✅ Aggiornato:", updatedArticle.category);
-      res.json({ success: true,
-                 newName: updatedArticle.name,
-                 newCategory: updatedArticle.category
-                });
-     } catch (err) {
-      console.error("❌ Errore DB:", err);
-      res.status(500).json({ success: false });
-  }
-});
-router.post('/api/update-polygon-coords', async (req, res) => {
-  try {
-      // Trova l'articolo con le coordinate originali
-      const article = await Article.findOne({ 
-          latitudeSelectionee: req.body.lat,
-          longitudeSelectionee: req.body.lng 
-      });
 
-      if (!article) {
-          return res.status(404).json({ success: false });
-      }
-
-      // Aggiorna TUTTE le coordinate del gruppo
-      await Article.updateMany(
-          { group: article.group }, 
-          { $set: { 
-              latitudeSelectionee: req.body.newCoordinates[0][0],
-              longitudeSelectionee: req.body.newCoordinates[0][1],
-              // Aggiungi qui altri campi se necessario
-          }}
-      );
-
-      res.json({ success: true });
-  } catch (err) {
-      console.error("Errore DB:", err);
-      res.status(500).json({ success: false });
-  }
-});
-/*
-router.post("/edit/:id", upload, async (req, res) => {
-  console.log("Richiesta ricevuta su /edit:", req.params.id, req.body);
-  res.json({ 
-      success: true,
-      newName: req.body.name,
-      receivedAt: new Date() 
-  });
-  console.log("🔥🔥🔥 INCOMING REQUEST 🔥🔥🔥");
-  console.log("💻 Headers:", JSON.stringify(req.headers));
-  console.log("📦 Raw Body:", req.body); 
-  console.log("🖼️ File:", req.file);
-  console.log("🆔 Params:", req.params);
-  console.log("Dati ricevuti:", {
-    name: req.body.name,
-    coords: [req.body.latitudeSelectionee, req.body.longitudeSelectionee]
-});
-    // Aggiungi questo middleware prima del router
-   
-   
-
-  try {
-    let articleId = req.params.id;
-    console.log("ID dell'articolo passato:", req.params.id);
-    //image: req.file.filename,
-    // Trouver l'user par son ID
-    let article = await Article.findById(articleId);
-    console.log("Articolo passato:", req.params.id);
-
-    if (article) {
-     // Aggiorna i campi con i valori inviati dal form dell' edit_article.ejs
-      article.name = req.body.name;
-      article.category = req.body.category || article.category;
-       article.latitudeSelectionee = req.body.latitudeSelectionee;
-      article.longitudeSelectionee = req.body.longitudeSelectionee;
-      
-     // article.image = req.file.filename
-      // Vérifiez si une nouvelle image a été uploadée
-      if (req.file) {
-        // Supprimer l'ancienne image si elle existe
-        if (article.image) {
-          console.log(article.image)
-          const oldImagePath = './uploads/' + article.image;
-          try {
-            fs.unlinkSync(oldImagePath);
-            console.log('Ancienne image supprimée avec succès');
-          } catch (err) {
-            console.error('Erreur lors de la suppression de l\'ancienne image:', err);
-          }
-        }
-        // Mettre à jour le chemin de la nouvelle image
-        article.image = req.file.filename;
-      }
-
-      // Sauvegarder les modifications dans la base de données
-      await article.save();
-
-       // MODIFICA QUI - Sostituisci res.redirect con:
-       res.json({
-        success: true,
-        newName: article.name,  // Il nome aggiornato dal database
-        updatedAt: new Date(),
-        articleId: article._id
-      });
-
-    } else {
-      res.status(404).json({ 
-        success: false,
-        error: 'Article not found'
-      });
-    }
-  } catch (err) {
-    console.error("💥 ERRORE:", err);
-    res.status(500).json({ 
-      success: false,
-      error: err.message
-    });
-  }
-});*/
 router.param("id", async (req, res, next, id) => {
   if (!id || id === "undefined") {
     return res.status(400).json({ error: "ID articolo mancante" });

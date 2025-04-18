@@ -1,95 +1,53 @@
 
-document.addEventListener("DOMContentLoaded", function() {    
+document.addEventListener("DOMContentLoaded", function() { 
+ 
     let map; 
     let layerGroup;  
     let drawnItems;  
+    //  AGGIORNA I DATI CON LA RISPOSTA DEL SERVER
     async function updateArticleName(marker, newName, newCategory) {
         try {
-            const response = await fetch(`/edit/${marker.options.articleData.id}`, {
-                method: 'POST',
+            const response = await fetch(`/api/articles/${marker.options.articleData.id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: newName,
                     category: newCategory,
                     latitudeSelectionee: marker.getLatLng().lat,
                     longitudeSelectionee: marker.getLatLng().lng
-                })
+                  })
             });
     
             const data = await response.json();
             if (data.success) {
+                  // Aggiorna i dati del marker
+            marker.options.articleData.name = data.updatedArticle.name;
+            marker.options.articleData.category = data.updatedArticle.category;
+         
+                // Aggiorna il popup con i dati RESTITUITI DAL SERVER
                 marker.setPopupContent(`
-                    <b>${newName}</b><br>
-                    <b>${newCategory}</b><br>
-                    <img src="/uploads/${marker.options.articleData.image}" width="100">
+                    <div class="edit-popup">
+                        <textarea class="form-control mb-2 name-input">${data.updatedArticle.name}</textarea>
+                        <select class="form-control category-input mb-2">
+                            <option value="bon" ${data.updatedArticle.category === 'bon' ? 'selected' : ''}>Bon</option>
+                            <option value="moyen" ${data.updatedArticle.category === 'moyen' ? 'selected' : ''}>Moyen</option>
+                            <option value="bas" ${data.updatedArticle.category === 'bas' ? 'selected' : ''}>Bas</option>
+                        </select>
+                        <img src="/uploads/${marker.options.articleData.image}" width="100">
+                        <button class="btn btn-sm btn-success save-button mt-2">Salva</button>
+                    </div>
                 `);
+                      
+                    // Ricarica i dati della mappa
+                    setTimeout(() => updateMap(), 500);
+                }
+            } catch (error) {
+                console.error("Errore durante l'aggiornamento:", error);
+                alert("Errore durante il salvataggio!");
             }
-    
-            console.log(`🔄 Nome aggiornato nel DB!  ${newName}`);
-            console.log(`🔄 Category aggiornato nel DB! ${newCategory}`);
-            
-        } catch (error) {
-            console.error("📛 Errore durante il salvataggio:", error);
-            alert("Non è stato possibile salvare. Ricarica la pagina e riprova.");
-        }
     }
-/*
-    function updateArticleName(marker, newName) {
-        const articleData = marker.options.articleData;
-        if (!articleData?.id) {
-            console.error("Struttura marker errata:", marker.options);
-            alert("Configurazione marker non valida");
-            return;
-        }
-    
-        const payload = {
-            name: newName,
-            latitudeSelectionee: marker.getLatLng().lat,
-            longitudeSelectionee: marker.getLatLng().lng
-        };
-    
-        console.log("Invio a /edit:", { 
-            id: articleData.id,
-             payload,            
-             endpoint: `${window.location.origin}/edit/${articleData.id}`
-            });
-    
-        fetch(`/edit/${articleData.id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(payload),
-            credentials: 'include' // Importante per le sessioni/cookie
-        })
-        .then(async response => {
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(
-                    errorData.message || 
-                    `Errore ${response.status}: ${response.statusText}`
-                );
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Aggiornamento riuscito:", data);
-            marker.setPopupContent(`<b>${data.newName || newName}</b>`);
-            marker.options.articleData.name = data.newName || newName; // Sync dati
-        })
-        .catch(error => {
-            console.error("Errore dettagliato:", {
-                error: error.message,
-                stack: error.stack
-            });
-            alert(`Salvataggio fallito: ${error.message}`);
-        });
-    }
-*/
     const sidebar = document.getElementById('sidebar');
-   const mapContainer = document.querySelector('.map-container');    
-    // Gestione eventi Bootstrap
+     // Gestione eventi Bootstrap
     sidebar.addEventListener('shown.bs.collapse', function() {
         document.body.classList.add('sidebar-open');
         setTimeout(() => map.invalidateSize(), 300);
@@ -108,23 +66,18 @@ document.addEventListener("DOMContentLoaded", function() {
             bootstrap.Collapse.getInstance(sidebar).hide();
         }
     });
-    
     // Aggiorna la mappa dopo il rendering iniziale
     setTimeout(() => map.invalidateSize(), 500);
     
 function initializeMap() {
-      map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
-        
+      map = L.map("map", { center: [43.2, 1.30], zoom: 10 });       
         layerGroup = L.featureGroup().addTo(map);  // Marker
         drawnItems = L.featureGroup().addTo(map);  // Poligoni
- 
     // TileLayer con attribuzioni
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
         maxZoom: 19,
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }).addTo(map);
-    
-   
+      }).addTo(map);      
      // Draw control (come nella tua versione)
      var drawControl = new L.Control.Draw({
         edit: { 
@@ -135,18 +88,14 @@ function initializeMap() {
         draw: false
     });
 
-  // Event handling (eccellente nella tua versione)
+  // Event handling
     map.addControl(drawControl);
       // Evento per la modifica dei poligoni
       map.on('draw:edited', function(e) {
         e.layers.eachLayer(async (layer) => {
             if (layer instanceof L.Polygon) {
-                const newCoords = layer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]);
-                console.log('Nuove coordinate poligono:', newCoords);
-    
-                // Usa il primo punto come riferimento per trovare l'articolo nel DB
+                const newCoords = layer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]);  
                 const [lat, lng] = newCoords[0]; 
-    
                 try {
                     const response = await fetch('/api/update-polygon-coords', {
                         method: 'POST',
@@ -156,12 +105,10 @@ function initializeMap() {
                             lng,
                             newCoordinates: newCoords
                         })
-                    });
-                    
+                    });                  
                     const data = await response.json();
                     if (data.success) {
-                        console.log('✅ Poligono aggiornato nel DB');
-                    }
+                         }
                 } catch (error) {
                     console.error('Errore salvataggio:', error);
                 }
@@ -169,17 +116,16 @@ function initializeMap() {
         });
     });
    
-
     } // Fine della funzione initializeMap() 
 
-console.log("Triangolo con groupedArticles:", groupedArticles['trepunti']);
-console.log("Triangoli con groupedArticles:", groupedArticles['triangle']);
-console.log("Pentagoni con groupedArticles:", groupedArticles['pentagone']);
+//console.log("Triangolo con groupedArticles:", groupedArticles['trepunti']);
+//console.log("Triangoli con groupedArticles:", groupedArticles['triangle']);
+//console.log("Pentagoni con groupedArticles:", groupedArticles['pentagone']);
  
 // Ora puoi accedere a `groupedArticles['triangle']` e `groupedArticles['pentagon']` per elaborare i rispettivi articoli
 function updateMap() {
        // Interrompi subito se `filteredUsers` non è definito
-       if (typeof articles === 'undefined') {
+       if (typeof groupedArticles === 'undefined') {
         console.error("Errore: I dati di utenti o marker non sono definiti.");
         return; // Interrompe l'esecuzione
     }
@@ -224,7 +170,7 @@ function updateMap() {
 
 Object.keys(groupedArticles['trepunti'] || {}).forEach(groupName => {
     const trePuntiGroup = groupedArticles['trepunti'][groupName];
-    console.log(`Rendering trePunti for group: ${groupName}`, trePuntiGroup);
+    //console.log(`Rendering trePunti for group: ${groupName}`, trePuntiGroup);
 
     // Crea il poligono per il gruppo corrente
     const latLngs = trePuntiGroup.map(trePunto => {
@@ -240,21 +186,21 @@ Object.keys(groupedArticles['trepunti'] || {}).forEach(groupName => {
         }
     }).filter(coord => coord !== null);
 
-    console.log("Struttura latLngs:", JSON.stringify(latLngs)); 
+   // console.log("Struttura latLngs:", JSON.stringify(latLngs)); 
     const category = trePuntiGroup[0]?.category || 'moyen'; // Default a 'moyen' se manca
-    console.log("Coordinate:", latLngs);
+    //console.log("Coordinate:", latLngs);
 
     // **Crea il poligono se ci sono almeno 3 punti**
     if (latLngs.length >= 3) { // Cambiato da === 3 a >= 3
-        console.log("Creazione poligono con coordinate:", JSON.stringify(latLngs));
-        console.log("Categoria e stile:", category, polylineStyles[category]);
+      //  console.log("Creazione poligono con coordinate:", JSON.stringify(latLngs));
+      //  console.log("Categoria e stile:", category, polylineStyles[category]);
    
         const polygon = L.polygon(latLngs, polylineStyles[category]);
         polygon.addTo(map); 
         // <-- Prova ad aggiungere direttamente alla mappa
    
         drawnItems.addLayer(polygon);
-        console.log("Poligono aggiunto per trePunti:", groupName, latLngs);
+      //  console.log("Poligono aggiunto per trePunti:", groupName, latLngs);
     } else {
         console.warn("Numero di coordinate insufficiente per creare un poligono:", latLngs);
     }
@@ -267,20 +213,20 @@ const groupedTrepunti = Object.keys(groupedArticlesByType['trepunti'] || {}).red
     return acc;
 }, {});
 
-console.log("Grouped TrePunti by Group:", groupedTrepunti);
+//console.log("Grouped TrePunti by Group:", groupedTrepunti);
 
 // **Crea poligoni per ogni gruppo di trepunti**
 Object.keys(groupedTrepunti).forEach((group) => {
     const trePuntiGroup = groupedTrepunti[group];
-    console.log(`Rendering trePunti for group: ${group}`, trePuntiGroup);
+   // console.log(`Rendering trePunti for group: ${group}`, trePuntiGroup);
 
     // Itera su ogni punto nel gruppo
     const latLngs = trePuntiGroup.map(trePunto => {
         const lat = parseFloat(trePunto.coordinates[0]);
         const lng = parseFloat(trePunto.coordinates[1]);
 
-        console.log("Articolo:", trePunto);
-        console.log("Latitudine:", lat, "Longitudine:", lng);
+      //  console.log("Articolo:", trePunto);
+      //  console.log("Latitudine:", lat, "Longitudine:", lng);
 
         // Verifica che siano numeri validi
         if (!isNaN(lat) && !isNaN(lng)) {
@@ -301,7 +247,7 @@ Object.keys(groupedTrepunti).forEach((group) => {
         console.log("Creazione poligono con coordinate:", JSON.stringify(latLngs));
         const polygon = L.polygon(latLngs, polylineStyles[category]);
         drawnItems.addLayer(polygon);
-        console.log("Poligono aggiunto per trePunti:", group, latLngs);
+      //  console.log("Poligono aggiunto per trePunti:", group, latLngs);
     } else {
         console.warn("Numero di coordinate insufficiente per creare un poligono:", latLngs);
     }
@@ -330,7 +276,7 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
         const polygon = L.polygon(latLngs, polylineStyles[category]);
 // Aggiungono il poligono al layer drawnItems su Leaflet.
         drawnItems.addLayer(polygon); // Aggiungi il poligono al layer sulla mappa
-        console.log("Poligono aggiunto per il gruppo:", groupName, latLngs);
+  //      console.log("Poligono aggiunto per il gruppo:", groupName, latLngs);
     }
 });
 
@@ -388,7 +334,7 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
         };
         Object.values(articlesOfType).forEach((articles) => {
             articles.forEach((article) => {
-                console.log("Article Data Before Marker:", article);
+          //      console.log("Article Data Before Marker:", article);
               const category = article.category || 'moyen'; // Default 'moyen'
               groupedMarkersByCategory[category].push(article);
             });
@@ -420,42 +366,121 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
         draggable: true,
         articleData: {
             _id: article._id || article.id,  // MongoDB style
-        id: (article._id || article.id).toString(), // Stringa garantita
-        originalId: article._id,         // Originale non convertito
-         name: article.name,
+             id: (article._id || article.id).toString(), // Stringa garantita
+       // originalId: article._id,         // Originale non convertito
+            name: article.name,
             category: article.category,
-            image: article.image,
-            coordinates: article.coordinates
+            latitudeSelectionee: article.latitudeSelectionee,
+            longitudeSelectionee: article.longitudeSelectionee,
+            image: article.image
         }
     });
-    console.log("Marker creato con ID:", marker.options.articleData);
-    
+// 1. CONTENUTO DEL POPUP CORRETTO (aggiungi l'input per la categoria)
     const popupContent = `
-        <b>${article.name}</b><br>
-          <b>${article.category}</b><br>
-        <img src="/uploads/${article.image || 'placeholder.png'}" 
-             class="img-thumbnail" 
-             width="100"
-             onerror="this.src='/uploads/placeholder.png'">
-    `;
-    
+        <div class="edit-popup">
+            <textarea class="form-control mb-2 name-input" 
+                    rows="2" 
+                    style="resize: vertical">${article.name}</textarea>
+                
+              <input type="text" 
+               class="form-control category-input mb-2" 
+               value="${article.category}">
+
+                <img src="/uploads/${article.image || 'placeholder.png'}" 
+                    class="img-thumbnail" 
+                    width="50"
+                    onerror="this.src='/uploads/placeholder.png'">
+                     <button class="btn btn-sm btn-primary mt-2 edit-button">✏️</button>
+                    </div>
+         `;
+   
     marker.bindPopup(popupContent, {
-        editable: true,      // Abilita modifica testo
         removable: true,     // Mostra pulsante rimozione
         className: 'custom-popup-' + article.category, // Per stili CSS specifici
         minWidth: 200        // Larghezza minima popup
     });
-    marker.on('popupcontentchanged', function(e) {
-        const content = e.popup.getContent();
-        const newName = content.match(/<b>(.*?)<\/b>/)?.[1];      // Primo <b>
-        const newCategory = content.match(/<b>(.*?)<\/b>/g)?.[1]?.replace(/<\/?b>/g, '');  // Secondo <b>
+    marker.on('popupopen', function() {
+        const popup = this.getPopup();
         
-        if (newName && newCategory) {
-            updateArticleName(this, newName, newCategory);
+        // Usa il popup specifico invece di document
+        const editButton = popup.getElement().querySelector('.edit-button');
+        
+        if (editButton) {
+            editButton.addEventListener('click', () => {
+                const newContent = `
+                    <div class="edit-popup">
+                        <textarea class="form-control mb-2 name-input">${marker.options.articleData.name}</textarea>
+                        <select class="form-control category-input mb-2">
+                            <option value="bon" ${marker.options.articleData.category === 'bon' ? 'selected' : ''}>Bon</option>
+                            <option value="moyen" ${marker.options.articleData.category === 'moyen' ? 'selected' : ''}>Moyen</option>
+                            <option value="bas" ${marker.options.articleData.category === 'bas' ? 'selected' : ''}>Bas</option>
+                        </select>
+                        <button class="btn btn-sm btn-success save-button">Salva</button>
+                    </div>
+                `;
+                
+                marker.setPopupContent(newContent);
+                
+                // Ricollega l'event listener al nuovo pulsante
+                const saveButton = popup.getElement().querySelector('.save-button');
+                if (saveButton) {
+                    saveButton.addEventListener('click', () => {
+                        const newName = popup.getElement().querySelector('.name-input').value;
+                        const newCategory = popup.getElement().querySelector('.category-input').value;
+                        updateArticleName(marker, newName, newCategory);
+                    });
+                }
+            });
         }
     });
+// 2. EVENT HANDLER CORRETTO
+marker.on('popupclose', function(e) {
+    const popupElement = e.popup.getElement();
+    console.log('Popup chiuso, elemento:', popupElement);
+    const nameInput = popupElement.querySelector('.name-input'); // <-- Classe corretta
+    const categoryInput = popupElement.querySelector('.category-input');
     
-    
+    // Log dei valori trovati
+    console.log('Valori inputs - Name:', nameInput?.value, 'Category:', categoryInput?.value);
+    console.log('Dati originali:', this.options.articleData);
+
+    if(nameInput && categoryInput) {
+        const newName = nameInput.value;
+        const newCategory = categoryInput.value;
+        
+        if(newName !== this.options.articleData.name || newCategory !== this.options.articleData.category) {
+            console.log('Rilevati cambiamenti, chiamata update...');
+            updateArticleName(this, newName, newCategory);
+        } else {
+            console.log('Nessun cambiamento rilevato');
+        }
+    } else {
+        console.error('Input non trovati nel popup');
+    }
+});
+
+// 3. AGGIORNAMENTO POPUP DOPO IL SUCCESSO (corretto)
+if(article.success) {
+    // Usa newName/newCategory dalla risposta (data) invece di articleData
+    marker.setPopupContent(`
+        <div class="edit-popup">
+            <textarea class="form-control mb-2 name-input" 
+                    rows="2">${data.newName}</textarea> <!-- Usa data -->
+            
+            <input type="text" 
+                class="form-control category-input mb-2" 
+                value="${data.newCategory}"> <!-- Usa data -->
+
+            <img src="/uploads/${marker.options.articleData.image}" 
+                width="100">
+        </div>
+    `);
+       
+    console.log('Dati marker pre-aggiornamento:', marker.options.articleData);
+    marker.options.articleData.name = data.newName; // <-- Aggiorna con data
+    marker.options.articleData.category = data.newCategory;
+    console.log('Dati marker aggiornati:', marker.options.articleData);
+}
 // Poi nell'evento dragend:
 marker.on('dragend', function(e) {
     const marker = e.target;
@@ -470,13 +495,7 @@ marker.on('dragend', function(e) {
             console.error("ID mancante. Dati marker completi:", markerData);
         }
 });
-    // Gestione spostamento marker
-  /*  marker.on('dragend', function(e) {
-        const newPos = e.target.getLatLng();
-          console.log(`Marker spostato a: ${newPos.lat}, ${newPos.lng}`);
-        saveMapChanges(article._id, newPos.lat, newPos.lng);
-    });*/
-    
+      
     layerGroup.addLayer(marker);
    
 });
@@ -486,7 +505,7 @@ marker.on('dragend', function(e) {
    
     // Crea i raggi collegando i nodi corrispondenti
     createRaggi(groupedArticles);
-    console.log("Grouped Markers 1:", groupedArticles);
+   // console.log("Grouped Markers 1:", groupedArticles);
 
     // Adatta la mappa per includere tutti i marker e polilinee
     const allLayers = L.featureGroup([layerGroup, drawnItems]);
@@ -513,11 +532,11 @@ function createPolylinesBetweenGroups(group1, group2, color = 'black', weight = 
                 const point1 = [lat1, lng1];
                 const point2 = [lat2, lng2];
                  // ✅ LOG CORRETTO DOPO LA DEFINIZIONE DI point1 e point2
-                 console.log(`Connecting ${JSON.stringify(point1)} to ${JSON.stringify(point2)}`);
+                // console.log(`Connecting ${JSON.stringify(point1)} to ${JSON.stringify(point2)}`);
 
                 const polyline = L.polyline([point1, point2], { color, weight });
                 drawnItems.addLayer(polyline);
-                console.log(`Polilinea tra ${point1} e ${point2}`);
+               // console.log(`Polilinea tra ${point1} e ${point2}`);
             } else {
                 console.warn("Coordinate non valide per i triangoli:", triangle1, triangle2);
             }
@@ -533,12 +552,12 @@ function createRaggi(groupedArticles) {
     const originalTriangles = triangles['original'] || [];
     const scaled1Triangles = triangles['scaled1'] || [];
     const scaled2Triangles = triangles['scaled2'] || [];
-    console.log("Original Triangles:", JSON.stringify(originalTriangles, null, 2));
-    console.log("Scaled1 Triangles:", JSON.stringify(scaled1Triangles, null, 2));
-    console.log("Scaled2 Triangles:", JSON.stringify(scaled2Triangles, null, 2));
-    console.log("Original Triangles:", originalTriangles);
-    console.log("Scaled1 Triangles:", scaled1Triangles);
-    console.log("Scaled2 Triangles:", scaled2Triangles);
+   // console.log("Original Triangles:", JSON.stringify(originalTriangles, null, 2));
+   // console.log("Scaled1 Triangles:", JSON.stringify(scaled1Triangles, null, 2));
+  //  console.log("Scaled2 Triangles:", JSON.stringify(scaled2Triangles, null, 2));
+   // console.log("Original Triangles:", originalTriangles);
+   // console.log("Scaled1 Triangles:", scaled1Triangles);
+   // console.log("Scaled2 Triangles:", scaled2Triangles);
     // Creazione polilinee tra scaled1 e scaled2
     createPolylinesBetweenGroups(scaled1Triangles, scaled2Triangles, 'black', 0.8);
 
@@ -560,22 +579,17 @@ function createRaggi(groupedArticles) {
        
         function saveMapChanges(articleId, newLat, newLng) {
             if (!articleId) {
-                console.error("ID articolo mancante");
+               // console.error("ID articolo mancante");
                 return;
             }
         
             const parsedLat = parseFloat(newLat);
             const parsedLng = parseFloat(newLng);
-            console.log("Salvataggio modifiche per:", {
+            console.log("Salvataggio modifiche per:"), {
                 articleId: articleId,
                 latitudeSelectionee: parsedLat,  // Modificato qui
                 longitudeSelectionee: parsedLng  // Modificato qui
-            });
-        
-        /*    console.log("Salvataggio modifiche per:", {
-                articleId: articleId,   lat: parsedLat,
-                lng: parsedLng
-            });*/
+            };
         
             fetch(`/api/articles/${articleId}`, {
                 method: 'PUT',
@@ -609,5 +623,26 @@ function createRaggi(groupedArticles) {
             });
         }
 
+    // 1. INIZIALIZZA DATATABLES - SPOSTATO IN FONDO
+    const table = $('#main-table').DataTable({
+        pageLength: 20,
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/it-IT.json'
+        }
+    });
+
+    // 2. GESTIONE CAMBIO ELEMENTI PER PAGINA
+    $('#page-length').on('change', function() {
+        table.page.len($(this).val()).draw();
+    });
+
+    // 3. AGGIORNA SELECT CON VALORE CORRENTE
+    table.on('length.dt', function(e, settings, len) {
+        $('#page-length').val(len);
+    });
+
+    // Aggiungi questi console.log per debug
+    console.log("DataTables inizializzato:", table);
+    console.log("Elementi nella tabella:", table.rows().count());
 
 }); 

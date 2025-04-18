@@ -1,15 +1,21 @@
 <%- include('layout/headerZoneAuthor') %>
 
-<!-- Aggiungi QUESTO PULSANTE SUBITO DOPO LA NAVBAR -->
-<button class="sidebar-toggler btn btn-warning d-md-none" 
-        data-bs-toggle="collapse" 
-        data-bs-target="#sidebar">
-  ☰ Mostra Articoli
-</button>
-
 <div class="container my-3">
+  <% if (user) { %>
+    <div class="alert alert-info d-flex justify-content-center align-items-center text-center gap-3">
+      <strong>Bienvenue, <%= user.email %>!</strong>
+      <a href="/logout" class="btn btn-sm btn-outline-secondary">Se déconnecter</a>
+    </div>
+
+  <% } %>
   <div class="row">
-    <div class="col-12 text-center">
+    <div class="col-12 text-center">            
+      <!-- Aggiungi QUESTO PULSANTE SUBITO DOPO LA NAVBAR -->
+      <button class="sidebar-toggler btn btn-warning d-md-none" 
+         data-bs-toggle="collapse" 
+         data-bs-target="#sidebar">
+                       ☰ 
+      </button>
       <a href="/addTroisMarker">
         <button id="add-trois-marker" class="btn-custom">  <i class="fas fa-caret-up"></i> Trois points</button>
       </a>
@@ -25,27 +31,19 @@
     </div>
   </div>
   </div>
-
   <div class="container-fluid">
-    <div class="row position-relative flex-nowrap">
-
-   
+    <div class="row position-relative flex-nowrap"> 
       <!-- Sidebar -->
       <div id="sidebar" class="col-md-3">
-        <button id="closeSidebar" class="close-btn d-md-none" data-bs-toggle="collapse" data-bs-target="#sidebar">&times;</button>
-          <div class="pagination-controls">
-          <label for="articles-per-page">Mostra:</label>
-          <select id="articles-per-page" name="articles_per_page">
-            <option value="30" selected>20</option>
-            <option value="50">50</option>
-          </select>
+        <button id="closeSidebar" class="close-btn d-md-none" data-bs-toggle="collapse" data-bs-target="#sidebar">&times;</button><br>
+        <div class="mb-3">
+       
         </div>
-  
-  <h3>Lista SINISTRA Articoli</h3>
+ 
   <% if (articles && articles.length > 0) { %>
     <div class="table-responsive">
-      <table class="table table-hover table-bordered table-striped text-center">
-        <thead class="table-dark">
+     <!-- AGGIUNGI id="main-table" QUI -->
+  <table id="main-table" class="table table-hover table-bordered table-striped text-center">   <thead class="table-dark">
           <tr>
             <th>Image</th>
             <th>Name</th>
@@ -56,13 +54,16 @@
           <% articles.forEach((row, index) => { %>
             <tr class="align-middle">
                <td>
-                <div style="border:3px solid <%= categoryColors[row.category] || 'red' %>; border-radius: 50%; display:inline-block; padding: 0px">
-                  <img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="50" />
-                </div>
+                <div class="img-category-wrapper" 
+                style="border-color: <%= categoryColors[row.category] || 'red' %>">
+             <img src="/uploads/<%= row.image %>" 
+                  class="rounded-circle img-thumbnail" 
+                  width="50" />
+           </div>
+
             </td>         
               <td><%= row.name %></td>
-              <td>
-               
+              <td>               
                 <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger">
                   <i class="fas fa-trash"></i>
                 </a>
@@ -76,7 +77,6 @@
     <p>Nessun articolo trovato</p>
   <% } %>
       </div>  
-
       <!-- Mappa -->
       <div class="col-md-9 map-container"> <!-- Aggiungi la classe qui -->
         <div id="map" style="width: 100%; height: 100%;"></div>
@@ -96,13 +96,7 @@
              <% } %>
 
       <div class="table-responsive">
-        <% if (user) { %>
-          <h2>Bienvenue, <%= user.email %>!</h2> <br>  
-          <a href="/logout">Se déconnecter</a>
-        <% } else { %>
-          <a href="/login">Se connecter</a>
-          <a href="/signup">S'inscrire</a>
-        <% } %>
+     
         </div>
         <!-- Tabella degli articoli -->
       <div class="table-responsive mt-4">      
@@ -124,10 +118,8 @@
                   <th>Action</th>
                 </tr>
               </thead>
-
               <tbody>
-                <!-- INIZIO FRONTEND 1: Inizializzazione delle variabili lato client -->
-             
+                <!-- INIZIO FRONTEND 1: Inizializzazione delle variabili lato client -->        
                 <script>
                      if (typeof filteredUsers === 'undefined') var filteredUsers = [];
                   </script>

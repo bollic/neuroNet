@@ -32,7 +32,7 @@ const articleSchema = new mongoose.Schema({
     },
     group: { 
         type: String, // Specifica che il campo `group` è una stringa
-        required: true // Facoltativo: aggiungi questa opzione se è obbligatorio
+        required: false, // Facoltativo: aggiungi questa opzione se è obbligatorio
     },
     created: {
         type: Date,

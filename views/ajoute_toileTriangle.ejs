@@ -107,11 +107,9 @@ map.addEventListener("click", function(e) {
   }
   const triangleData = {
     name: form.querySelector("[name='name']").value,
-    category: form.querySelector("[name='category']").value,
-  
+    category: form.querySelector("[name='category']").value, 
     latitudeSelectionee: point.lat, // Usa la latitudine del punto corrente
     longitudeSelectionee: point.lng, // Usa la longitudine del punto corrente
-   
     type: form.querySelector("[name='type']").value,
      image: form.querySelector("[name='image']").value
   };
@@ -120,7 +118,6 @@ map.addEventListener("click", function(e) {
   treArticles.push(triangleData);
   console.log("Articolo aggiunto:", triangleData);
   console.log("Articoli totali:", treArticles);
-
   // Controlla se sono stati aggiunti 3 articoli
   if (treArticles.length === 3) {
     // Prepara i dati per l'invio al server
@@ -138,7 +135,7 @@ map.addEventListener("click", function(e) {
 
     // Invia i dati al server
     try {
-      const response = await fetch("/ajoute_triangle", { method: "POST", body: formTriangleData });
+      const response = await fetch("/ajoute_toileTriangle", { method: "POST", body: formTriangleData });
 
       if (response.ok) {
         alert("Tutti gli articoli aggiunti con successo!");
@@ -157,7 +154,6 @@ map.addEventListener("click", function(e) {
   // Resetta il form per il prossimo articolo
   form.reset();
 });
-
   });
 </script>
 <!-- Div où la carte sera affichée -->

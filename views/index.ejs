@@ -176,10 +176,10 @@ map.addControl(drawControl);
       const userGroup = groupedByUser[userId]; // Ottieni il gruppo dell'utente
     const userArticlesGrouped = userGroup.groupedByType; // Ottieni gli articoli raggruppati per tipo
     
-    console.log("Dati per l'utente:", userId, userArticlesGrouped); // Stampa i dati dell'utente
-    console.log("Tipo di userArticlesGrouped:", typeof userArticlesGrouped);
-    console.log("Valore di userArticlesGrouped:", userArticlesGrouped);
-    console.log('User Articles Grouped:', userArticlesGrouped);
+   // console.log("Dati per l'utente:", userId, userArticlesGrouped); // Stampa i dati dell'utente
+   // console.log("Tipo di userArticlesGrouped:", typeof userArticlesGrouped);
+   // console.log("Valore di userArticlesGrouped:", userArticlesGrouped);
+   // console.log('User Articles Grouped:', userArticlesGrouped);
 
 
 // 🔹 Itera su ogni tipo di dati dentro userArticlesGrouped
@@ -448,9 +448,9 @@ function createRaggi(groupedMarkers) {
     }
 
     // Controlla il risultato finale
-    console.log("Vertices Bon:", verticesBon);
-    console.log("Vertices Moyen:", verticesMoyen);
-    console.log("Vertices Mauvais:", verticesMauvais);
+   // console.log("Vertices Bon:", verticesBon);
+  //  console.log("Vertices Moyen:", verticesMoyen);
+   // console.log("Vertices Mauvais:", verticesMauvais);
 
        // Disegna le polilinee tra i vertici Bon, Moyen e Mauvais
 for (const key in verticesBon) {
@@ -565,7 +565,7 @@ for (const key in verticesBon) {
 <script>
   const groupedByUser = <%- JSON.stringify(groupedByUser ) %>;
   
-  console.log("2. Riga 268. Grouped articles by user:", groupedByUser);
+ // console.log("2. Riga 268. Grouped articles by user:", groupedByUser);
   const userIdTest = '6783c76b4369bb079de8d01a';
 
 if (!groupedByUser[userIdTest]) {
@@ -573,8 +573,8 @@ if (!groupedByUser[userIdTest]) {
 } else if (!groupedByUser[userIdTest].groupedByType) {
   console.error(`Errore: Nessun groupedByType per userId ${userIdTest}`);
 } else {
-  console.log(`OK: Trovati i dati per userId ${userIdTest}`);
-  console.log("GroupedByType:", JSON.stringify(groupedByUser[userIdTest].groupedByType, null, 2));
+  //console.log(`OK: Trovati i dati per userId ${userIdTest}`);
+  //console.log("GroupedByType:", JSON.stringify(groupedByUser[userIdTest].groupedByType, null, 2));
 }
 </script>
 
