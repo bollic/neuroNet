@@ -220,7 +220,7 @@ function gruppoArticles(articles) {
   }, {});
 }
 
-router.get('/', isOffice,  async (req, res) => {
+router.get('/', isAuthenticated, isOffice,  async (req, res) => {
   try {       
     const userId = req.session.user ? req.session.user._id : null;
       
@@ -319,7 +319,7 @@ const categoryColors = {
   moyen: 'gray',
   bas: 'red'
 };
- router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
+ router.get('/indexZoneAuthor',  isAuthenticated, isField, async (req, res) => {
   try {
     // Recupera l'ID dell'utente autenticato
     //const userId = req.session.user._id;
@@ -333,7 +333,7 @@ const categoryColors = {
     } 
     const articles = await Article.find({ user: userId }).limit(30).populate('user');
     
- router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
+ router.get('/indexZoneAuthor',  isAuthenticated, isField, async (req, res) => {
   try {
     // Recupera l'ID dell'utente autenticato
     //const userId = req.session.user._id;
@@ -548,26 +548,29 @@ router.get('/logout', (req, res) => {
     res.redirect('/'); // Rediriger vers la page articles après déconnexion
   });
 });
+const officeEmails = ['office1@gmail.com', 'office2@gmail.com'];
+const fieldEmails = ['field1@gmail.com', 'field2@gmail.com'];
 
-// Middleware pour vérifier si l'user est connecté
 function isOffice(req, res, next) {
-  const user = req.session && req.session.user;
-
-  if (!user) {
-    console.log("Utente non autenticato, reindirizzamento a /login");
-    req.session.redirectTo = req.originalUrl;
-    return res.redirect('/login');
-  }
-
-  const officeEmails = ['office1@gmail.com', 'office2@gmail.com'];
+  const user = req.session.user;
 
   if (officeEmails.includes(user.email)) {
-    return next(); // Autorizzato
-  } else {
-    console.log("Accesso negato - non sei un impiegato d'ufficio");
-    return res.status(403).send('Accesso negato: solo per impiegati in ufficio');
+    return next();
   }
+
+  return res.status(403).send("Accesso riservato agli impiegati d'ufficio");
 }
+
+function isField(req, res, next) {
+  const user = req.session.user;
+
+  if (fieldEmails.includes(user.email)) {
+    return next();
+  }
+
+  return res.status(403).send("Accesso riservato agli utenti FIELD");
+}
+
 
 // Middleware pour vérifier si l'user est connecté
 function isAuthenticated(req, res, next) {

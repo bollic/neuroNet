@@ -58,6 +58,42 @@ map.addEventListener("click", function(e) {
   }
 });
 
+const geolocBtn = document.getElementById("useGeolocationBtn");
+
+geolocBtn.addEventListener("click", () => {
+  if (selectedCoordinates.length >= 3) {
+    alert("Hai già selezionato 3 punti!");
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    alert("Geolocalizzazione non supportata dal browser.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition((position) => {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+
+    const latlng = { lat, lng };
+    L.marker(latlng).addTo(myLocation); // Aggiungi il marker sulla mappa
+    selectedCoordinates.push(latlng);
+
+    const pointIndex = selectedCoordinates.length - 1;
+
+    document.getElementById(`latitudeSelectioneeInput_${pointIndex}`).value = lat;
+    document.getElementById(`longitudeSelectioneeInput_${pointIndex}`).value = lng;
+
+    // Aggiorna i campi visivi
+    document.getElementById('latitudeSelectionee').textContent = 
+      selectedCoordinates.map(coord => coord.lat).join(', ');
+    document.getElementById('longitudeSelectionee').textContent = 
+      selectedCoordinates.map(coord => coord.lng).join(', ');
+  }, (err) => {
+    console.error("Errore nella geolocalizzazione:", err);
+    alert("Impossibile ottenere la tua posizione.");
+  });
+});
 
     const allMarker = document.getElementById("get-marker");
     allMarker.addEventListener("click", async () => {
@@ -174,7 +210,12 @@ map.addEventListener("click", function(e) {
        
             <div class="card-body p-4">
                 <form action="/ajoute_trois_marker" method="POST" id="add-trois-marker" enctype="multipart/form-data">
-                    <div class="mb-3">
+                  <button type="button" id="use-my-location" class="btn btn-secondary mb-3">Usa la mia posizione</button>
+                                   
+                  <div class="mb-3">
+                    <button type="button" class="btn btn-success" id="useGeolocationBtn">
+                      📍 Ma position
+                    </button>
                         <select id="category" name="category" value="category" placeholder="Content..." >
                             <option value="bon">Content</option>
                             <option value="moyen" selected>Moyen</option>
@@ -221,6 +262,7 @@ map.addEventListener("click", function(e) {
                     <div class="mb-3 d-grid">                      
                         <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />
                     </div>
+                     
                 </form>
             </div>
          </div>
