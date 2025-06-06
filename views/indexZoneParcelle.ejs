@@ -1,4 +1,4 @@
-<%- include('layout/headerZoneAuthor') %>
+<%- include('layout/headerZoneParcelle') %>
 
 <div class="container my-3">
   <% if (user) { %>
@@ -16,21 +16,11 @@
          data-bs-target="#sidebar">
                        ☰ 
       </button>
-      <a href="/addTroisMarker">
-        <button id="add-trois-marker" class="btn-custom">  <i class="fas fa-caret-up"></i> Trois points</button>
-      </a>
-      <a href="/addTriangle">
-        <button id="add-triangle" class="btn-custom">  <i class="fas fa-caret-up"></i> Triangle</button>
-      </a>
-      <a href="/addToileTriangle">
-        <button id="add-toileTriangle" class="btn-custom">  <i class="fas fa-caret-up"></i>Toile à triangle</button>
-      </a>
-      <a href="/addPolygon">
-        <button id="add-polygon" class="btn-custom">  <i class="fas fa-shapes"></i>Polygon</button>
+     
+      <a href="/addParcelle">
+        <button id="add-parcelle" class="btn-custom">  <i class="fas fa-shapes"></i>Parcelle</button>
       </a>      
-      <a href="/addPentagone">
-        <button id="add-pentagone" class="btn-custom">  <i class="fas fa-shapes"></i>Pentagone</button>
-      </a>      
+          
     </div>
   </div>
   </div>
@@ -39,45 +29,41 @@
       <!-- Sidebar -->
       <div id="sidebar" class="col-md-3">
         <button id="closeSidebar" class="close-btn d-md-none" data-bs-toggle="collapse" data-bs-target="#sidebar">&times;</button><br>
-        <div class="mb-3">
-       
+        <div class="mb-3">       
         </div>
  
-  <% if (articles && articles.length > 0) { %>
+  <% if (parcelles && parcelles.length > 0) { %>
     <div class="table-responsive">
      <!-- AGGIUNGI id="main-table" QUI -->
   <table id="main-table" class="table table-hover table-bordered table-striped text-center">   <thead class="table-dark">
           <tr>
-            <th>Image</th>
-            <th>Name</th>
-            <th>Action</th>
+            <th>Numero</th>
+            <th>Name</th>           
+             <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          <% articles.forEach((row, index) => { %>
-            <tr class="align-middle">
-               <td>
-                <div class="img-category-wrapper" 
-                style="border-color: <%= categoryColors[row.category] || 'red' %>">
-             <img src="/uploads/<%= row.image %>" 
-                  class="rounded-circle img-thumbnail" 
-                  width="50" />
-           </div>
+<% parcelles.forEach((parcelle, index) => { %>
+  <% const coordinates = parcelle.geometry.coordinates[0]; // Primo anello del poligono %>
+  <% coordinates.forEach((coord, i) => { %>
+    <tr>
+      <td><%= i + 1 %></td>
+      <td><%= parcelle.name %></td>     
+      <td> 
+      <a href="/delete-point/<%= parcelle._id %>?lat=<%= coord[1] %>&lng=<%= coord[0] %>" class="btn btn-sm btn-outline-danger">
 
-            </td>         
-              <td><%= row.name %></td>
-              <td>               
-                <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger">
-                  <i class="fas fa-trash"></i>
-                </a>
-              </td>
-            </tr>
-          <% }) %>
+    <i class="fas fa-trash"></i>
+  </a>
+      </td> <!-- longitudine -->
+    </tr>
+  <% }) %>
+<% }) %>
+
         </tbody>
       </table>
     </div>
   <% } else { %>
-    <p>Nessun articolo trovato</p>
+    <p>Nessun punto trovato</p>
   <% } %>
       </div>  
       <!-- Mappa -->
@@ -101,23 +87,23 @@
       <div class="table-responsive">
      
         </div>
-        <!-- Tabella degli articoli -->
+        <!-- Tabella dei punti -->
       <div class="table-responsive mt-4">      
       <script>
   // Garantisce che filteredUsers e groupedByUser siano definite
    if (typeof filteredUsers === 'undefined') var filteredUsers = [];
   </script>
-     <!-- Verifico se ci sono degli articles -->
-     <% if (articles && articles.length > 0) { %>   
+     <!-- Verifico se ci sono dei points -->
+     <% if (parcelles && parcelles.length > 0) { %>   
           <!-- Visualizza un gruppo per ogni tipo (Punto 4: Migliorato il Layout) -->        
             <table class="table table-hover table-bordered table-striped text-center mt-3">
               <thead class="table-dark">
                 <tr>
                   <th>ID</th>
-                  <th>Image</th>
                   <th>Name</th>
-                  <th>Type</th>
-                  <th>Category</th>
+                  <th>Name</th>
+                  <th>Lat</th>
+                  <th>Lng</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -127,16 +113,15 @@
                      if (typeof filteredUsers === 'undefined') var filteredUsers = [];
                   </script>
          <!-- FINE FRONTEND 1 -->
-                 <!-- Rendo disponibili i valori di tutti gli articles con articles.forEach -->               
-              <% articles.forEach((row, index)=> { %> 
+                 <!-- Rendo disponibili i valori di tutti gli points con points.forEach -->               
+              <% parcelles.forEach((row, index)=> { %> 
+                <% const firstCoord = row.geometry.coordinates[0][0]; %>
                   <tr class="align-middle">                
                     <td><%= index + 1 %></td> 
-                    <td>
-                      <img src="/uploads/<%= row.image %>" class="rounded-circle img-thumbnail" width="60" />
-                    </td>
                     <td><%= row.name %></td>
-                    <td><%= row.type %></td>
-                    <td><%= row.category %></td>
+                    <td><%= row.name %></td>
+                    <td><%= firstCoord[1] %></td> <!-- lat -->
+                    <td><%= firstCoord[0] %></td> <!-- lng -->
                     <td>
                       <a href="/edit/<%= row._id %>" class="btn btn-sm btn-outline-success">
                         <i class="fas fa-edit"></i>
@@ -150,7 +135,7 @@
               </tbody>
             </table>
             <% } else { %>
-              <h1 class="text-center text-secondary mt-5">Aucun article trouvé dans la base de données!</h1>
+              <h1 class="text-center text-secondary mt-5">Aucun point trouvé dans la base de données!</h1>
             <% } %>
       
       </div>
@@ -159,19 +144,8 @@
 </div>
 
 <script>
-  const articles = <%- JSON.stringify(articles || []) %>;
+  const parcelles = <%- JSON.stringify(parcelles || []) %>;
 </script>
-<!-- Map Initialization Script -->
-<script>
-  // Dati raggruppati ricevuti dal server
-  const groupedArticles = <%- JSON.stringify(groupedArticles  || {}) %>;
-  console.log("Grouped By Type:", groupedArticles );
-  const polygons = <%- JSON.stringify(polygons) %>;
-  // Accesso ai gruppi
-  console.log("Triangoli:", groupedArticles ['triangle']);
-  console.log("Pentagoni:", groupedArticles ['pentagone']);
-</script>
-
 <%- include('layout/footer') %>
 
-<script src="/js/dataAuthor.js" defer></script>
+<script src="/js/dataAuthorParcelle.js" defer></script>

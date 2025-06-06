@@ -124,14 +124,55 @@ function initializeMap() {
  
 // Ora puoi accedere a `groupedArticles['triangle']` e `groupedArticles['pentagon']` per elaborare i rispettivi articoli
 function updateMap() {
-       // Interrompi subito se `filteredUsers` non è definito
+    console.log("updateMap triggered");
+    console.log("groupedArticles:", groupedArticles);
+   // Interrompi subito se `filteredUsers` non è definito
        if (typeof groupedArticles === 'undefined') {
         console.error("Errore: I dati di utenti o marker non sono definiti.");
         return; // Interrompe l'esecuzione
     }
-
     layerGroup.clearLayers();
-
+    drawnItems.clearLayers();
+    
+    if (Array.isArray(polygons)) {
+        console.log("Rendering polygons:", polygons);
+        polygons.forEach(polygon => {
+            if (polygon.coordinates) {
+                try {
+                    const geoJson = {
+                        type: "Feature",
+                        geometry: {
+                            type: "Polygon",
+                            coordinates: polygon.coordinates
+                        },
+                        properties: {
+                            name: polygon.name || "Senza nome",
+                            category: polygon.category || "moyen",
+                            image: polygon.image || "default.png"
+                        }
+                    };
+    
+                    L.geoJSON(geoJson, {
+                        style: {
+                            color: geoJson.properties.category === 'bon' ? 'blue' :
+                                   geoJson.properties.category === 'moyen' ? 'gray' : 'red',
+                            weight: 2,
+                            fillOpacity: 0.3
+                        }
+                    }).bindPopup(`
+                        <div>
+                            <strong>${geoJson.properties.name}</strong><br>
+                            Categoria: ${geoJson.properties.category}<br>
+                            <img src="/uploads/${geoJson.properties.image}" width="100">
+                        </div>
+                    `).addTo(drawnItems);
+                } catch (error) {
+                    console.error("Errore parsing poligono:", polygon.coordinates, error);
+                }
+            }
+        });
+    }
+    
     const icons = {
         "bon": L.icon({
             iconSize: [19, 30],
@@ -177,13 +218,7 @@ Object.keys(groupedArticles['trepunti'] || {}).forEach(groupName => {
         const lat = parseFloat(trePunto.coordinates[0]);
         const lng = parseFloat(trePunto.coordinates[1]);
         return [lat, lng]; // DA [lng, lat] A [lat, lng]
-        // Semplifica il controllo sulle coordinate
-        if (!isNaN(lat) && !isNaN(lng)) {
-            return [lng, lat];
-        } else {
-            console.error("Coordinate non valide o mancanti:", trePunto.coordinates);
-            return null;
-        }
+
     }).filter(coord => coord !== null);
 
    // console.log("Struttura latLngs:", JSON.stringify(latLngs)); 
@@ -349,15 +384,42 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
 
   // Aggiungi i marker per questo tipo e categoria
   markers.forEach((article) => {
-    
-    // Controllo di sicurezza per l'ID (cerca sia _id che id)
-    const articleId = article._id || article.id;
+     // ❌ Salta se è un poligono (non un marker)
+    /* if (article.type === 'polygon') {
+        console.warn('Articolo poligono ignorato:', article);
+        return;
+    }
+
+    // ✅ Sicurezza su coordinate: deve essere un array valido [lng, lat]
+    let lng, lat;
+
+    if (Array.isArray(article.coordinates[0])) {
+        // Caso standard: [[lng, lat]]
+        [lng, lat] = article.coordinates[0];
+    } else if (article.coordinates.length === 2) {
+        // Caso alternativo: [lat, lng] → lo invertiamo!
+        [lat, lng] = article.coordinates;
+    } else {
+        console.warn("Coordinate non valide per marker:", article);
+        return;
+    }
+    */
+
+    // ✅ Procedi con i marker validi
+     const articleId = article._id || article.id;
     if (!articleId) {
         console.error("Article senza ID:", article);
-        return; // Salta questo articolo
+        return;
+         // Salta questo articolo
     }
     const lat = parseFloat(article.coordinates[0]);
     const lng = parseFloat(article.coordinates[1]);
+    
+    /*
+    //const firstCoord = article.coordinates[0]; // [lng, lat]
+    // lng = parseFloat(firstCoord[0]);
+    // lat = parseFloat(firstCoord[1]);
+    */
     
   //  const articleId = article._id || article.id; // Usa _id come priorità, altrimenti id
 
@@ -367,9 +429,8 @@ Object.keys(groupedArticles['triangle'] || {}).forEach(groupName => {
         articleData: {
             _id: article._id || article.id,  // MongoDB style
              id: (article._id || article.id).toString(), // Stringa garantita
-       // originalId: article._id,         // Originale non convertito
             name: article.name,
-            category: article.category,
+            category: article.category,         
             latitudeSelectionee: article.latitudeSelectionee,
             longitudeSelectionee: article.longitudeSelectionee,
             image: article.image

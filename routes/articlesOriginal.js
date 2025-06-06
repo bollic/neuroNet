@@ -4,6 +4,7 @@ const fs = require('fs');
 const bcrypt = require('bcrypt'); // Utilisé pour comparer les mots de passe hachés
 
 const mongoose = require('mongoose');
+const PolygonModel = require('../models/Polygon'); 
 const Article = require('../models/articles');
 const User = require('../models/users');
 
@@ -87,15 +88,32 @@ router.post('/login', async (req, res) => {
         // Stocker seulement l'ID et l'email de l'user dans la session
         req.session.user = {
           _id: user._id,
-          email: user.email
+          email: user.email,
+          role: user.role // 👈 AGGIUNGI QUESTO!
         }; // Stocker les informations user dans la session
-        const redirectTo = req.session.redirectTo || '/';
-     delete req.session.redirectTo;  // Elimina la variabile di sessione dopo il reindirizzamento
-    
-     console.log('Redirection vers:', redirectTo)
-     // Redirige alla route originaria o a '/users'
-    res.redirect(redirectTo);
-      
+   // Redirige in base al ruolo, se nessuna redirectTo
+let redirectTo = req.session.redirectTo;
+
+if (!redirectTo) {
+  switch (user.role) {
+    case 'field':
+      redirectTo = '/indexZoneAuthor';
+      break;
+    case 'admin':
+      redirectTo = '/adminDashboard';
+      break;
+    case 'office':
+      redirectTo = '/';
+      break;
+    default:
+      redirectTo = '/';
+  }
+}
+
+delete req.session.redirectTo;
+console.log('Redirection vers:', redirectTo);
+res.redirect(redirectTo);
+  
       //  console.log('Connexion réussie, redirection vers /');
        // res.redirect('/addForm'); // Rediriger vers la page d'accueil
       } else {
@@ -219,76 +237,46 @@ function gruppoArticles(articles) {
     return acc;
   }, {});
 }
-
-router.get('/', isAuthenticated, isOffice,  async (req, res) => {
+router.get('/', async (req, res) => {
   try {       
-    const userId = req.session.user ? req.session.user._id : null;
-      
-     if (!userId) {
-      // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
-      return res.status(401).send('Utente non autenticato');
-    } 
-    //  console.log("Sto per eseguire la query...");
-     const articles = await Article.find().populate('user'); // Popola il campo user per avere accesso a userID    
-   //  console.log("Articoli recuperati:", articles); // Verifica i dati degli articoli
-     const groupedByUser = groupArticles(articles);    
-    // Raggruppa gli articoli per tipo
-       // const groupedArticlesT = groupedByType(articles);
- const originalTriangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['original'] || [];
-const scaled1Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled1'] || [];
-const scaled2Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled2'] || [];
-const singleTriangle = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['trepunti']?.['trePunti'] || [];
+    const user = req.session.user || null;
+    const userId = user ? user._id : null;
 
-     res.render('index',  {
-             title:'la liste des points',
-               session: req.session, // Passer la session à la vue
-               user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
-               articles: articles || [], // Passa gli articoli         
-               groupedByUser: groupedByUser,  
-       
-               singleTriangle, 
-               scaled1Triangles,
-               scaled2Triangles,
-               originalTriangles,                        
-       })
-             } catch (error) {
-               console.error('Errore durante la ricerca degli articoli:', error);
-               res.status(500).send('Erreur lors de la récupération des articles');
-             }
- });
- 
-/*
-router.get('/',  async (req, res) => {
-  try {       
-    //  console.log("Sto per eseguire la query...");
-     const articles = await Article.find().populate('user'); // Popola il campo user per avere accesso a userID    
-   //  console.log("Articoli recuperati:", articles); // Verifica i dati degli articoli
-     const groupedByUser = groupArticles(articles);    
-    // Raggruppa gli articoli per tipo
-       // const groupedArticlesT = groupedByType(articles);
- const originalTriangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['original'] || [];
-const scaled1Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled1'] || [];
-const scaled2Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled2'] || [];
-const singleTriangle = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['trepunti']?.['trePunti'] || [];
+    let articles = [];
+    let groupedByUser = {};
 
-     res.render('index',  {
-             title:'la liste des points',
-               session: req.session, // Passer la session à la vue
-               user: req.session ? req.session.user : null, // Vérifiez si un user est connecté, sinon null
-               articles: articles || [], // Passa gli articoli         
-               groupedByUser: groupedByUser,  
-       
-               singleTriangle, 
-               scaled1Triangles,
-               scaled2Triangles,
-               originalTriangles,                        
-       })
-             } catch (error) {
-               console.error('Errore durante la ricerca degli articoli:', error);
-               res.status(500).send('Erreur lors de la récupération des articles');
-             }
- });
- */
+    let originalTriangles = [];
+    let scaled1Triangles = [];
+    let scaled2Triangles = [];
+    let singleTriangle = [];
+
+    if (userId) {
+      articles = await Article.find().populate('user');    
+      groupedByUser = groupArticles(articles);    
+
+      originalTriangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['original'] || [];
+      scaled1Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled1'] || [];
+      scaled2Triangles = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['triangle']?.['scaled2'] || [];
+      singleTriangle   = groupedByUser['6783c76b4369bb079de8d01a']?.groupedByType['trepunti']?.['trePunti'] || [];
+    }
+
+    res.render('index', {
+      title: 'La liste des points',
+      session: req.session,
+      user: user,
+      articles,
+      groupedByUser,
+      originalTriangles,
+      scaled1Triangles,
+      scaled2Triangles,
+      singleTriangle
+    });
+  } catch (error) {
+    console.error('Errore durante la ricerca degli articoli:', error);
+    res.status(500).send('Erreur lors de la récupération des articles');
+  }
+});
+
  function groupedByType(articles) {
   return articles.reduce((acc, article) => {
     const userId = article.user._id.toString();
@@ -319,7 +307,9 @@ const categoryColors = {
   moyen: 'gray',
   bas: 'red'
 };
- router.get('/indexZoneAuthor',  isAuthenticated, isField, async (req, res) => {
+
+    
+ router.get('/indexZoneAuthor',  isAuthenticated,  async (req, res) => {
   try {
     // Recupera l'ID dell'utente autenticato
     //const userId = req.session.user._id;
@@ -331,22 +321,9 @@ const categoryColors = {
       // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
       return res.status(401).send('Utente non autenticato');
     } 
-    const articles = await Article.find({ user: userId }).limit(30).populate('user');
     
- router.get('/indexZoneAuthor',  isAuthenticated, isField, async (req, res) => {
-  try {
-    // Recupera l'ID dell'utente autenticato
-    //const userId = req.session.user._id;
-  //  const articles = await Article.find();  // Récupère les articles depuis la base de données
- //const articleId = req.params.id;
-  const userId = req.session.user ? req.session.user._id : null;
-      
-     if (!userId) {
-      // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
-      return res.status(401).send('Utente non autenticato');
-    } 
     const articles = await Article.find({ user: userId }).limit(30).populate('user');
-    
+    const polygons = await PolygonModel.find({ user: userId });
     // console.log("Articles from DB:", articles);
   //console.log("Articles prima del raggruppamento:", JSON.stringify(articles, null, 2));
 
@@ -358,6 +335,9 @@ const originalTriangles = groupedByType['triangle']?.['original'] || [];
 const scaled1Triangles = groupedByType['triangle']?.['scaled1'] || [];
 const scaled2Triangles = groupedByType['triangle']?.['scaled2'] || [];
 const singleTriangle = groupedByType['trepunti']?.['trePunti'] || [];
+// 👉 AGGIUNGI QUESTA RIGA
+//const polygon = []; 
+  
 
    // Log per debug
    //console.log("Grouped Articles (con name & image):", JSON.stringify(groupedByUser, null, 2));
@@ -372,6 +352,7 @@ const singleTriangle = groupedByType['trepunti']?.['trePunti'] || [];
       articles: articles || [], // Passa gli articoli
       filteredUsers: [],
       groupedArticles: groupedByType, 
+      polygons,  // adesso ESISTE
       scaled1Triangles, // Passa i triangoli specifici del gruppo 'scaled1'
       scaled2Triangles,
       originalTriangles,
@@ -386,18 +367,6 @@ const singleTriangle = groupedByType['trepunti']?.['trePunti'] || [];
       res.status(500).send('Errore del server');
   }
 });  
-
-   // console.log("Articles from DB:", articles);
- // console.log("Articles prima del raggruppamento:", JSON.stringify(articles, null, 2));
-
-    // Raggruppa gli articoli per utente e poi per tipo
-    const groupedByUser = gruppoArticles(articles);
-    const groupedByType = groupedByUser[userId]?.groupedByType || {};
-
-const originalTriangles = groupedByType['triangle']?.['original'] || [];
-const scaled1Triangles = groupedByType['triangle']?.['scaled1'] || [];
-const scaled2Triangles = groupedByType['triangle']?.['scaled2'] || [];
-const singleTriangle = groupedByType['trepunti']?.['trePunti'] || [];
 
    // Log per debug
    //console.log("Grouped Articles (con name & image):", JSON.stringify(groupedByUser, null, 2));
@@ -408,24 +377,7 @@ const singleTriangle = groupedByType['trepunti']?.['trePunti'] || [];
    //console.log("Single Triangle:", singleTriangle);
 
     // Passa i dati raggruppati alla vista
-    res.render('indexZoneAuthor', { 
-      articles: articles || [], // Passa gli articoli
-      filteredUsers: [],
-      groupedArticles: groupedByType, 
-      scaled1Triangles, // Passa i triangoli specifici del gruppo 'scaled1'
-      scaled2Triangles,
-      originalTriangles,
-      singleTriangle,
-      session: req.session, // Passer la session à la vue
-      user: req.session.user, // Vérifiez si un user est connecté
-      categoryColors: categoryColors 
-      
-    });
-  } catch (error) {
-      console.error(error);
-      res.status(500).send('Errore del server');
-  }
-});  
+
 
 
 router.get('/api/grouped-by-user', async (req, res) => {
@@ -548,6 +500,28 @@ router.get('/logout', (req, res) => {
     res.redirect('/'); // Rediriger vers la page articles après déconnexion
   });
 });
+function onlyAdmin(req, res, next) {
+  if (req.session.user && req.session.user.role === 'admin') {
+    return next();
+  }
+  return res.status(403).send('Accesso negato');
+}
+
+function onlyField(req, res, next) {
+  if (req.session.user && req.session.user.role === 'field') {
+    return next();
+  }
+  return res.status(403).send("Accesso riservato ai FIELD");
+}
+
+function onlyOffice(req, res, next) {
+  if (req.session.user && req.session.user.role === 'office') {
+    return next();
+  }
+  return res.status(403).send("Accesso riservato agli OFFICE");
+}
+
+ /*
 const officeEmails = ['office1@gmail.com', 'office2@gmail.com'];
 const fieldEmails = ['field1@gmail.com', 'field2@gmail.com'];
 
@@ -570,7 +544,7 @@ function isField(req, res, next) {
 
   return res.status(403).send("Accesso riservato agli utenti FIELD");
 }
-
+*/
 
 // Middleware pour vérifier si l'user est connecté
 function isAuthenticated(req, res, next) {
@@ -630,6 +604,22 @@ router.get("/addTriangle", isAuthenticated, (req, res) => {
 
 //VADO A: qs e' l indirizzo web , cioe la ROUTE addForm, che vedo nell'internet
 // Links http://localhost:4000/addForm
+router.get("/addPolygon", isAuthenticated, (req, res) => {
+  // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
+  console.log("Accesso a /addPolygon - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
+
+  if (req.session.user) {
+  res.render("ajoute_polygon", { title: 'Article Triangle Form Page', user: req.session.user});
+  
+} else {
+    // Log per verificare se si viene reindirizzati al login
+    console.log("Utente non autenticato, reindirizzamento a /login");
+  res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
+}
+});
+
+//VADO A: qs e' l indirizzo web , cioe la ROUTE addForm, che vedo nell'internet
+// Links http://localhost:4000/addForm
 router.get("/addTroisMarker", isAuthenticated, (req, res) => {
   // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
   console.log("Accesso a /addTroisMarker - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
@@ -652,20 +642,6 @@ router.get("/addToileTriangle", isAuthenticated, (req, res) => {
 
   if (req.session.user) {
   res.render("ajoute_toileTriangle", { title: 'Toile à Triangle Form Page', user: req.session.user});
-  
-} else {
-    // Log per verificare se si viene reindirizzati al login
-    console.log("Utente non autenticato, reindirizzamento a /login");
-  res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
-}
-});
-
-router.get("/addPentagone", isAuthenticated, (req, res) => {
-  // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
-  console.log("Accesso a /addPentagone - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
-
-  if (req.session.user) {
-  res.render("ajoute_pentagone", { title: 'Article Form Page', user: req.session.user});
   
 } else {
     // Log per verificare se si viene reindirizzati al login
@@ -917,6 +893,108 @@ router.post("/ajoute_triangle", async (req, res) => {
     res.status(500).json({ message: "Errore interno del server" });
   }
 });
+// Gestisce la ricezione del poligono dal form
+router.post("/ajoute_polygon", isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user?._id;   
+    const { name, category, polygon, type } = req.body;
+    
+    // Verifica la struttura dei dati
+    console.log("GeoJSON ricevuto:", polygon);
+    console.log("Dati tipo:", typeof polygon);
+    // Controllo campi obbligatori
+    if (!name || !category || !polygon || !type) {
+      return res.status(400).json({ message: "Tutti i campi sono obbligatori" });
+    }
+
+    // (Opzionale) Limita numero poligoni per utente
+    const existingPolygons = await Article.countDocuments({
+      user: userId,
+      type: "polygon"
+    });
+
+    if (existingPolygons >= 5) { // oppure un altro limite
+      return res.status(400).json({ message: "Hai già inserito troppi poligoni" });
+    }
+    // Parsing del GeoJSON
+    const parsedPolygon = typeof polygon === 'string' ? JSON.parse(polygon) : polygon;
+    console.log("Salvo coordinates:", JSON.stringify(parsedPolygon.geometry.coordinates));
+    console.dir(parsedPolygon.geometry.coordinates, { depth: null });
+    if (!Array.isArray(parsedPolygon.geometry.coordinates)) {
+      console.warn("⚠️ coordinates NON è un array valido!");
+    }
+    // ✅ Controllo automatico della validità delle coordinate
+function isValidCoordinates(coords) {
+  // Deve essere un array 3D: [[[lng, lat], ...]]
+  return Array.isArray(coords) &&
+         coords.length > 0 &&
+         Array.isArray(coords[0]) &&
+         coords[0].length > 2 && // almeno 3 punti per formare un poligono
+         coords[0].every(point =>
+            Array.isArray(point) &&
+            point.length === 2 &&
+            typeof point[0] === 'number' &&
+            typeof point[1] === 'number'
+         );
+}
+
+// Verifica struttura completa
+if (!isValidCoordinates(parsedPolygon.geometry?.coordinates)) {
+  return res.status(400).json({
+    message: "Formato delle coordinate non valido. Assicurati che sia [[[lng, lat], ...]] e contenga solo numeri."
+  });
+}
+
+    // Verifica che parsedPolygon abbia la struttura attesa
+   // console.log("parsedPolygon.geometry.coordinates:", parsedPolygon.geometry?.coordinates);
+   const coordinates = parsedPolygon.geometry?.coordinates?.[0];
+   
+   if (!coordinates || !Array.isArray(coordinates)) {
+    return res.status(400).json({ message: "Formato del poligono non valido" });
+  }
+
+  const firstPoint = coordinates[0]; // [lng, lat]
+   
+   // Crea il nuovo documento Article
+    const newArticle = new Article({
+      user: userId,
+      name,
+      category,
+      polygon: parsedPolygon,
+      user: req.session.user._id,
+      type: type, // ora lo prendi direttamente
+      image: "image_1.png", // Se hai immagini fisse per ora
+      latitudeSelectionee: firstPoint[1],
+      longitudeSelectionee: firstPoint[0],
+      coordinates: coordinates, // ✅ salva l'array effettivo estratto dal GeoJSON
+
+    });
+
+    await newArticle.save();
+   // 🔥 Salva anche in PolygonModel
+   await PolygonModel.create({
+    user: userId,
+    name,
+    category,
+    image: "image_1.png", // puoi anche usare req.body.image se lo hai in futuro
+    type,
+    group: null, // o un valore reale se prevedi di usare 'group'
+    coordinates: parsedPolygon.geometry.coordinates
+  });
+  
+
+    req.session.message = {
+      type: "success",
+      message: "Poligono aggiunto con successo!"
+    };
+
+    res.status(200).json({ success: true, message: "Poligono salvato!" });
+
+  } catch (err) {
+    console.error("Errore nel salvataggio del poligono:", err);
+    res.status(500).json({ message: "Errore interno del server" });
+  }
+});
 
 router.post("/ajoute_trois_marker", upload, async (req, res) => {
   try {
@@ -984,7 +1062,7 @@ if (type === "troismarker") {
       // Verifica che tutti i campi obbligatori siano presenti
       if (!articleData.name || !articleData.category || !articleData.latitudeSelectionee || !articleData.longitudeSelectionee) {
         console.log("Errore: Manca uno dei campi obbligatori");
-        return res.status(400).send("Tutti i campi sono obbligatori");
+        return res.status(400).send("Tutti i campi sono ..");
       }
 
       // Aggiungi l'articolo all'array
@@ -1030,116 +1108,6 @@ if (type === "troismarker") {
     res.status(500).send("Errore durante l'invio degli articoli");
   }
 });
-// ROUTE PER IL PENTAGONO
-router.post("/ajoute_pentagone", upload, async (req, res) => {
-  try {
-    console.log(req.body);
- 
-    const userId = req.body.id || req.session.user._id; // Recupera l'ID dell'utente
-    const type = req.body.type; // Es: "triangle" o "pentagone"
-  
-    // Conta gli articoli già aggiunti dall'utente
-    const existingPentagone = await Article.countDocuments({ 
-      user: userId,
-      type: type,
-     });
-     console.log(req.body.type);
-// Definisci il numero massimo di articoli per tipo
-let maxArticles = 0;
-if (type === "triangle") {
-  maxArticles = 3;
-} else if (type === "pentagone") {
-  maxArticles = 5;
-} else {
-  return res.status(400).send("Tipo di articolo non valido.");
-}
-    if (existingPentagone >= maxArticles) {
-      // Se l'utente ha già 3 articoli, blocca l'aggiunta
-      return res.status(400).send("Puoi aggiungere al massimo 5 articoli.");
-    }
-
-    const { body, files } = req;
-    const pentagonePoints = [];
-
-    let i = 0;
-    // Ciclo per ciascun articolo basato sugli indici delle coordinate (da 0 a 2)
-    while (body[`latitudeSelectioneeInput_${i}`]) {
-      console.log(`Trovato articolo ${i}:`);
-      // Recupera e controlla le coordinate
-      const latitude = parseFloat(body[`latitudeSelectioneeInput_${i}`]);
-      const longitude = parseFloat(body[`longitudeSelectioneeInput_${i}`]);
-
-      // Verifica che le coordinate siano numeriche
-      if (isNaN(latitude) || isNaN(longitude)) {
-        console.log("Errore: Coordinate non valide");
-        return res.status(400).send("Le coordinate devono essere numeriche.");
-      }
-      // Recupera il file caricato per questo articolo
-      const imageField = `image_${i}`;
-      const imageFile = body[imageField] || "image_3.png"; // Usa il valore da req.body
-      
-      // Creazione dei dati per l'articolo
-      const pentagoneData = {
-        name: body.name && body.name.trim() !== "" ? body.name : "Default Name",  // Usa il valore di 'name' dal form
-        category: body.category && body.category.trim() !== "" ? body.category : "bon",  // Usa 'category' dal form
-       latitudeSelectionee: latitude,  // Latitudine
-        longitudeSelectionee: longitude,  // Longitudine
-        type: "pentagone",
-        image: imageFile,  
-     };
-      
-      console.log(`Articolo ${i} dati:`, pentagoneData);
-
-      // Verifica che tutti i campi obbligatori siano presenti
-      if (!pentagoneData.name || !pentagoneData.category || !pentagoneData.latitudeSelectionee || !pentagoneData.longitudeSelectionee) {
-        console.log("Errore: Manca uno dei campi obbligatori");
-        return res.status(400).send("Tutti i campi sono obbligatori");
-      }
-
-      // Aggiungi l'articolo all'array
-      pentagonePoints.push(pentagoneData);
-      i++; // Incrementa l'indice per il prossimo articolo
-    }
-
-    // Verifica che siano stati trovati articoli
-    if (pentagonePoints.length === 0) {
-      return res.status(400).send("Nessun articolo da aggiungere.");
-    }
-
-    // Salva tutti gli articoli nel database
-    for (const pentagoneData of pentagonePoints) {
-      const newPentagone = new Article({
-        user: userId,
-        name: pentagoneData.name,
-        category: pentagoneData.category,
-      
-        latitudeSelectionee: pentagoneData.latitudeSelectionee,
-        longitudeSelectionee: pentagoneData.longitudeSelectionee,
-        type: pentagoneData.type, // Usa il valore dinamico
-   
-          image: pentagoneData.image,
-      });
-
-      await newPentagone.save();
-    }
-  
-    console.log("Articoli salvati nel database:", pentagonePoints);
-
-    // Impostazione del messaggio di successo nella sessione
-    req.session.message = {
-      type: "success",
-      message: "Articoli aggiunti con successo!",
-    };
-
-    // Redirect alla home dopo il salvataggio degli articoli
-    return res.redirect("/indexZoneAuthor");
-
-  } catch (err) {
-    console.error("Errore durante l'aggiunta degli articoli:", err);
-    res.status(500).send("Errore durante l'invio degli articoli");
-  }
-});
-
 // delete a product
  // Assurez-vous que 'fs' est inclus
 

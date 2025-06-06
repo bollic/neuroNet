@@ -1,3 +1,5 @@
+<h2>Registrazione come: <%= role %></h2>
+
 <form action="/signup" method="post">
     <div>
       <label for="email">Email:</label>
@@ -7,6 +9,13 @@
       <label for="password">Password:</label>
       <input type="password" name="password" id="password" required>
     </div>
+   <select name="role" required>
+    <option value="field" <%= role && role === 'field' ? 'selected' : '' %>>Field</option>
+    <option value="office" <%= role && role === 'office' ? 'selected' : '' %>>Office</option>
+    <option value="admin" <%= role && role === 'admin' ? 'selected' : '' %>>Admin</option>
+   </select>
+
+     <!-- Campo nascosto per il ruolo -->
     <button type="submit">S'inscrire</button>
   </form>
   

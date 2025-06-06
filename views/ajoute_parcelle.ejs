@@ -1,0 +1,218 @@
+<%- include('layout/header') %>
+ <!-- Code de la carte Leaflet -->
+ <script defer>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Initialiser la carte avec Leaflet
+    let map = L.map("map", { 
+      center: [46.2, 2.9],
+       zoom: 5, 
+       tap: false
+       });
+     // Ajouter le fond de carte
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
+      preload: true,
+      maxZoom: 19,
+      formatData: "webp",
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    // Layer per disegno
+      const drawnItems = new L.FeatureGroup();
+      map.addLayer(drawnItems);
+      
+  // Controllo di disegno (solo poligoni)
+  const drawControl = new L.Control.Draw({
+    edit: { featureGroup: drawnItems },
+    draw: {
+      marker: {
+        icon: new L.Icon.Default()
+      },
+       polygon: true,
+      polyline: false,
+      rectangle: false,
+      circle: false,
+      circlemarker: false,
+    },
+  });
+  map.addControl(drawControl);
+  
+  // Evento di creazione
+  map.on("draw:created", function (e) {
+    drawnItems.clearLayers(); // Permette un solo poligono
+    const layer = e.layer;
+    drawnItems.addLayer(layer);
+
+    const geoJson = layer.toGeoJSON();
+   // const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
+    //console.log("Area del poligono:", area.toFixed(2), "m²");
+    console.log("GeoJSON:", geoJson);
+
+    // Salva in campo hidden per il submit
+    document.getElementById("polygon").value = JSON.stringify(geoJson.geometry);
+  });
+
+  // Optional: messaggio di clic
+  map.on("click", function (e) {
+    L.popup()
+      .setLatLng(e.latlng)
+      .setContent(`Clicked at:<br>lat: ${e.latlng.lat.toFixed(5)}, lng: ${e.latlng.lng.toFixed(5)}`)
+      .openOn(map);
+  });
+
+// Submit del form
+const form = document.getElementById("add-parcelle");
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const polygonValue = document.getElementById("polygon").value;
+  if (!polygonValue) {
+    alert("Aggiungi un poligono prima di inviare!");
+    return;
+  }
+
+  const formData = {
+    name: document.querySelector('[name="name"]').value,   
+    polygon: polygonValue,  
+  };
+
+  try {
+    const response = await fetch("/ajoute_parcelle", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (response.ok) {
+      alert("Parcella aggiunto con successo!");
+      window.location.href = "/indexZoneParcelle";
+    } else {
+      const errorData = await response.json();
+      alert(`Errore: ${errorData.message}`);
+    }
+  } catch (err) {
+    console.error("Errore durante l'invio:", err);
+    alert("Errore di connessione");
+  }
+});
+  // Bottone posizione utente
+  const locationButton = document.getElementById("use-my-location");
+  if (locationButton) {
+    locationButton.addEventListener("click", function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+
+          map.setView([lat, lng], 17);
+          const marker = L.marker([lat, lng]).addTo(drawnItems);
+          marker.bindPopup("Vertice aggiunto").openPopup();
+
+          const allLatLngs = [];
+          drawnItems.eachLayer(function(layer) {
+            if (layer instanceof L.Marker) {
+              allLatLngs.push(layer.getLatLng());
+            }
+          });
+
+          if (allLatLngs.length >= 3) {
+            const polygon = L.polygon(allLatLngs).addTo(drawnItems);
+
+            drawnItems.eachLayer(function(layer) {
+              if (layer instanceof L.Marker) {
+                drawnItems.removeLayer(layer);
+              }
+            });
+
+            const geoJson = polygon.toGeoJSON();
+            document.getElementById("polygon").value = JSON.stringify(geoJson);
+          }
+
+        }, function(err) {
+          alert("Errore nella geolocalizzazione: " + err.message);
+        });
+      } else {
+        alert("Geolocalizzazione non supportata dal browser.");
+      }
+    });
+  }
+
+
+});
+
+</script>
+
+<!-- Div où la carte sera affichée -->
+<div id="map" style='position: relative; width: 100%; height: 400px;'></div>
+ <button id="use-my-location"
+    style="
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+    <i class="fas fa-crosshairs"></i>
+  </button>
+<div class='container'>   
+  <div class="row"> 
+    <div class="col-lg-6 mx-auto mt-4">
+
+     <% if (message) { %> 
+        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
+          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+          <i class="fas fa-exclamation-circle me-2"></i>   
+          <strong><%= message.message %></strong>     
+        </div>
+     <% } %>
+         <div class="card shadow">
+            <div class="card-header bg-primary">
+             <h3 class="text-light">Ajoute</h3>
+            </div>       
+            <div class="card-body p-4">
+                <form action="/ajoute_parcelle" method="POST" id="add-parcelle">
+                    <div class="mb-3">
+                      <br>                         
+                        <label for="name">Name</label>
+                        <input type="text" name="name" class="form-control form-control-lg" 
+                        placeholder="Enter name" value="Default Name"  required />
+                    </div>     
+                    <div class="mb-3">
+                        <label for="image_0" class="form-label">Image</label>
+                        </div>
+                    <div class="mb-3">
+                      <label for="image_1" class="form-label">Image</label>
+                       </div>
+                  <div class="mb-3">
+                    <label for="image_2" class="form-label">Image</label>
+                         </div>
+               
+
+                    <% if (user) { %>
+                      <input type="hidden" name="id" value="<%= user._id %>">
+                    <% } %>
+                    
+                  <input type="hidden" id="polygon" name="polygon" />
+                    <div class="mb-3 d-grid">                      
+                        <input type="submit" name="submit" value="Salva parcella" class="btn btn-primary btn-lg"  />
+                    </div>
+                    <button type="button" id="use-my-location" class="btn btn-secondary mb-3">Usa la mia posizione</button>
+
+                </form>
+            </div>
+         </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<%- include('layout/footer') %>
