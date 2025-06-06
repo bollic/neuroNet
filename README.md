@@ -1,11 +1,22 @@
-Nephis is a lightweight, modular web-based system for collecting, managing, and mapping geospatial data.
+# 🕸️ Nephis
 
-Designed around the "field ↔ office" model, it lets different roles collaborate:
+**Nephis** is a modular platform for mapping areas and points, with a user role distinction between **"field"** (on-site) and **"office"** (remote/desk-based) users.  
+It's a flexible project, suitable for various applications — not just agriculture.
 
-Field users can record points and areas directly on the map.
+## ✨ Key Features
+- Map visualization of polygons and points.
+- User authentication with role-based access.
+- Solid backend and clean, accessible frontend.
+- Ready-to-use and customizable interface.
 
-Office users manage, review, and analyze shared data.
+## 🔐 Status
+🔧 In development. Code is private and not reusable without permission.  
+For inquiries or collaborations: [contact me here](https://ko-fi.com/coopfi)
 
-🧩 It’s not tied to a specific use case: whether you're mapping field observations, collaborative research, or logistics, Nephis gives you a base system to build on.
+## 📸 Screenshot
+![Example map](URL_of_your_image)
 
-Built with simplicity, clarity, and full ownership in mind.
+---
+
+© 2025 — Bollic / CoopFI. All rights reserved.
+
