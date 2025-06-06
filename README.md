@@ -11,7 +11,10 @@ It's a flexible project, suitable for various applications — not just agricult
 
 ## 🔐 Status
 🔧 In development. Code is private and not reusable without permission.  
-For inquiries or collaborations: [contact me here](https://ko-fi.com/coopfi)
+
+For inquiries or collaborations:  
+📬 [Contact me on Ko-fi](https://ko-fi.com/coopfi)  
+✉️ Email: bollicine70@gmail.com
 
 ## 📸 Screenshot
 ![Example map](URL_of_your_image)
