@@ -53,7 +53,8 @@ app.use(session({
       mongoUrl: process.env.DATABASE_URL
   }),
   cookie: {
-  secure: process.env.NODE_ENV === 'production',
+    secure : true,
+  //secure: process.env.NODE_ENV === 'production',
   httpOnly: true,
   maxAge: 24 * 60 * 60 * 1000 // 24 ore
 }
