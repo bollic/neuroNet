@@ -44,7 +44,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static("public"))
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
+// 🔒 Indispensabile per cookie "secure" dietro proxy come Render
+app.set('trust proxy', 1);
 app.use(session({
   secret: 'tonia', // Remplace par une clé secrète sécurisée
   resave: false,
@@ -53,9 +54,10 @@ app.use(session({
       mongoUrl: process.env.DATABASE_URL
   }),
   cookie: {
-    secure : false,
+    secure : true,
   //secure: process.env.NODE_ENV === 'production',
   httpOnly: true,
+  sameSite: 'none',
   maxAge: 24 * 60 * 60 * 1000 // 24 ore
 }
 
