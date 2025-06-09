@@ -145,7 +145,7 @@ router.post('/signup', async (req, res) => {
 }
 
     // Si l'user n'existe pas, créer un nouvel user
-    const hashedPassword = bcrypt.hashSync(password, 6); // Hacher le mot de passe avec bcrypt
+    const hashedPassword = await bcrypt.hash(password, 6); // Hacher le mot de passe avec bcrypt
 
     const newUser = new User({
       email: email,
