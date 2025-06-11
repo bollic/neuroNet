@@ -64,6 +64,8 @@ router.post('/login', async (req, res) => {
       console.log('Email non trovata nel DB');
       return res.status(401).send('Login:Email o password errata.');
     }
+    // 👇 AGGIUNGI QUESTO
+  console.log('🔑 Password nel DB (userFromDb.password):', userFromDb.password);
 
     const passwordMatch = await bcrypt.compare(password, userFromDb.password);
     if (!passwordMatch) {
@@ -71,11 +73,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).send('Email o password errata.');
     }
       // 🔁 Rigenera sessione per evitare problemi tra login diversi
-    req.session.regenerate(function(err) {
-  if (err) {
-    console.error('Errore nel rigenerare la sessione:', err);
-    return res.status(500).send("Errore di sessione");
-  }
+ req.session.regenerate(function(err) {
+    if (err) {
+      console.error('Errore nel rigenerare la sessione:', err);
+      return res.status(500).send("Errore di sessione");
+    }
     // ✅ Imposta nuova sessione
     req.session.user = {
       _id: userFromDb._id, // 👈 AGGIUNGI QUESTO!
@@ -101,13 +103,19 @@ if (!redirectTo) {
     default:
       redirectTo = '/';
   }
- 
 }
  console.log(`Ruolo utente: ${userFromDb.role}`);
   console.log(`Redirect finale: ${redirectTo}`);
   // Questo è il punto esatto dove aggiungere il log finale:
 console.log('Redirect effettuato verso:', redirectTo);
-   
+    // ✅ SALVA LA SESSIONE PRIMA DEL REDIRECT!
+  req.session.save((err) => {
+    if (err) {
+      console.error('Errore nel salvataggio della sessione:', err);
+      return res.status(500).send("Errore nel salvataggio della sessione");
+    }
+    //return res.redirect(redirectTo);
+  });
     delete req.session.redirectTo;
     return res.redirect(redirectTo);
 })
