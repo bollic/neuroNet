@@ -114,17 +114,20 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
     const fieldUserIds = fieldUsers.map(user => user._id);
 
     // Recupera TUTTI i punti nel DB (debug temporaneo)
-    const allPoints = await PointModel.find();
-    console.log('📦 Tutti i punti (grezzi):');
+    const allPoints = await PointModel.find().populate('user');
+    console.log('📦 Tutti i punti grezzi:');
     allPoints.forEach((p, i) => {
-      console.log(`[${i + 1}] Punto: ${p.name}, user: ${p.user}`);
+       const creatorEmail = p.user?.email || '❓(utente mancante)';
+      console.log(`[${i + 1}] Punto: ${p.name}, creato da email : ${creatorEmail}, user: ${p.user?._id}`);
     });
 
     // Recupera SOLO i punti creati da utenti con ruolo 'field'
     const points = await PointModel.find({ user: { $in: fieldUserIds } }).populate('user');
     console.log('✅ Punti filtrati trovati:', points.length);
     points.forEach((p, i) => {
-      console.log(`[${i + 1}] Punto filtrato: ${p.name}, creato da: ${p.user.email}`);
+      /* 
+      console.log(`[${i + 1}] Punto filtrato: ${p.name}, creato da: ${p.user.email},  user: ${p.user}`);
+      */
     });
 
     const message = req.session.message;

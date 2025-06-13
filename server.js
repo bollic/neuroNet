@@ -21,6 +21,12 @@ mongoose.connect(process.env.DATABASE_URL)
 
     (async () => {
       try {
+    /*    PointModel.deleteMany({
+  user: { $in: ['683a1e037fdec5305b3c0cf2', '683b4242c4bc1d2fd38df94a'] }
+}).then(result => {
+  console.log(`🧹 Pulizia completata. Punti eliminati: ${result.deletedCount}`);
+});
+*/
         const coucouUserId = new mongoose.Types.ObjectId('675185f9fe88f5f41b5a40e9');
 
         const deletedPoints = await PointModel.deleteMany({ user: coucouUserId });
@@ -54,8 +60,8 @@ app.use(session({
       mongoUrl: process.env.DATABASE_URL
   }),
   cookie: {
-   //secure: false, // ✅ Solo true se in produzione reale
-  secure: process.env.NODE_ENV === 'production',
+  secure: false, // ✅ Solo true se in produzione reale
+  // secure: process.env.NODE_ENV === 'production',
   httpOnly: true,
   sameSite: 'lax',
   maxAge: 24 * 60 * 60 * 1000 // 24 ore
