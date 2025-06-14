@@ -61,7 +61,7 @@ app.use(session({
   }),
   cookie: {
   // secure: true, // ✅ Solo true se in produzione reale
-   secure: process.env.NODE_ENV === 'production', // ✅ solo HTTPS in prod
+  secure: process.env.NODE_ENV === 'production', // ✅ solo HTTPS in prod
   httpOnly: true,
   sameSite: 'lax',
   maxAge: 24 * 60 * 60 * 1000 // 24 ore
