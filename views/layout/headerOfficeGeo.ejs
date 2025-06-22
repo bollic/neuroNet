@@ -37,27 +37,27 @@
 
     <div id="my-nav" class="collapse navbar-collapse">
       <ul class="navbar-nav ms-auto">
-      
-        <li class="nav-item active">
-          <a class="nav-link" href="/indexOfficeParcelle" title="Parcelle">
-            <i class="fas fa-draw-polygon"></i>Parcelle
-          </a>
-        </li>
-         <li class="nav-item active">
-          <a class="nav-link" href="/indexOfficeGeo" title="Point">
-            <i class="fas fa-circle-dot"></i>Point
-          </a>
-        </li>
-        <li class="nav-item active">
-          <a class="nav-link" href="/login">
-            <i class="fas fa-sign-in-alt me-1"></i>Log in
-          </a>
-        </li>
-        <li class="nav-item active">
-          <a class="nav-link" href="/signup">
-            <i class="fas fa-user-plus me-1"></i>Sign up
-          </a>
-        </li>
+
+      <% if (user) { %>
+  <li class="nav-item d-flex align-items-center">
+    <span class="nav-link text-dark">
+      Bienvenue, <strong><%= user.email %></strong>
+    </span>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link btn btn-sm btn-outline-secondary" href="/logout">
+      Se déconnecter
+    </a>
+  </li>
+<% } else { %>
+  <li class="nav-item active">
+    <a class="nav-link" href="/login">
+      <i class="fas fa-sign-in-alt me-1"></i>Log in
+    </a>
+  </li>
+
+<% } %>
+
       </ul>
     </div>
   </div>

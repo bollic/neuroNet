@@ -1,4 +1,4 @@
-<%- include('layout/header') %>
+<%- include('layout/headerZoneGeo') %>
  <!-- Code de la carte Leaflet -->
  <script defer>
   document.addEventListener("DOMContentLoaded", function() {
@@ -66,7 +66,7 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const pointValue = document.getElementById("point").value;
   if (!pointValue) {
-    alert("Aggiungi un punto prima di inviare!");
+    alert("Ajoute un point avant d'envoyer!");
     return;
   }
 
@@ -87,7 +87,7 @@ form.addEventListener("submit", async (e) => {
     });
 
     if (response.ok) {
-      alert("Punto aggiunto con successo!");
+      alert("Point ajouté!");
       window.location.href = "/indexZoneGeo";
     } else {
       const errorData = await response.json();
@@ -112,7 +112,7 @@ if (locationButton) {
 
         // Crea marker sulla posizione
         const marker = L.marker([lat, lng]).addTo(map);
-        marker.bindPopup("Tu sei qui").openPopup();
+        marker.bindPopup("Tu es ici").openPopup();
 
 
         // Rimuovi eventuali elementi precedenti
@@ -179,12 +179,12 @@ if (locationButton) {
                         placeholder="Enter name" value="Default Name"  required />
                     </div>     
                     <select name="category" class="form-control" >
-                      <option value="">Senza categoria</option>
-                      <option value="A">Tipo A</option>
-                      <option value="B">Tipo B</option>
-                      <option value="C">Tipo C</option>
-                      <option value="D">Tipo D</option>
-                      <option value="E">Tipo E</option>
+                      <option value="">Aucucune category choisi</option>
+                      <option value="A">Type A</option>
+                      <option value="B">Type B</option>
+                      <option value="C">Type C</option>
+                      <option value="D">Type D</option>
+                      <option value="E">Type E</option>
                     </select>
 
                     <div class="mb-3">

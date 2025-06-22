@@ -1,21 +1,28 @@
-<h2>Registrazione come: <%= role %></h2>
+<%- include('layout/header') %>
+
+<div class="col-md-4 col-sm-6 mx-auto mt-5">
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white text-center">
+      <h3>Se connecter</h3>
+    </div>
+
+  <div class="card-body p-3">
+
+<h2>Registration de : <%= role %></h2>
 
 <form action="/signup" method="post">
-    <div>
-      <label for="email">Email:</label>
-      <input type="email" name="email" id="email" required>
+    <div class="mb-2">
+      <label for="email" class="form-label">Email:</label>
+      <input type="email" class="form-control" name="email" id="email" required>
     </div>
-    <div>
-      <label for="password">Password:</label>
-      <input type="password" name="password" id="password" required>
+    <div class="mb-3">
+      <label for="password" class="form-label">Password:</label>
+      <input type="password" class="form-control" name="password" id="password" required>
     </div>
-   <select name="role" required>
-    <option value="field" <%= role && role === 'field' ? 'selected' : '' %>>Field</option>
-    <option value="office" <%= role && role === 'office' ? 'selected' : '' %>>Office</option>
-    <option value="admin" <%= role && role === 'admin' ? 'selected' : '' %>>Admin</option>
-   </select>
+    <input type="hidden" name="role" value="<%= role %>">
+
 
      <!-- Campo nascosto per il ruolo -->
-    <button type="submit">S'inscrire</button>
+    <button type="submit" class="btn btn-primary w-100">S'inscrire</button>
   </form>
-  
+    <%- include('layout/footer') %>

@@ -94,14 +94,14 @@ function initializeMap() {
     }
        // === Etichette categorie (se le vuoi usare) ===
   const CATEGORY_LABELS = {
-    A: 'Tipo A',
-    B: 'Tipo B',
-    C: 'Tipo C',
-    D: 'Tipo D',
-    E: 'Tipo E'
+    A: 'Type A',
+    B: 'Type B',
+    C: 'Type C',
+    D: 'Type D',
+    E: 'Type E'
   };
 
-  // === Colori dei marker per ogni categoria ===
+  // === Colori dei marker per ogni categorie ===
   const colorMap = {
     A: 'red',
     B: 'green',
@@ -145,12 +145,13 @@ function initializeMap() {
             }
 
         }).bindPopup(`
-            <div>
-                <strong>${geoJson.properties.name}</strong><br>
-                Categoria: ${CATEGORY_LABELS[geoJson.properties.category] || 'Sconosciuta'}<br>
-                Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}
-            </div>
-        `)
+  <div style="min-width: 180px;">
+    <strong><i class="fas fa-map-marker-alt text-danger me-1"></i>${geoJson.properties.name}</strong><br>
+    <i class="fas fa-tag text-primary me-1"></i>Catégorie: ${CATEGORY_LABELS[geoJson.properties.category] || 'Inconnue'}<br>
+    <i class="fas fa-location-arrow text-success me-1"></i>Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}
+  </div>
+`)
+
         .addTo(drawnItems);
           // 👇 Aggiungi ogni singolo marker all'array
         geoLayer.eachLayer(marker => markers.push(marker));
@@ -162,7 +163,6 @@ function initializeMap() {
     const bounds = L.latLngBounds(markers.map(m => m.getLatLng()));
     map.fitBounds(bounds, { padding: [30, 30] });
 }
-
 
 }
         // Initialize map only once, then update content
@@ -180,8 +180,9 @@ function initializeMap() {
     const table = $('#main-table').DataTable({
         pageLength: 20,
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/it-IT.json'
+        url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/fr-FR.json'
         }
+
     });
 
     // 2. GESTIONE CAMBIO ELEMENTI PER PAGINA

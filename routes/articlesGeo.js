@@ -202,25 +202,18 @@ function onlyOffice(req, res, next) {
   }
   next();
 }
-
-// Middleware pour vérifier si l'user est connecté
 function isAuthenticated(req, res, next) {
-   // Log per vedere cosa contiene la sessione
-   console.log("Verifica autenticazione - sessione utente:", req.session ? req.session.user : "Nessuna sessione");
+  const user = req.session?.user;
+  console.log("🧪 Verifica autenticazione - sessione utente:", user);
 
-  if (req.session && req.session.user && req.session.user._id) {
-    return next(); // Si l'user est connecté, continuer l'exécution
+  if (user && user.email && user.role) {
+    return next();
   } else {
-     // Log per vedere se l'utente non è autenticato e viene reindirizzato al login
-     console.log("Utente non autenticato, reindirizzamento a /login");
+    console.log("❌ Utente non autenticato, reindirizzamento a /login");
     req.session.redirectTo = req.originalUrl;
-    return res.redirect('/login'); // Sinon, rediriger vers la page de login
+    return res.redirect('/login');
   }
 }
-
-
-
-
 //VADO A: qs e' l indirizzo web , cioe la ROUTE addForm, che vedo nell'internet
 // Links http://localhost:4000/addForm
 router.get("/addPoint", isAuthenticated, (req, res) => {
@@ -264,15 +257,15 @@ router.post("/ajoute_point", isAuthenticated, async (req, res) => {
     console.log("🧾 Tutto il body ricevuto:", req.body);
 
     // 🔍 DEBUG
-    console.log("📥 Categoria ricevuta dal form (raw):", category);
-    console.log("📥 Categoria pulita:", (category || '').trim().toUpperCase());
+    console.log("📥 Categorie ricevuta dal form (raw):", category);
+    console.log("📥 Categorie pulita:", (category || '').trim().toUpperCase());
 
     // Verifica la struttura dei dati
     console.log("GeoJSON ricevuto:", point);
-    console.log("Dati tipo:", typeof point);
+    console.log("Type:", typeof point);
     // Controllo campi obbligatori
     if (!name || !point ) {
-      return res.status(400).json({ message: "Tutti i campi sono obbligatori" });
+      return res.status(400).json({ message: "Touts les champs sonts obligoitoires" });
     }
    const allowedCategories = ['', 'A', 'B', 'C', 'D', 'E'];
 
@@ -310,7 +303,7 @@ router.post("/ajoute_point", isAuthenticated, async (req, res) => {
     typeof parsedPoint.geometry.coordinates[1] !== "number"
   ) {
     return res.status(400).json({
-      message: "Il dato GeoJSON deve essere un punto valido (tipo 'Point' con coordinate [lng, lat])"
+      message: "Il dato GeoJSON deve essere un punto valido (type 'Point' con coordinate [lng, lat])"
     });
   }
 
@@ -345,7 +338,7 @@ router.post("/ajoute_parcelle", isAuthenticated, async (req, res) => {
 
     // Verifica
     console.log("GeoJSON ricevuto:", polygon);
-    console.log("Tipo:", typeof polygon);
+    console.log("Type:", typeof polygon);
 
     if (!name || !polygon) {
       return res.status(400).json({ message: "Tutti i campi sono obbligatori" });
@@ -391,6 +384,7 @@ router.post("/ajoute_parcelle", isAuthenticated, async (req, res) => {
     res.status(500).json({ message: "Errore interno del server" });
   }
 });
+
 router.get('/delete/:id', isAuthenticated, async (req, res) => {
   const userId = req.session.user?._id;
   const pointId = req.params.id;

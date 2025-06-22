@@ -1,13 +1,7 @@
 <%- include('layout/headerZoneGeo') %>
 
 <div class="container my-3">
-  <% if (user) { %>
-    <div class="alert alert-info d-flex justify-content-center align-items-center text-center gap-3">
-      <strong>Bienvenue, <%= user.email %>!</strong>
-      <a href="/logout" class="btn btn-sm btn-outline-secondary">Se déconnecter</a>
-    </div>
 
-  <% } %>
   <div class="row">
     <div class="col-12 text-center">            
       <!-- Aggiungi QUESTO PULSANTE SUBITO DOPO LA NAVBAR -->
@@ -15,12 +9,7 @@
          data-bs-toggle="collapse" 
          data-bs-target="#sidebar">
                        ☰ 
-      </button>
-    
-      <a href="/addPoint">
-        <button id="add-point" class="btn-custom">  <i class="fas fa-shapes"></i>Point</button>
-      </a>      
-          
+      </button>    
     </div>
   </div>
   </div>
@@ -59,16 +48,41 @@
         </tbody>
       </table>
     </div>
-  <% } else { %>
-    <p>Nessun punto trovato</p>
-  <% } %>
+ <% } else { %>
+  <div class="text-center">
+ 
+  <div class="alert alert-info d-flex align-items-center" role="alert">
+    <i class="fas fa-map-pin me-2"></i>
+    Aucun point trouvé. Cliquez sur <strong>“Ajouter un point”</strong> en haut à droite de la carte pour commencer.  </div>
+  </div>
+<% } %>
+
       </div>  
       <!-- Mappa -->
       <div class="col-md-9 map-container"> <!-- Aggiungi la classe qui -->
-        <div id="map" style="width: 100%; height: 100%;"></div>
+        <div id="map" style="width: 100%; height: 100%; position: relative;">
+                    <!-- Pulsante flottante -->
+            <a href="/addPoint" style="position: absolute; top: 10px; right: 10px; z-index: 9999;">
+              <button id="add-point" class="btn btn-warning btn-sm shadow rounded">
+                <i class="fas fa-plus me-1"></i> Ajouter un point
+              </button>
+            </a>
+        </div>
       </div>
   </div>
+</div><!-- Fine .container-fluid -->
+<!-- Link in basso visibili sempre -->
+<div class="container my-2">
+  <div class="d-flex justify-content-center gap-3">
+    <a class="btn btn-outline-success" href="/indexZoneParcelle">
+      <i class="fas fa-draw-polygon"></i> Parcelle
+    </a>
+    <a class="btn btn-outline-primary" href="/indexZoneGeo">
+      <i class="fas fa-circle-dot"></i> Point
+    </a>
+  </div>
 </div>
+
 <div class='container'>
   <div class="row my-4">
     <div class="col-lg-12">
@@ -90,7 +104,7 @@
   </script>
      <!-- Verifico se ci sono dei points -->
      <% if (points && points.length > 0) { %>   
-          <!-- Visualizza un gruppo per ogni tipo (Punto 4: Migliorato il Layout) -->        
+          <!-- Visualizza un gruppo per ogni type (Punto 4: Migliorato il Layout) -->        
         
             <% } else { %>
               <h1 class="text-center text-secondary mt-5">Aucun point trouvé dans la base de données!</h1>
