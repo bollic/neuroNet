@@ -60,6 +60,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+   
 }
 
 /* 2. NAVBAR & SIDEBAR SYSTEM */
@@ -71,6 +72,7 @@ body {
 }
 
 #sidebar {
+  width: var(--sidebar-width); /* 280px */
   background: white;
   box-shadow: 2px 0 5px rgba(0,0,0,0.1);
   height: calc(100vh - 60px);
@@ -82,12 +84,13 @@ body {
 }
 
 /* 3. RESPONSIVE LAYOUT */
+
 .map-container {
-  height: calc(100vh - 60px);
-  margin-left: var(--sidebar-width);
-  transition: margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: var(--sidebar-width); /* 👈 spinge a destra per fare spazio */
   width: calc(100% - var(--sidebar-width));
+  min-height: 400px;
 }
+
 
 @media (max-width: 767.98px) {
   .navbar-brand {
@@ -223,4 +226,8 @@ body {
 .container-fluid {
   padding-left: 0;
   padding-right: 0;
+}
+footer {
+  margin-top: 0 !important;
+  padding-top: 0.5rem; /* opzionale, solo per estetica */
 }

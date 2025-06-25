@@ -146,6 +146,7 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
   }
 });
 
+
  router.get('/indexZoneGeo', isAuthenticated, onlyField,  async (req, res) => {
 
      console.log('📍 ROUTE /indexZoneGeo chiamata');
@@ -166,6 +167,17 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
   }
   try {
     const points = await PointModel.find({ user: userId }).limit(30).populate('user');
+     // 🔽🔽🔽 AGGIUNGI QUESTO BLOCCO QUI
+    const view = req.query.view;
+    if (view === 'points') {
+      return res.render('mesPoints', {
+        user,
+        points,
+        session: req.session
+      });
+    }
+
+    // 🎯 Se non è "view=points", carica la vista mappa classica
     res.render('indexZoneGeo', {
       user: req.session.user,
       points,
@@ -177,7 +189,6 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
       res.status(500).send('Errore del server');
   }
 });  
-
 
 function onlyAdmin(req, res, next) {
   if (req.session.user && req.session.user.role === 'admin') {

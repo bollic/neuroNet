@@ -1,0 +1,47 @@
+<%- include('layout/headerZoneGeo') %>
+
+<div class="container my-4">
+  <h2 class="text-center mb-4">📌 Mes Points</h2>
+
+  <% if (points && points.length > 0) { %>
+    <div class="table-responsive">
+      <table id="main-table" class="table table-hover table-bordered table-striped text-center">
+        <thead class="table-dark">
+          <tr>
+            <th>Nom</th>
+            <th>Catégorie</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% points.forEach((row) => { %>
+            <tr>
+              <td><%= row.name %></td>
+              <td><%= row.category || 'Senza categoria' %></td>
+              <td>
+                <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger">
+                  <i class="fas fa-trash"></i>
+                </a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="alert alert-info text-center">
+      <i class="fas fa-map-pin me-2"></i> Aucun point trouvé.
+    </div>
+  <% } %>
+
+  <div class="text-center mt-4">
+    <a class="btn btn-outline-secondary me-2" href="/indexZoneGeo">
+      <i class="fas fa-map"></i> Retour à la carte
+    </a>
+    <a class="btn btn-success" href="/addPoint">
+      <i class="fas fa-plus"></i> Ajouter un point
+    </a>
+  </div>
+</div>
+
+<%- include('layout/footer') %>

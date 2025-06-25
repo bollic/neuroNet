@@ -15,8 +15,32 @@
   </div>
   <div class="container-fluid">
     <div class="row position-relative flex-nowrap"> 
-      <!-- Sidebar -->
-      <div id="sidebar" class="col-md-3">
+      <!-- Sidebar-->
+      <div id="sidebar" class="overflow-auto" style="background: #f8f9fa;">
+           <% if (message) { %> 
+        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
+          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+          <i class="fas fa-exclamation-circle me-2"></i>   
+          <strong><%= message.message %></strong>     
+        </div>
+             <% } %>
+
+     
+        <!-- Tabella dei punti -->
+      <div class="table-responsive mt-4">      
+      <script>
+  // Garantisce che filteredUsers e groupedByUser siano definite
+   if (typeof filteredUsers === 'undefined') var filteredUsers = [];
+  </script>
+     <!-- Verifico se ci sono dei points -->
+     <% if (points && points.length > 0) { %>   
+          <!-- Visualizza un gruppo per ogni type (Punto 4: Migliorato il Layout) -->        
+        
+            <% } else { %>
+              <h1 class="text-center text-secondary mt-5">Aucun point trouvé dans la base de données!</h1>
+            <% } %>
+      
+      </div>
         <button id="closeSidebar" class="close-btn d-md-none" data-bs-toggle="collapse" data-bs-target="#sidebar">&times;</button><br>
         <div class="mb-3">
        
@@ -58,10 +82,10 @@
 <% } %>
 
       </div>  
-      <!-- Mappa -->
+      <!-- Mappa a destra-->
       <div class="col-md-9 map-container"> <!-- Aggiungi la classe qui -->
-        <div id="map" style="width: 100%; height: 100%; position: relative;">
-                    <!-- Pulsante flottante -->
+       <div id="map" style="width: 100%; height: 100%;">
+              <!-- Pulsante flottante -->
             <a href="/addPoint" style="position: absolute; top: 10px; right: 10px; z-index: 9999;">
               <button id="add-point" class="btn btn-warning btn-sm shadow rounded">
                 <i class="fas fa-plus me-1"></i> Ajouter un point
@@ -70,48 +94,36 @@
         </div>
       </div>
   </div>
-</div><!-- Fine .container-fluid -->
+</div>
+<!-- Fine .container-fluid -->
+ <!-- Fine .container-fluid -->
 <!-- Link in basso visibili sempre -->
 <div class="container my-2">
   <div class="d-flex justify-content-center gap-3">
+    <% if (user) { %>
+    <span class="text-dark">
+      Bienvenue, <strong><%= user.email %></strong>
+    </span>
+    <a class="btn btn-sm btn-outline-secondary" href="/logout">
+      Se déconnecter
+    </a>
+  <% } else { %>
+    <a class="btn btn-outline-primary" href="/login">
+      <i class="fas fa-sign-in-alt me-1"></i> Log in
+    </a>
+  <% } %>
     <a class="btn btn-outline-success" href="/indexZoneParcelle">
       <i class="fas fa-draw-polygon"></i> Parcelle
     </a>
     <a class="btn btn-outline-primary" href="/indexZoneGeo">
       <i class="fas fa-circle-dot"></i> Point
     </a>
-  </div>
-</div>
 
-<div class='container'>
-  <div class="row my-4">
-    <div class="col-lg-12">
-       <!-- Pulsante per visualizzare la mappa -->    
-      <% if (message) { %> 
-        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
-          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-          <i class="fas fa-exclamation-circle me-2"></i>   
-          <strong><%= message.message %></strong>     
-        </div>
-             <% } %>
 
-     
-        <!-- Tabella dei punti -->
-      <div class="table-responsive mt-4">      
-      <script>
-  // Garantisce che filteredUsers e groupedByUser siano definite
-   if (typeof filteredUsers === 'undefined') var filteredUsers = [];
-  </script>
-     <!-- Verifico se ci sono dei points -->
-     <% if (points && points.length > 0) { %>   
-          <!-- Visualizza un gruppo per ogni type (Punto 4: Migliorato il Layout) -->        
-        
-            <% } else { %>
-              <h1 class="text-center text-secondary mt-5">Aucun point trouvé dans la base de données!</h1>
-            <% } %>
-      
-      </div>
-    </div>
+<a href="/indexZoneGeo?view=points" class="btn btn-outline-primary">
+  <i class="fas fa-map-pin me-1"></i> Mes Points
+</a>
+
   </div>
 </div>
 
