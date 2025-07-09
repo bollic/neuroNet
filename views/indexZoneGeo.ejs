@@ -13,6 +13,7 @@
     </div>
   </div>
   </div>
+  
   <div class="container-fluid">
     <div class="row position-relative flex-nowrap"> 
       <!-- Sidebar-->
@@ -99,7 +100,8 @@
  <!-- Fine .container-fluid -->
 <!-- Link in basso visibili sempre -->
 <div class="container my-2">
-  <div class="d-flex justify-content-center gap-3">
+  <div class="d-flex flex-wrap justify-content-center gap-2 text-center">
+
     <% if (user) { %>
     <span class="text-dark">
       Bienvenue, <strong><%= user.email %></strong>

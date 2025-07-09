@@ -46,8 +46,43 @@ router.get('/', async (req, res) => {
     res.status(500).send('Erreur lors de la récupération des points');
   }
 });
+// routes/zoneParcelle.js o simile
+router.get('/indexZoneParcelle', isAuthenticated, onlyField, async (req, res) => {
+  console.log('🌿 ROUTE /indexZoneParcelle chiamata');
+  console.log('📦 Sessione:', req.session);
 
- router.get('/indexZoneParcelle',  isAuthenticated,  async (req, res) => {
+  const user = req.session.user;
+  if (!user || !user._id) {
+    console.warn('⚠️ Utente non autenticato o senza _id');
+    return res.status(401).send('Utente non autenticato');
+  }
+
+  try {
+    const parcelles = await ParcelleModel.find({ user: user._id }).populate('user');
+
+    const view = req.query.view;
+    if (view === 'parcelles') {
+      return res.render('mesParcelles', {
+        user,
+        parcelles,
+        session: req.session
+      });
+    }
+
+    // Vista standard con mappa
+    res.render('indexZoneParcelle', {
+      user,
+      parcelles,
+      session: req.session
+    });
+  } catch (error) {
+    console.error('❌ Errore nel caricamento delle parcelles:', error);
+    res.status(500).send('Errore del server');
+  }
+});
+
+/*
+ router.get('/indexZoneParcelle',  isAuthenticated, onlyField,  async (req, res) => {
   try {
   const userId = req.session.user ? req.session.user._id : null;
       
@@ -57,7 +92,15 @@ router.get('/', async (req, res) => {
     } 
 
     const parcelles = await ParcelleModel.find({ user: userId }).limit(30).populate('user');
- 
+        // 🔽🔽🔽 AGGIUNGI QUESTO BLOCCO QUI
+    const view = req.query.view;
+    if (view === 'parcelles') {
+      return res.render('mesParcelles', {
+        userId,
+        parcelles,
+        session: req.session
+      });
+    }
        // Passa i dati raggruppati alla vista
     res.render('indexZoneParcelle', { 
       parcelles, // 👈 aggiunto
@@ -70,6 +113,8 @@ router.get('/', async (req, res) => {
       res.status(500).send('Errore del server');
   }
 });  
+*/
+
 router.get('/indexOfficeParcelle', isAuthenticated, onlyOffice, async (req, res) => {
   try {
     if (req.session.user.role !== 'office') {
@@ -396,9 +441,9 @@ router.post("/ajoute_parcelle", isAuthenticated, async (req, res) => {
   }
 });
 
-router.get('/delete/:id', isAuthenticated, async (req, res) => {
+router.get('/delete/:pointId', isAuthenticated, async (req, res) => {
   const userId = req.session.user?._id;
-  const pointId = req.params.id;
+  const pointId = req.params.pointId;
 
   try {
     // Cerca il punto e verifica che appartenga all’utente loggato
@@ -413,7 +458,7 @@ router.get('/delete/:id', isAuthenticated, async (req, res) => {
     await PointModel.deleteOne({ _id: pointId });
 
     console.log(`🗑️ Punto ${pointId} eliminato con successo`);
-    res.redirect('/indexZoneGeo');
+    res.redirect('/indexZoneGeo?view=points');
   } catch (err) {
     console.error('❌ Errore durante l\'eliminazione del punto:', err);
     res.status(500).send('Errore interno del server');
@@ -485,24 +530,45 @@ console.log(`✅ Punto lat=${lat}, lng=${lng} rimosso da parcella ${parcelleId}`
     res.status(500).send('Errore del server');
   }
 });
-
-router.param("id", async (req, res, next, id) => {
-  if (!id || id === "undefined") {
-    return res.status(400).json({ error: "ID articolo mancante" });
-}
+router.get('/delete-parcelle/:id', isAuthenticated, async (req, res) => {
+  const userId = req.session.user?._id;
+  const parcelleId = req.params.id;
 
   try {
-    const point = await PointModel.findById(id);
+    const parcelle = await ParcelleModel.findOne({ _id: parcelleId, user: userId });
+
+    if (!parcelle) {
+      console.warn(`⚠️ Parcelle non trovata o accesso non autorizzato`);
+      return res.status(404).send('Parcelle non trovata o accesso non autorizzato');
+    }
+
+    await ParcelleModel.deleteOne({ _id: parcelleId });
+
+    console.log(`🗑️ Parcelle ${parcelleId} eliminata con successo`);
+    res.redirect('/indexZoneParcelle?view=parcelles');
+  } catch (err) {
+    console.error('❌ Errore durante l\'eliminazione della parcella:', err);
+    res.status(500).send('Errore del server');
+  }
+});
+router.param("pointId", async (req, res, next, pointId) => {
+  if (!pointId || pointId === "undefined") {
+    return res.status(400).json({ error: "ID punto mancante" });
+  }
+
+  try {
+    const point = await PointModel.findById(pointId);
     if (!point) {
-        return res.status(404).json({ error: "Articolo non trovato" });
+      return res.status(404).json({ error: "Punto non trovato" });
     }
     req.point = point;
     next();
   } catch (err) {
     console.error("❌ Errore DB:", err);
     res.status(500).json({ error: "Errore server" });
-   }
+  }
 });
+
 
 function logger(req, res, next) {
   console.log(req.originalUrl)

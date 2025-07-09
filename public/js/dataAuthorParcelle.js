@@ -144,7 +144,7 @@ function initializeMap() {
     const table = $('#main-table').DataTable({
         pageLength: 20,
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/it-IT.json'
+            url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/it-IT.json'
         }
     });
 

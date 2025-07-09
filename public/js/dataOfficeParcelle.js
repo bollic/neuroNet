@@ -121,30 +121,30 @@ if (!Array.isArray(parcelles) || parcelles.length === 0) {
           updateMap(); // Update markers and polylines
         }, 100); // Short delay to ensure rendering
   
-
     // 1. INIZIALIZZA DATATABLES - SPOSTATO IN FONDO
     const tableElement = document.getElementById('main-table');
 if (tableElement) {
-    const table = $('#main-table').DataTable({
+   /* const table = $('#main-table').DataTable({
         pageLength: 20,
         language: {
            url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/it-IT.json'
         }
-    });
+    });*/
+    
      // 2. GESTIONE CAMBIO ELEMENTI PER PAGINA
-    $('#page-length').on('change', function() {
+  /*  $('#page-length').on('change', function() {
         table.page.len($(this).val()).draw();
     });
-   
+   */
 
     // 3. AGGIORNA SELECT CON VALORE CORRENTE
-    table.on('length.dt', function(e, settings, len) {
+ /*   table.on('length.dt', function(e, settings, len) {
         $('#page-length').val(len);
     });
-
+*/
     // Aggiungi questi console.log per debug
-    console.log("DataTables inizializzato:", table);
-    console.log("Elementi nella tabella:", table.rows().count());
+   // console.log("DataTables inizializzato:", table);
+   // console.log("Elementi nella tabella:", table.rows().count());
     } else {
   console.warn("Tabella non trovata: #main-table");
 }

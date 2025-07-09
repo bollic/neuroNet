@@ -40,12 +40,17 @@ router.post('/login', async (req, res) => {
   // Caso 1: login con SINGLE_USER (admin hardcoded)
   if (email === SINGLE_USER.email) {
     const passwordMatch = await bcrypt.compare(password, SINGLE_USER.passwordHash);
+    console.log('Rigenerazione sessione completata.');
+
     if (passwordMatch) {
       req.session.user = {
         email: SINGLE_USER.email,
         isAdmin: true,
         role: 'admin'
       };
+      console.log('📦 Sessione prima del salvataggio:', req.session);
+      console.log('🧠 Sessione impostata:', req.session.user);
+
       console.log('Login riuscito (SINGLE_USER):', req.session.user);
       const redirectTo = req.session.redirectTo || '/users';
        req.session.save((err) => {
@@ -73,6 +78,7 @@ router.post('/login', async (req, res) => {
     }
     // 👇 AGGIUNGI QUESTO
   console.log('🔑 Password nel DB (userFromDb.password):', userFromDb.password);
+  console.log('Utente trovato:', userFromDb);
 
     const passwordMatch = await bcrypt.compare(password, userFromDb.password);
     if (!passwordMatch) {
@@ -92,6 +98,7 @@ router.post('/login', async (req, res) => {
       role: userFromDb.role,
       isAdmin: userFromDb.role === 'admin'
     };
+    console.log('📦 Sessione prima del salvataggio:', req.session);
     console.log('🧠 Sessione impostata:', req.session.user);
     // 🔁 Decidi il redirect finale
 let redirectTo = req.session.redirectTo;
@@ -118,10 +125,12 @@ console.log('Redirect effettuato verso:', redirectTo);
     // ✅ SALVA LA SESSIONE PRIMA DEL REDIRECT!
   req.session.save((err) => {
     if (err) {
-      console.error('Errore nel salvataggio della sessione:', err);
+      console.error('❌ Errore nel salvataggio della sessione:', err);
       return res.status(500).send("Errore nel salvataggio della sessione");
     } 
+    console.log('✅ Sessione salvata correttamente.');
     delete req.session.redirectTo;
+    console.log('Redirect effettuato verso:', redirectTo);
     return res.redirect(redirectTo);
     //return res.redirect(redirectTo);
   });
