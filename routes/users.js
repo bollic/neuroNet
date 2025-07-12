@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const fs = require('fs');
-const bcrypt = require('bcrypt'); // Utilisé pour comparer les mots de passe hachés
+const bcrypt = require('bcryptjs'); // Utilisé pour comparer les mots de passe hachés
 const mongoose = require('mongoose');
 
 const User = require('../models/users');
@@ -81,6 +81,8 @@ router.post('/login', async (req, res) => {
   console.log('Utente trovato:', userFromDb);
     console.log('🧪 Password salvata nel DB:', userFromDb.password);
 console.log('🧪 Match bcrypt? →', await bcrypt.compare(password, userFromDb.password));
+console.log("🧪 bcrypt.compare (TEST) →", await bcrypt.compare("field1", "$2b$06$j03O.3Us746/Vh1xNUrWsOP9jGi9i72KQNpReoOvn6NhLeFgAHJu2"));
+
     const passwordMatch = await bcrypt.compare(password, userFromDb.password);
     if (!passwordMatch) {
       console.log('Password errata nel DB');
