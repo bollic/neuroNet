@@ -36,7 +36,7 @@ router.get("/login", (req, res) => {
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   console.log('Tentativo di login con:', email);
-
+  console.log('🧪 Password in chiaro dal form:', password);
   // Caso 1: login con SINGLE_USER (admin hardcoded)
   if (email === SINGLE_USER.email) {
     const passwordMatch = await bcrypt.compare(password, SINGLE_USER.passwordHash);
@@ -74,12 +74,13 @@ router.post('/login', async (req, res) => {
     const userFromDb = await User.findOne({ email });
     if (!userFromDb) {
       console.log('Email non trovata nel DB');
-      return res.status(401).send('Login:Email o password errata.');
+      return res.status(401).send('Login:Email o password non corretta.');
     }
     // 👇 AGGIUNGI QUESTO
   console.log('🔑 Password nel DB (userFromDb.password):', userFromDb.password);
   console.log('Utente trovato:', userFromDb);
-
+    console.log('🧪 Password salvata nel DB:', userFromDb.password);
+console.log('🧪 Match bcrypt? →', await bcrypt.compare(password, userFromDb.password));
     const passwordMatch = await bcrypt.compare(password, userFromDb.password);
     if (!passwordMatch) {
       console.log('Password errata nel DB');
@@ -162,11 +163,11 @@ router.get("/signup", (req, res) => {
 // Traitement du formulaire de signup
 router.post('/signup', async (req, res) => {
   const { email, password, role } = req.body;
-  
+  /*
   if (role === 'admin') {
   return res.status(403).send('Registration impossible');
 }
-
+*/
   try {
     // Vérifier si l'user existe déjà
     const existingUser = await User.findOne({ email });
@@ -176,10 +177,8 @@ router.post('/signup', async (req, res) => {
       role: role || 'field'  // 👈 Aggiunto
     });
   }
-
     // Si l'user n'existe pas, créer un nouvel user
     const hashedPassword = await bcrypt.hash(password, 6); // Hacher le mot de passe avec bcrypt
-
     const newUser = new User({
       email: email,
       password: hashedPassword,
