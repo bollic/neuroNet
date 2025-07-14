@@ -165,6 +165,10 @@ router.get("/signup", (req, res) => {
 // Traitement du formulaire de signup
 router.post('/signup', async (req, res) => {
   const { email, password, role } = req.body;
+  console.log('📨 [SIGNUP] Richiesta ricevuta');
+  console.log('📨 [SIGNUP] Email:', email);
+  console.log('📨 [SIGNUP] Password in chiaro dal form:', password);
+  console.log('📨 [SIGNUP] Ruolo scelto:', role);
   /*
   if (role === 'admin') {
   return res.status(403).send('Registration impossible');
@@ -173,7 +177,9 @@ router.post('/signup', async (req, res) => {
   try {
     // Vérifier si l'user existe déjà
     const existingUser = await User.findOne({ email });
+    console.log('🔍 [SIGNUP] Controllo utente esistente per:', email);
     if (existingUser) {
+       console.log('⚠️ [SIGNUP] Email già presente nel DB:', email);
     return res.render('signup', {
       error: 'Cet email est déjà utilisé.',
       role: role || 'field'  // 👈 Aggiunto
@@ -181,6 +187,7 @@ router.post('/signup', async (req, res) => {
   }
     // Si l'user n'existe pas, créer un nouvel user
     const hashedPassword = await bcrypt.hash(password, 6); // Hacher le mot de passe avec bcrypt
+    console.log('🔐 [SIGNUP] Password criptata con bcrypt:', hashedPassword);
     const newUser = new User({
       email: email,
       password: hashedPassword,
@@ -188,26 +195,24 @@ router.post('/signup', async (req, res) => {
     });
       // lo salvo
     await newUser.save(); // Enregistrer le nouvel user dans la base de données
-    console.log("✅ Utente creato:", newUser);
-    console.log("🧪 Password da DB:", newUser.password);
-console.log("🧪 Password da form:", password);
-console.log("🧪 Password match?", await bcrypt.compare(password, newUser.password));
-    
+    console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);
+    console.log('🧪 [SIGNUP] Verifica bcrypt.compare(password, hash):', await bcrypt.compare(password, newUser.password));
+    console.log("🧪 Password da form:", password);    
     // 🔁 Rigenera la sessione come nel login
     req.session.regenerate(function(err) {
       if (err) {
-        console.error('Errore nel rigenerare la sessione:', err);
+         console.error('❌ [SIGNUP] Errore nel rigenerare la sessione:', err);
         return res.status(500).send("Errore di sessione");
       }
     // Stocker les informations user dans la session
     req.session.user = {
-    _id: newUser._id,  // 👈 Aggiunto
+    _id: newUser._id,  
     email: newUser.email,
     role: newUser.role,
     isAdmin: newUser.role === 'admin'
    };
    console.log('Sessione al User:', req.session);
-    console.log('🧠 Sessione creata dopo signup:', req.session.user);
+   console.log('📦 [SIGNUP] Sessione impostata:', req.session.user);
 
       // 🔁 Redirezione in base al ruolo
       let redirectTo;
@@ -224,22 +229,24 @@ console.log("🧪 Password match?", await bcrypt.compare(password, newUser.passw
         default:
           redirectTo = '/';
       }
-     req.session.save((err) => {
+      console.log('➡️ [SIGNUP] Redirect verso:', redirectTo);
+      req.session.save((err) => {
         if (err) {
-          console.error('Errore nel salvataggio della sessione:', err);
-          return res.status(500).send("Errore nel salvataggio della sessione");
+           console.error('❌ [SIGNUP] Errore nel salvataggio della sessione:', err);
+           return res.status(500).send("Errore nel salvataggio della sessione");
         }
+        console.log('✅ [SIGNUP] Sessione salvata correttamente.');
         return res.redirect(redirectTo);
       });
     });
 
   } catch (error) {
-    console.error(error);
-  res.render('signup', {
-  error: 'Erreur serveur : ' + error.message,
-  role: role || 'office'
-});
-  }
+    console.error('🔥 [SIGNUP] Errore server:', error);
+    res.render('signup', {
+      error: 'Erreur serveur : ' + error.message,
+      role: role || 'office'
+    });
+   }
 });
 
 async function ensureAdminExists(req, res, next) {
