@@ -81,7 +81,7 @@ router.post('/login', async (req, res) => {
   console.log('Utente trovato:', userFromDb);
     console.log('🧪 Password salvata nel DB:', userFromDb.password);
 console.log('🧪 Match bcrypt? →', await bcrypt.compare(password, userFromDb.password));
-console.log("🧪 bcrypt.compare (TEST) →", await bcrypt.compare("field1", "$2b$06$j03O.3Us746/Vh1xNUrWsOP9jGi9i72KQNpReoOvn6NhLeFgAHJu2"));
+console.log("🧪 bcrypt.compare (TEST) →", await bcrypt.compare("field1", "$2b$06$KHcUwrna5LV25h3VDXmC.eeubbsx5m9tIAHaOKOgn7cQqEU8zqe5a"));
 
     const passwordMatch = await bcrypt.compare(password, userFromDb.password);
     if (!passwordMatch) {
@@ -285,7 +285,7 @@ router.get('/users', isAdmin, async (req, res) => {
            { title:'la liste des users',  // Passe les users récupérés à la vue
             users: users, // Passe les users récupérés à la vue
             user: req.session.user, // Passe l'user connecté à la vue
-            password: req.session.password
+           // password: req.session.password
           });
              } catch (error) {
                res.status(500).send('Erreur lors de la récupération des users');

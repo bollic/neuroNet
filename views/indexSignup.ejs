@@ -54,7 +54,7 @@
                 <th>INDEX</th>  
                 <th>ID</th>              
                 <th>E-Mail</th>
-                <th>Password</th>
+                
                 <!-- Ne pas afficher les mots de passe en clair -->
                 <!-- <th>PWD</th> -->
                 <th>Action</th>
@@ -66,7 +66,7 @@
                   <td><%= index  %></td>
                   <td><%= row._id %></td> <!-- Utilisation de _id au lieu de id -->
                   <td><%= row.email %></td>
-                  <td><%= row.password %></td>             
+                             
                   <!-- Mot de passe retiré pour des raisons de sécurité -->
                   <td>
                     <a href="/edit/<%= row._id %>" class="text-success"><i class="fas fa-edit fa-lg mx-1"></i></a>
