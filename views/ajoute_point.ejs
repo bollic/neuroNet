@@ -98,14 +98,17 @@ form.addEventListener("submit", async (e) => {
     alert("Errore di connessione");
   }
 });
+
 // Gestione click sul bottone "Usa la mia posizione"
 const locationButton = document.getElementById("use-my-location");
 if (locationButton) {
   locationButton.addEventListener("click", function () {
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function (position) {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+      navigator.geolocation.getCurrentPosition(
+        function (position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          console.log("Geolocalizzazione:", position.coords);
 
         // Centra la mappa
         map.setView([lat, lng], 15);
@@ -122,9 +125,16 @@ if (locationButton) {
         // Salva GeoJSON nel campo hidden
         const geoJson = marker.toGeoJSON();
         document.getElementById("point").value = JSON.stringify(geoJson);
-      }, function (err) {
+      }, 
+      function (err) {
         alert("Errore nella geolocalizzazione: " + err.message);
-      });
+      },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,        // Non usare cache
+          timeout: 10000        // Timeout dopo 10 secondi
+        } 
+    );
     } else {
       alert("Geolocalizzazione non supportata dal browser.");
     }
@@ -146,7 +156,7 @@ if (locationButton) {
       background: white;
       border: none;
       border-radius: 50%;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      box-shadow: red;
       width: 40px;
       height: 40px;
       display: flex;
