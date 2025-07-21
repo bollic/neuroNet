@@ -140,6 +140,31 @@ if (locationButton) {
     }
   });
 }
+const manualButton = document.getElementById("manual-set");
+manualButton.addEventListener("click", () => {
+  const lat = parseFloat(document.getElementById("manual-lat").value);
+  const lng = parseFloat(document.getElementById("manual-lng").value);
+
+  if (isNaN(lat) || isNaN(lng)) {
+    alert("Inserisci una latitudine e longitudine valide.");
+    return;
+  }
+
+  // Rimuovi eventuali marker esistenti
+  drawnItems.clearLayers();
+
+  // Crea un marker
+  const marker = L.marker([lat, lng]).addTo(map);
+  marker.bindPopup(`Manual Point:<br>lat: ${lat.toFixed(5)}<br>lng: ${lng.toFixed(5)}`).openPopup();
+
+  // Centra la mappa
+  map.setView([lat, lng], 15);
+
+  // Aggiungi al layer e salva il GeoJSON nel campo hidden
+  drawnItems.addLayer(marker);
+  const geoJson = marker.toGeoJSON();
+  document.getElementById("point").value = JSON.stringify(geoJson);
+});
 
 });
 
@@ -178,7 +203,7 @@ if (locationButton) {
      <% } %>
          <div class="card shadow">
             <div class="card-header bg-primary">
-             <h3 class="text-light">Ajoute</h3>
+             <h3 class="text-light">Add a point</h3>
             </div>       
             <div class="card-body p-4">
                 <form action="/ajoute_point" method="POST" id="add-point">
@@ -207,6 +232,18 @@ if (locationButton) {
                     <label for="image_2" class="form-label">Image</label>
                          </div>
                          
+                             <div class="mb-3">
+                              <div class="mb-3 d-grid">
+  <button type="button" class="btn btn-secondary" id="manual-set">Point on the map </button>
+</div>
+  <label for="manual-lat">Latitude</label>
+  <input type="number" step="any" id="manual-lat" class="form-control" placeholder="e.g. 45.123456">
+</div>
+<div class="mb-3">
+  <label for="manual-lng">Longitude</label>
+  <input type="number" step="any" id="manual-lng" class="form-control" placeholder="e.g. -75.123456">
+</div>
+
 
                     <% if (user) { %>
                       <input type="hidden" name="id" value="<%= user._id %>">
@@ -216,7 +253,7 @@ if (locationButton) {
                     <div class="mb-3 d-grid">                      
                         <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />
                     </div>
-                 
+             
                 </form>
             </div>
          </div>

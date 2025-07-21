@@ -144,6 +144,7 @@ console.log('Redirect effettuato verso:', redirectTo);
     return res.status(500).send('Errore del server');
   }
 });
+
 router.get('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) {
@@ -154,6 +155,35 @@ router.get('/logout', (req, res) => {
     console.log('✅ Logout completato, sessione distrutta.');
     res.redirect('/');
   });
+});
+router.post('/delete_account', async (req, res) => {
+  try {
+    const userId = req.session.user?._id;
+
+    if (!userId) {
+      return res.status(401).send("Non autorizzato");
+    }
+
+    // Elimina l'utente
+    await User.findByIdAndDelete(userId);
+
+    // Elimina la sessione
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Errore durante la distruzione della sessione:', err);
+        return res.status(500).send("Errore durante la disconnessione.");
+      }
+
+      res.clearCookie('connect.sid');
+      
+      console.log('✅ Utente eliminato e logout completato.');
+      res.redirect('/');
+     // alert("Désincription completée!");
+    });
+  } catch (err) {
+    console.error('❌ Errore durante l\'eliminazione account:', err);
+    res.status(500).send("Errore interno del server.");
+  }
 });
 
 
