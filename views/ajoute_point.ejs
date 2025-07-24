@@ -24,13 +24,12 @@
   const drawControl = new L.Control.Draw({
     edit: { featureGroup: drawnItems },
     draw: {
-      marker: {
-        
-      },
+      marker: true,
       polyline: false,
       rectangle: false,
       circle: false,
       circlemarker: false,
+      polygon: false   // Aggiungi se vuoi abilitare anche i poligoni
     },
   });
   map.addControl(drawControl);
@@ -69,6 +68,12 @@ form.addEventListener("submit", async (e) => {
     alert("Ajoute un point avant d'envoyer!");
     return;
   }
+try {
+  JSON.parse(pointValue);
+} catch (err) {
+  alert("GeoJSON invalide.");
+  return;
+}
 
   const formData = {
     name: document.querySelector('[name="name"]').value,
@@ -111,7 +116,7 @@ if (locationButton) {
           console.log("Geolocalizzazione:", position.coords);
 
         // Centra la mappa
-        map.setView([lat, lng], 15);
+        map.setView([lat, lng], 5);
 
         // Crea marker sulla posizione
         const marker = L.marker([lat, lng]).addTo(map);
@@ -140,11 +145,27 @@ if (locationButton) {
     }
   });
 }
+
+// Mostra i campi di inserimento manuale al clic sul link
+const toggleManualInput = document.getElementById("toggle-manual-input");
+toggleManualInput.addEventListener("click", function (e) {
+  e.preventDefault();
+
+  // Mostra la sezione dei campi manuali
+  const manualSection = document.getElementById("manual-coordinates");
+  if (manualSection) manualSection.style.display = "block";
+
+  // Nascondi il link
+  this.style.display = "none";
+});
+
 const manualButton = document.getElementById("manual-set");
 manualButton.addEventListener("click", () => {
-  const lat = parseFloat(document.getElementById("manual-lat").value);
-  const lng = parseFloat(document.getElementById("manual-lng").value);
+   const latInput = document.getElementById("manual-lat");
+  const lngInput = document.getElementById("manual-lng");
 
+  const lat = parseFloat(latInput.value);
+  const lng = parseFloat(lngInput.value);
   if (isNaN(lat) || isNaN(lng)) {
     alert("Inserisci una latitudine e longitudine valide.");
     return;
@@ -158,13 +179,14 @@ manualButton.addEventListener("click", () => {
   marker.bindPopup(`Manual Point:<br>lat: ${lat.toFixed(5)}<br>lng: ${lng.toFixed(5)}`).openPopup();
 
   // Centra la mappa
-  map.setView([lat, lng], 15);
+  map.setView([lat, lng], 8);
 
   // Aggiungi al layer e salva il GeoJSON nel campo hidden
   drawnItems.addLayer(marker);
   const geoJson = marker.toGeoJSON();
   document.getElementById("point").value = JSON.stringify(geoJson);
 });
+// MOSTRA I CAMPI DI INPUT LAT/LNG QUANDO CLICCHI SUL LINK
 
 });
 
@@ -214,7 +236,7 @@ manualButton.addEventListener("click", () => {
                         placeholder="Enter name" value="Default Name"  required />
                     </div>     
                     <select name="category" class="form-control" >
-                      <option value="">Aucucune category choisi</option>
+                      <option value="">Choose a category</option>
                       <option value="A">Type A</option>
                       <option value="B">Type B</option>
                       <option value="C">Type C</option>
@@ -234,16 +256,30 @@ manualButton.addEventListener("click", () => {
                          
                              <div class="mb-3">
                               <div class="mb-3 d-grid">
-  <button type="button" class="btn btn-secondary" id="manual-set">Point on the map </button>
-</div>
-  <label for="manual-lat">Latitude</label>
-  <input type="number" step="any" id="manual-lat" class="form-control" placeholder="e.g. 45.123456">
-</div>
-<div class="mb-3">
-  <label for="manual-lng">Longitude</label>
-  <input type="number" step="any" id="manual-lng" class="form-control" placeholder="e.g. -75.123456">
-</div>
 
+                                <a href="#" id="toggle-manual-input">Or insert coordinates manually</a>
+
+                                    <div id="manual-coordinates" style="display: none;">
+                                      <!-- campi lat/lng e bottone -->
+                                        <p class="text-muted">
+                                     🔍 Optional: You can enter latitude and longitude manually if you prefer.
+                                        </p>
+                                               <div class="mb-3">
+                                                  <label for="manual-lat">Latitude</label>
+                                                  <input type="number" step="any" id="manual-lat" class="form-control" placeholder="e.g. 45.123456">
+                                                </div>                           
+                                        <div class="mb-3">
+                                          <label for="manual-lng">Longitude</label>
+                                          <input type="number" step="any" id="manual-lng" class="form-control" placeholder="e.g. -75.123456">
+                                        </div>
+                                          <div class="mb-3">
+                                          <button type="button" class="btn btn-outline-primary" id="manual-set">
+                                      ➕ Go to point on the map
+                                          </button>
+                                        </div>
+                                    </div>
+
+                                 
 
                     <% if (user) { %>
                       <input type="hidden" name="id" value="<%= user._id %>">

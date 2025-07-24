@@ -78,7 +78,7 @@
  
   <div class="alert alert-info d-flex align-items-center" role="alert">
     <i class="fas fa-map-pin me-2"></i>
-    Aucun point trouvé. Cliquez sur <strong>“Ajouter un point”</strong> en haut à droite de la carte pour commencer.  </div>
+    Aucun point trouvé. Cliquez sur <strong>“Add a point”</strong> en haut à droite de la carte pour commencer.  </div>
   </div>
 <% } %>
 
@@ -89,7 +89,7 @@
               <!-- Pulsante flottante -->
             <a href="/addPoint" style="position: absolute; top: 10px; right: 10px; z-index: 9999;">
               <button id="add-point" class="btn btn-warning btn-sm shadow rounded">
-                <i class="fas fa-plus me-1"></i> Ajouter un point
+                <i class="fas fa-plus me-1"></i>Add a point
               </button>
             </a>
         </div>
@@ -104,16 +104,16 @@
 
     <% if (user) { %>
     <span class="text-dark">
-      Bienvenue, <strong><%= user.email %></strong>
+      Wellcome, <strong><%= user.email %></strong>
     </span>
     <a class="btn btn-sm btn-outline-secondary" href="/logout">
-      Se déconnecter
+        Log out
     </a>
     
       <!-- 🔁 QUI metti il nuovo FORM corretto -->
   <form method="POST" action="/delete_account" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');" style="display: inline;">
     <button class="btn btn-sm btn-outline-danger" type="submit">
-      Se désinscrire
+      Delete account
     </button>
   </form>
   <% } else { %>
@@ -130,7 +130,7 @@
 
 
 <a href="/indexZoneGeo?view=points" class="btn btn-outline-primary">
-  <i class="fas fa-map-pin me-1"></i> Mes Points
+  <i class="fas fa-map-pin me-1"></i> My Points
 </a>
 
   </div>

@@ -64,7 +64,7 @@ app.use(session({
       mongoUrl: process.env.DATABASE_URL
   }),
   cookie: {
-  // secure: false, // ✅ Solo true se in produzione reale
+   //secure: false, // ✅ Solo true se in produzione reale
   secure: process.env.NODE_ENV === 'production', // ✅ solo HTTPS in prod
   httpOnly: true,
   sameSite: 'lax',

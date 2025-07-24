@@ -371,13 +371,13 @@ router.post("/ajoute_point", isAuthenticated, async (req, res) => {
 
     req.session.message = {
       type: "success",
-      message: "Punto aggiunto con successo!"
+      message: "Point added!"
     };
 
-    res.status(200).json({ success: true, message: "Punto salvato!" });
+    res.status(200).json({ success: true, message: "Point saved!" });
 
   } catch (err) {
-    console.error("Errore nel salvataggio del punto:", err);
+    console.error("Error on saving point:", err);
     res.status(500).json({ message: "Errore interno del server" });
   }
 });
