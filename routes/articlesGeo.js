@@ -152,7 +152,10 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
     }
 
     // Recupera tutti gli ID degli utenti field
-    const fieldUsers = await User.find({ role: 'field' }).select('_id');
+    const fieldUsers = await User.find({ role: 'field' });
+const currentUser = await User.findById(req.session.user._id);
+const categories = currentUser.categories || ['A', 'B', 'C', 'D', 'E'];
+   // const fieldUsers = await User.find({ role: 'field' }).select('_id');
     console.log('Utenti con ruolo "field" trovati:', fieldUsers.length);
     console.log('ID utenti field:', fieldUsers.map(u => u._id.toString()));
 
@@ -165,6 +168,18 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
        const creatorEmail = p.user?.email || '❓(utente mancante)';
       console.log(`[${i + 1}] Punto: ${p.name}, creato da email : ${creatorEmail}, user: ${p.user?._id}`);
     });
+   console.log('🎯 [DEBUG] Numero punti PRIMA del filtro:', allPoints.length);
+  
+   // 🔍 ANALISI: Punti per ciascun utente field
+  /*  fieldUserIds.forEach(uid => {
+      const puntiUtente = allPoints.filter(p => p.user?._id.equals(uid));
+      console.log(`➡️ Punti trovati per utente ${uid}:`, puntiUtente.length);
+    });
+    */
+    fieldUsers.forEach(user => {
+  const puntiUtente = allPoints.filter(p => p.user?._id.equals(user._id));
+  console.log(`➡️ Utente field: ${user.email} (ID: ${user._id}) — Punti trovati: ${puntiUtente.length}`);
+});
 
     // Recupera SOLO i punti creati da utenti con ruolo 'field'
     const points = await PointModel.find({ user: { $in: fieldUserIds } }).populate('user');
@@ -176,6 +191,8 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
     res.render('indexOfficeGeo', {
       user: req.session.user,
       points,
+      categories,
+      fieldUsers,  // ✅ AGGIUNGI QUESTO
       session: req.session,
       message
     });
@@ -195,7 +212,8 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
 
    const userId = req.session.user ? req.session.user._id : null;
       console.log("Session user:", req.session.user);
-   const user = req.session.user;
+  const user = await User.findById(req.session.user._id);
+
   if (!user || !user._id) {
     console.warn('⚠️ user non autenticato o senza _id');
     return res.status(401).send('use non autenticato');
@@ -207,7 +225,9 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
   }
   try {
     const points = await PointModel.find({ user: userId }).limit(30).populate('user');
-     // 🔽🔽🔽 AGGIUNGI QUESTO BLOCCO QUI
+    console.log('🧾 Points caricati:', points.map(p => ({ name: p.name, category: p.category })));
+
+    // 🔽🔽🔽 AGGIUNGI QUESTO BLOCCO QUI
     const view = req.query.view;
     if (view === 'points') {
       return res.render('mesPoints', {
@@ -219,8 +239,9 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
 
     // 🎯 Se non è "view=points", carica la vista mappa classica
     res.render('indexZoneGeo', {
-      user: req.session.user,
+      user,
       points,
+      categories: user.categories,  // 👈 AGGIUNGI QUESTO
       session: req.session
      
     });
@@ -236,13 +257,13 @@ function onlyAdmin(req, res, next) {
   }
   return res.status(403).send('Accesso negato');
 }
-
 function onlyField(req, res, next) {
-  if (req.session.user && req.session.user.role === 'field') {
+  if (req.session.user?.role === 'field') {
     return next();
   }
   return res.status(403).send("Accesso riservato ai FIELD");
 }
+
 
 function onlyOffice(req, res, next) {
   if (!req.session.user) {
@@ -251,22 +272,25 @@ function onlyOffice(req, res, next) {
   if (req.session.user.role !== 'office') {
     return res.status(403).send("Accesso riservato agli OFFICE");
   }
-  next();
+  return next();
 }
+
 function isAuthenticated(req, res, next) {
   const user = req.session?.user;
   console.log("🧪 Verifica autenticazione - sessione utente:", user);
 
-  if (user && user.email && user.role) {
+  
+  if (user?.email && user?.role) {
     return next();
-  } else {
-    console.log("❌ Utente non autenticato, reindirizzamento a /login");
-    req.session.redirectTo = req.originalUrl;
-    return res.redirect('/login');
   }
+
+  console.log("❌ Utente non autenticato, reindirizzamento a /login");
+  req.session.redirectTo = req.originalUrl;
+  return res.redirect('/login');
 }
 //VADO A: qs e' l indirizzo web , cioe la ROUTE addForm, che vedo nell'internet
 // Links http://localhost:4000/addForm
+/*
 router.get("/addPoint", isAuthenticated, (req, res) => {
   // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
   console.log("Accesso a /addPoint - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
@@ -280,8 +304,169 @@ router.get("/addPoint", isAuthenticated, (req, res) => {
   res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
 }
 });
+*/
+router.get("/addPoint", isAuthenticated, async (req, res) => {
+  console.log("Accesso a /addPoint - sessione utente:", req.session?.user?._id || "Nessuna sessione");
 
+  if (!req.session.user) {
+    console.log("Utente non autenticato, reindirizzamento a /login");
+    return res.redirect("/login");
+  }
 
+  try {
+    // 🔍 Recupera le categorie globali definite dall'utente office
+    const office = await User.findOne({ role: 'office' });
+    const categorieDisponibili = office?.categories || ['A', 'B', 'C', 'D', 'E'];
+
+    // 🔁 Recupera l’utente field (per il rendering, se ti serve)
+    const user = await User.findById(req.session.user._id);
+
+    res.render("ajoute_point", {
+      title: 'Point Form Page',
+      user: user, // Passi l'oggetto user per usare dati utente nel template
+      categories: categorieDisponibili // ✅ Ora sono quelle dell'office
+    });
+  } catch (error) {
+    console.error("❌ Errore nel recupero categorie dall’utente office:", error);
+    res.status(500).send("Errore interno del server");
+  }
+});
+
+/*
+router.post("/addPoint", isAuthenticated, onlyField, async (req, res) => {
+  const { name, category, point } = req.body;
+
+  try {
+    const user = await User.findById(req.session.user._id);
+    console.log("🧾 Body ricevuto:", req.body);
+    console.log("📥 Categoria ricevuta:", category);
+    console.log("📥 Categorie dell'utente:", user.categories);
+    // ✅ QUI controlli la validità della categoria
+    if (!user.categories.includes(category)) {
+      console.log("🧾 Body ricevuto:", req.body);
+      console.log("📥 Categoria ricevuta:", category);
+      console.log("📥 Categorie dell'utente:", user.categories);
+
+      console.warn("❌ Categoria NON valida:", category);
+      return res.status(400).send("Categoria non autorizzata");
+    }
+
+    const geo = JSON.parse(point);
+
+    const newPoint = new PointModel({
+      name,
+      category,
+      coordinates: geo.geometry.coordinates,
+      user: user._id
+    });
+
+    await newPoint.save();
+    res.redirect("/indexZoneGeo");
+
+  } catch (err) {
+    console.error("❌ Errore nella creazione del punto:", err);
+    res.status(500).send("Errore del server");
+  }
+});
+*/
+// office modifica le categorie "globali"
+router.post('/update-categories', async (req, res) => {
+  try {
+    const user = await User.findById(req.session.user._id);
+    if (!user || user.role !== 'office') {
+      return res.status(403).send("Non autorizzato");
+    }
+
+    const parsedCategories = req.body.newCategories
+      .split(',')
+      .map(c => c.trim().toUpperCase())
+      .filter(Boolean);
+
+    user.categories = parsedCategories;
+    await user.save();
+
+    console.log("✅ Categorie globali aggiornate da office:", parsedCategories);
+    res.redirect('/indexOfficeGeo');
+  } catch (err) {
+    console.error("❌ Errore aggiornamento categorie:", err);
+    res.status(500).send("Errore del server");
+  }
+});
+
+/*
+router.post('/update-categories', async (req, res) => {
+  try {
+    const { userId, newCategories } = req.body;
+
+    const parsedCategories = newCategories
+      .split(',')
+      .map(cat => cat.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (!userId) {
+      return res.status(400).send("ID utente mancante");
+    }
+
+    const userToUpdate = await User.findById(userId);
+    if (!userToUpdate) {
+      return res.status(404).send("Utente non trovato");
+    }
+
+    userToUpdate.categories = parsedCategories;
+    await userToUpdate.save();
+
+    console.log("✅ Categorie aggiornate per utente:", userToUpdate.email, parsedCategories);
+
+    res.redirect('/indexOfficeGeo');
+  } catch (err) {
+    console.error("❌ Errore aggiornamento categorie:", err);
+    res.status(500).send("Errore del server");
+  }
+});
+*/
+/*
+router.post('/update-categories', async (req, res) => {
+  try {
+    const { newCategories } = req.body;
+
+    // Valida input
+    const parsedCategories = newCategories.split(',').map(cat => cat.trim()).filter(Boolean);
+
+    if (!req.session?.user?._id) {
+      return res.status(401).send("Non autenticato");
+    }
+
+    const user = await User.findById(req.session.user._id);
+    user.categories = parsedCategories;
+    await user.save();
+
+    // Aggiorna la sessione (opzionale)
+    req.session.user = user;
+
+    res.redirect('/indexOfficeGeo');
+  } catch (err) {
+    console.error("Errore aggiornamento categorie:", err);
+    res.status(500).send("Errore del server");
+  }
+});
+*/
+/*
+router.post('/update-categories', async (req, res) => {
+  try {
+    const raw = req.body.newCategories || '';
+    const newCategories = raw.split(',').map(s => s.trim()).filter(Boolean);
+
+    const user = await User.findById(req.session.user._id);
+    user.categories = newCategories;
+    await user.save();
+
+    res.redirect('/indexOfficeGeo'); // o ovunque vuoi
+  } catch (err) {
+    console.error("Errore aggiornamento categorie:", err);
+    res.status(500).send("Errore durante l'aggiornamento delle categorie");
+  }
+});
+*/
 //VADO A: qs e' l indirizzo web , cioe la ROUTE addForm, che vedo nell'internet
 // Links http://localhost:4000/addForm
 router.get("/addParcelle", isAuthenticated, (req, res) => {
@@ -300,7 +485,7 @@ router.get("/addParcelle", isAuthenticated, (req, res) => {
 
 
 // Gestisce la ricezione del punto dal form
-router.post("/ajoute_point", isAuthenticated, async (req, res) => {
+router.post("/addPoint", isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user?._id;   
   
@@ -318,7 +503,10 @@ router.post("/ajoute_point", isAuthenticated, async (req, res) => {
     if (!name || !point ) {
       return res.status(400).json({ message: "Touts les champs sonts obligoitoires" });
     }
-   const allowedCategories = ['', 'A', 'B', 'C', 'D', 'E'];
+// Recupera le categorie dell’utente office
+const office = await User.findOne({ role: 'office' });
+const allowedCategories = office?.categories || ['A', 'B', 'C', 'D', 'E'];
+
 
     // ✅ Pulizia: rimuove spazi e uniforma maiuscolo
     const cleanCategory = (category || '').trim().toUpperCase();

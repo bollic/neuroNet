@@ -87,30 +87,29 @@ function initializeMap() {
     console.log("updateMap triggered");  
     layerGroup.clearLayers();
     drawnItems.clearLayers();    
-      const markers = []; // ✅ qui dichiari l'array che raccoglie i marker
+    const markers = []; // ✅ qui dichiari l'array che raccoglie i marker
+   
     if (!Array.isArray(points)) {
         console.warn("Nessun punto da visualizzare");
         return;
     }
-       // === Etichette categorie (se le vuoi usare) ===
-  const CATEGORY_LABELS = {
-    A: 'Type A',
-    B: 'Type B',
-    C: 'Type C',
-    D: 'Type D',
-    E: 'Type E'
-  };
 
-  // === Colori dei marker per ogni categorie ===
-  const colorMap = {
-    A: 'red',
-    B: 'green',
-    C: 'yellow',
-    D: 'orange',
-    E: 'violet',
-    null: 'blue',
-    "": 'blue' // per sicurezza, se viene stringa vuota
-  };
+      // ✅ 1. DEFINISCI I COLORI DISPONIBILI
+  const defaultColors = ['red', 'green', 'orange', 'yellow', 'violet', 'black', 'grey', 'blue'];
+  const colorMap = {};
+  let colorIndex = 0;
+
+  // ✅ 2. MAPPATURA AUTOMATICA DELLE CATEGORIE PRESENTI NEI PUNTI
+  points.forEach(point => {
+    const cat = point.category || "";
+    if (!colorMap[cat]) {
+      colorMap[cat] = defaultColors[colorIndex % defaultColors.length];
+      colorIndex++;
+    }
+  });
+console.log("🖌️ Mappa colori categorie:", colorMap);
+
+  // ✅ 3. ORA VAI A DISEGNARE I MARKER COME PRIMA
     points.forEach(point => {
         if (!point.coordinates || point.coordinates.length !== 2) {
             console.warn("Coordinate non valide:", point.coordinates);
@@ -147,12 +146,14 @@ function initializeMap() {
         }).bindPopup(`
   <div style="min-width: 180px;">
     <strong><i class="fas fa-map-marker-alt text-danger me-1"></i>${geoJson.properties.name}</strong><br>
-    <i class="fas fa-tag text-primary me-1"></i>Catégorie: ${CATEGORY_LABELS[geoJson.properties.category] || 'Inconnue'}<br>
-    <i class="fas fa-location-arrow text-success me-1"></i>Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}
+      
+<i class="fas fa-tag text-primary me-1"></i>Catégorie: ${geoJson.properties.category || 'Senza categoria'}<br>
+ <i class="fas fa-location-arrow text-success me-1"></i>Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}
   </div>
 `)
-
         .addTo(drawnItems);
+
+
           // 👇 Aggiungi ogni singolo marker all'array
         geoLayer.eachLayer(marker => markers.push(marker));
     });

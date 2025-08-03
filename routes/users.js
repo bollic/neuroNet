@@ -218,11 +218,22 @@ router.post('/signup', async (req, res) => {
     // Si l'user n'existe pas, créer un nouvel user
     const hashedPassword = await bcrypt.hash(password, 6); // Hacher le mot de passe avec bcrypt
     console.log('🔐 [SIGNUP] Password criptata con bcrypt:', hashedPassword);
-    const newUser = new User({
-      email: email,
-      password: hashedPassword,
-      role: ['office', 'field'].includes(role) ? role : 'field'
-    });
+  let inheritedCategories = ['A', 'B', 'C', 'D', 'E']; // fallback
+
+if (role === 'field') {
+  const officeUser = await User.findOne({ role: 'office' });
+  if (officeUser && Array.isArray(officeUser.categories)) {
+    inheritedCategories = officeUser.categories;
+  }
+}
+
+const newUser = new User({
+  email: email,
+  password: hashedPassword,
+  role: ['office', 'field'].includes(role) ? role : 'field',
+  categories: inheritedCategories
+});
+
       // lo salvo
     await newUser.save(); // Enregistrer le nouvel user dans la base de données
     console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);

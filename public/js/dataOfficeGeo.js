@@ -52,6 +52,14 @@ function initializeMap() {
     map.addControl(drawControl);
     } // Fine della funzione initializeMap() 
 
+  // ✅ Funzione riutilizzabile per assegnare un colore alle categorie
+      function getColorForCategory(cat, colorMap, defaultColors, colorIndexRef) {
+        if (!colorMap[cat]) {
+          colorMap[cat] = defaultColors[colorIndexRef.index % defaultColors.length];
+          colorIndexRef.index++;
+        }
+        return colorMap[cat];
+      }
 
 async function updateMap() {
   console.log("updateMap triggered");
@@ -64,12 +72,31 @@ if (!Array.isArray(points) || points.length === 0) {
 }
 
   const markers = [];
-
-  points.forEach(point => {
+  // ✅ 1. DEFINISCI I COLORI DISPONIBILI
+  const defaultColors = ['red', 'green', 'orange', 'yellow', 'violet', 'black', 'grey', 'blue'];
+  const colorMap = {};
+ 
+   // ✅ 2. MAPPATURA AUTOMATICA DELLE CATEGORIE PRESENTI NEI PUNTI
+  const colorIndexRef = { index: 0 };
+   points.forEach(point => {
+    const cat = point.category || "";
+   // const color = getColorForCategory(cat, colorMap, defaultColors, colorIndexRef);
+     getColorForCategory(cat, colorMap, defaultColors, colorIndexRef);
+   
+    
     if (!point.coordinates || point.coordinates.length !== 2) {
       console.warn("Coordinate non valide:", point.coordinates);
       return;
     }
+    });
+    console.log("🖌️ Mappa colori categorie:", colorMap);
+
+      // ✅ 3. ORA VAI A DISEGNARE I MARKER COME PRIMA
+    points.forEach(point => {
+        if (!point.coordinates || point.coordinates.length !== 2) {
+            console.warn("Coordinate non valide:", point.coordinates);
+            return;
+        }
 
     const geoJson = {
       type: "Feature",
@@ -78,20 +105,34 @@ if (!Array.isArray(points) || points.length === 0) {
         coordinates: point.coordinates
       },
       properties: {
-        name: point.name || "Senza nome"
+        name: point.name || "Senza nome",
+        category:point.category
       }
     };
 
     const geoLayer = L.geoJSON(geoJson, {
-      pointToLayer: function (feature, latlng) {
-        return L.marker(latlng);
-      }
-    }).bindPopup(`
-      <div>
-        <strong>${geoJson.properties.name}</strong><br>
-        Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}
-      </div>
-    `).addTo(drawnItems);
+       pointToLayer: function (feature, latlng) {
+                const category = feature.properties.category || "";
+                const color = colorMap[category] || 'blue';
+                const icon = new L.Icon({
+                    iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+                return L.marker(latlng, { icon });
+            }
+       }).bindPopup(`
+            <div style="min-width: 180px;">
+              <strong><i class="fas fa-map-marker-alt text-danger me-1"></i>${geoJson.properties.name}</strong><br>
+                
+          <i class="fas fa-tag text-primary me-1"></i>Catégorie: ${geoJson.properties.category || 'Senza categoria'}<br>
+          <i class="fas fa-location-arrow text-success me-1"></i>Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}
+            </div>
+          `)
+        .addTo(drawnItems);
 
     geoLayer.eachLayer(marker => markers.push(marker));
   });

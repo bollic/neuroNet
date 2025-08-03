@@ -7,12 +7,12 @@ const PointSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+category: {
+  type: String,
+  required: true
+},
 
-   category: {
-    type: String,
-    enum: ['','A', 'B', 'C', 'D', 'E'], // oppure '1', '2', '3' ecc.
-    default: ''
-  },
+ 
   coordinates: {
     type: [Number], // ✅ coppia [lng, lat] per un punto
     required: true

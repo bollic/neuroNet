@@ -61,6 +61,19 @@
   <% } else { %>
     <p>Nessun punto trovato</p>
   <% } %>
+
+  <!-- 🔧 Form modifica categorie globali -->
+<div class="mt-4">
+  <h5>Categorie globali attuali (per i futuri utenti field):</h5>
+  <p><strong><%= categories.join(', ') %></strong></p>
+
+  <form action="/update-categories" method="POST" class="d-flex flex-column gap-2">
+    <input type="hidden" name="userId" value="<%= user._id %>" />
+    <input type="text" name="newCategories" class="form-control" placeholder="Es: X,Y,Z" required />
+    <button type="submit" class="btn btn-primary w-100">Aggiorna categorie</button>
+  </form>
+</div>
+
       </div>  
       <!-- Mappa -->
       <div class="col-md-9 map-container">
@@ -68,6 +81,13 @@
       </div>
   </div>
 </div><!-- Fine .container-fluid -->
+
+<!-- Dopo aver mostrato gli utenti field e i loro form -->
+<script>
+  const fieldUsers = <%- JSON.stringify(fieldUsers || []) %>;
+  console.log("🔍 fieldUsers nel template:", fieldUsers);
+</script>
+
 <!-- Link in basso visibili sempre -->
 <div class="container my-2">
   <div class="d-flex justify-content-center gap-3">
@@ -79,6 +99,7 @@
     </a>
   </div>
 </div>
+
 
 <div class='container'>
   <div class="row my-4">

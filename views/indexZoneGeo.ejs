@@ -138,6 +138,8 @@
 
 <script>
   const points = <%- JSON.stringify(points || []) %>;
+    console.log("🧪 categorie dell'utente field:", <%- JSON.stringify(user.categories || []) %>);
+    console.log("🔎 Points lato client:", <%- JSON.stringify(points || []) %>);
 </script>
 <%- include('layout/footer') %>
 

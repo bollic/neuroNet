@@ -83,7 +83,7 @@ try {
   };
 
   try {
-    const response = await fetch("/ajoute_point", {
+    const response = await fetch("/addPoint", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -228,24 +228,21 @@ manualButton.addEventListener("click", () => {
              <h3 class="text-light">Add a point</h3>
             </div>       
             <div class="card-body p-4">
-                <form action="/ajoute_point" method="POST" id="add-point">
+                <form action="/addPoint" method="POST" id="add-point">
                     <div class="mb-3">
                       <br>                         
                         <label for="name">Name</label>
                         <input type="text" name="name" class="form-control form-control-lg" 
                         placeholder="Enter name" value="Default Name"  required />
                     </div>     
-                    <select name="category" class="form-control" >
-                      <option value="">Choose a category</option>
-                      <option value="A">Type A</option>
-                      <option value="B">Type B</option>
-                      <option value="C">Type C</option>
-                      <option value="D">Type D</option>
-                      <option value="E">Type E</option>
-                    </select>
+                  
+<select name="category" id="category" class="form-control" required>
+  <% categories.forEach(function(cat) { %>
+    <option value="<%= cat %>"><%= cat %></option>
+  <% }); %>
+</select>
 
-                   
-                         
+
                              <div class="mb-3">
                               <div class="mb-3 d-grid">
 

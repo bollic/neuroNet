@@ -2,6 +2,10 @@
 require("dotenv").config();
 const express = require("express");
 const app = express();
+
+//const PointModel = require('./models/Point');
+//const ParcelleModel = require('./models/Parcelle');
+
 const mongoose = require('mongoose')
 const path = require('path');
 const session = require('express-session');
@@ -34,9 +38,10 @@ mongoose.connect(process.env.DATABASE_URL)
         console.log(`${deletedPoints.deletedCount} punti eliminati per Coucou.`);
         console.log(`${deletedParcelles.deletedCount} parcelle eliminate per Coucou.`);
     */  
-   /*const deletedPoints = await PointModel.deleteMany({});
+   /* // Per eliminare tuuti i punti indistintamente
+const deletedPoints = await PointModel.deleteMany({});
     console.log(`🧹 Pulizia completa. Punti eliminati: ${deletedPoints.deletedCount}`);
-*/
+    */ 
 
       } catch (error) {
         console.error('Errore durante l\'eliminazione dei dati di Coucou:', error);
@@ -64,8 +69,8 @@ app.use(session({
       mongoUrl: process.env.DATABASE_URL
   }),
   cookie: {
-   //secure: false, // ✅ Solo true se in produzione reale
-  secure: process.env.NODE_ENV === 'production', // ✅ solo HTTPS in prod
+  // secure: false, // ✅ Solo true se in produzione reale
+   secure: process.env.NODE_ENV === 'production', // ✅ solo HTTPS in prod
   httpOnly: true,
   sameSite: 'lax',
   maxAge: 24 * 60 * 60 * 1000 // 24 ore
