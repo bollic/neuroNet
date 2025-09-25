@@ -1,0 +1,71 @@
+<!-- Link in basso visibili sempre -->
+<footer class="w-full bg-base-100 py-2 mt-2">
+  <div class="flex flex-wrap justify-center gap-2 text-center">
+
+    <% if (typeof user !== "undefined" && user) { %>
+      <span class="text-dark">
+        Wellcome, <strong><%= user.email %></strong> 
+        (<%= user.role %> | Group: <%= user.groupId || 'N/A'  %> )
+      </span>
+        <% if (typeof referenteOffice !== "undefined" && referenteOffice) { %>
+          <span class="ml-2 text-sm text-gray-600">
+            Référent : <strong><%= referenteOffice.email %></strong>
+          </span>
+        <% } %>
+    
+      
+      <a class="btn btn-sm btn-outline" href="/logout">Log out</a>
+      <form method="POST" action="/delete_account"
+            onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');"
+            style="display: inline;">
+        <button class="btn btn-sm btn-outline-danger" type="submit">
+          Delete account
+        </button>
+      </form>
+    <% } else { %>
+      <a class="btn btn-primary" href="/login">
+        <i class="fas fa-sign-in-alt me-1"></i> Log in
+      </a>
+    <% } %>
+
+    <a class="btn btn-success" href="/indexOfficeParcelle">
+      <i class="fas fa-draw-polygon"></i> Parcelle
+    </a>
+    <a class="btn btn-primary" href="/indexOfficeGeo">
+      <i class="fas fa-circle-dot"></i> Point
+    </a>
+    <a href="/indexOfficeGeo?view=points" class="btn btn-primary">
+      <i class="fas fa-map-pin me-1"></i> My Points
+    </a>
+    
+  </div>
+</footer>
+
+
+<!-- I tuoi script personalizzati -->
+<script src="/js/popupMod.js"></script>
+
+<script>
+async function updateGroupId(userId) {
+  const newGroupId = document.getElementById(`groupId-${userId}`).value;
+
+  try {
+    const res = await fetch(`/users/${userId}/groupId`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupId: newGroupId })
+    });
+
+    if (res.ok) {
+      alert('Group ID aggiornato con successo!');
+    } else {
+      alert('Errore durante aggiornamento');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Errore di rete');
+  }
+}
+</script>
+</body>
+</html>

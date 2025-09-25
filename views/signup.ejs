@@ -1,28 +1,9 @@
 <%- include('layout/header') %>
 
-<div class="col-md-4 col-sm-6 mx-auto mt-5">
-  <div class="card shadow-sm">
-    <div class="card-header bg-primary text-white text-center">
-      <h3>Se connecter</h3>
-    </div>
-
-  <div class="card-body p-3">
-
-<h2>Registration de : <%= role %></h2>
-
-<form action="/signup" method="post">
-    <div class="mb-2">
-      <label for="email" class="form-label">Email:</label>
-      <input type="email" class="form-control" name="email" id="email" required>
-    </div>
-    <div class="mb-3">
-      <label for="password" class="form-label">Password:</label>
-      <input type="password" class="form-control" name="password" id="password" required>
-    </div>
-    <input type="hidden" name="role" value="<%= role %>">
-
-
-     <!-- Campo nascosto per il ruolo -->
-    <button type="submit" class="btn btn-primary w-100">S'inscrire</button>
-  </form>
+<div class="flex justify-center items-center min-h-screen">
+<div class="card shadow-lg w-full max-w-md p-6 bg-white mt-10">
+  <h2 class="text-xl font-semibold mb-4">Inscription rapide</h2>
+  <%- include('partials/signup-form', { role: "field" }) %>
+</div>
+</div>
     <%- include('layout/footer') %>

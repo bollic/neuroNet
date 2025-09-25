@@ -1,42 +1,46 @@
-
 document.addEventListener("DOMContentLoaded", function() { 
- 
     let map; 
     let layerGroup;  
     let drawnItems;  
-    //  AGGIORNA I DATI CON LA RISPOSTA DEL SERVER
-  
-    const sidebar = document.getElementById('sidebar');
-     // Gestione eventi Bootstrap
-    sidebar.addEventListener('shown.bs.collapse', function() {
-        document.body.classList.add('sidebar-open');
-        setTimeout(() => map.invalidateSize(), 300);
-    });
+    const parcelles = window.PARCELLES || [];
+  const fieldUsers = window.FIELD_USERS || [];
+  console.log("🔍 FIELD_USERS:", fieldUsers);
+  console.log("📍 POINTS ricevuti:", parcelles);
+ // ========================
+  // DaisyUI drawer toggle
+  // ========================
+  const drawerToggle = document.getElementById("my-drawer");
+  drawerToggle.addEventListener("change", function () {
+    if (drawerToggle.checked) {
+      document.body.classList.add("sidebar-open");
+      setTimeout(() => map.invalidateSize(), 300);
+    } else {
+      document.body.classList.remove("sidebar-open");
+      map.invalidateSize();
+    }
+  });
 
-    sidebar.addEventListener('hidden.bs.collapse', function() {
-        document.body.classList.remove('sidebar-open');
-        map.invalidateSize();
-    });
-
-    // Chiusura click esterno
-    document.addEventListener('click', function(event) {
-        if (!sidebar.contains(event.target) && 
-            !event.target.closest('.navbar-toggler') && 
-            sidebar.classList.contains('show')) {
-            bootstrap.Collapse.getInstance(sidebar).hide();
-        }
-    });
     // Aggiorna la mappa dopo il rendering iniziale
     setTimeout(() => map.invalidateSize(), 500);
-    
+
+   // ========================
+  // Inizializza la mappa
+  // ========================
 function initializeMap() {
+   if (!window.L) {
+      console.error(
+        "Leaflet non caricato: controlla i <script> nel layout/headerOfficeGeo."
+      );
+      return;
+    }
       map = L.map("map", { center: [43.2, 1.30], zoom: 10 });       
         layerGroup = L.featureGroup().addTo(map);  // Marker
         drawnItems = L.featureGroup().addTo(map);  // Poligoni
     // TileLayer con attribuzioni
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
         maxZoom: 19,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        attribution:
+         '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       }).addTo(map);      
      // Draw control (come nella tua versione)
      var drawControl = new L.Control.Draw({
@@ -47,38 +51,76 @@ function initializeMap() {
         },
         draw: false
     });
-
-  // Event handling
     map.addControl(drawControl);
-    } // Fine della funzione initializeMap() 
+  } // Fine della funzione initializeMap() 
 
+  // ========================
+  // Funzione colore categorie
+  // ========================
+  function getColorForCategory(cat, colorMap, defaultColors, colorIndexRef) {
+    if (!colorMap[cat]) {
+      colorMap[cat] =
+        defaultColors[colorIndexRef.index % defaultColors.length];
+      colorIndexRef.index++;
+    }
+    return colorMap[cat];
+  }
 
-async function updateMap() {
+  // ========================
+  // Disegna i punti sulla mappa
+  // ========================
+async function updateMap(data = parcelles) {
   console.log("updateMap triggered");
   layerGroup.clearLayers();
   drawnItems.clearLayers();
+  // Controllo array globale
+if (!Array.isArray(data) || data.length === 0) return;
 
-if (!Array.isArray(parcelles) || parcelles.length === 0) {
-  console.warn("Nessuna parcella disponibile");
-  return;
-}
-
-  const polygons = [];
-
-  parcelles.forEach(parcelle => {
-    if (!parcelle.geometry || parcelle.geometry.type !== 'Polygon' || !parcelle.geometry.coordinates) {
-     console.warn("Geometria non valida:", parcelle);
+  
+    const polygons = [];
+    const defaultColors = [
+      "red",
+      "green",
+      "orange",
+      "yellow",
+      "violet",
+      "black",
+      "grey",
+      "blue",
+    ];
+    const colorMap = {};
+    const colorIndexRef = { index: 0 };
+    
+   // assegna colori alle categorie
+    parcelles.forEach((parcelle) => {
+      const cat = parcelle.category || "";
+      getColorForCategory(cat, colorMap, defaultColors, colorIndexRef);
+    });
+    console.log("🖌️ Mappa colori categorie:", colorMap);
+    
+  // disegna parcelle (poligoni)
+  data.forEach((parcelle) => {
+    if (
+      !Array.isArray(parcelle.coordinates) ||
+      parcelle.coordinates.length === 0
+    ) {
+      console.warn("Geometria non valida:", parcelle);
       return;
     }
 
-    const geoJson = {
-      type: "Feature",
-       geometry: parcelle.geometry,
-      properties: {
-        name: parcelle.name || "Senza nome",
-        user: parcelle.user?.email || "Field user"
-      }
-    };
+  const geoJson = {
+    type: "Feature",
+    geometry: { 
+      type: "Polygon",
+      coordinates: parcelle.coordinates
+    },
+    properties: {
+      name: parcelle.name || "Sans nom",
+      category: parcelle.category || "Sans category",
+    },
+  };
+      const category = geoJson.properties.category || "";
+    const color = colorMap[category] || "blue";
 
     const geoLayer = L.geoJSON(geoJson, {
       style: {
@@ -87,65 +129,158 @@ if (!Array.isArray(parcelles) || parcelles.length === 0) {
         opacity: 0.7,
         fillOpacity: 0.2
       },
+      
       onEachFeature: function (feature, layer) {
         const popupContent = `
           <div>
             <strong>${feature.properties.name}</strong><br>
+            Catégorie: ${feature.properties.category}<br>
             Utente: ${feature.properties.user}
           </div>
         `;
         layer.bindPopup(popupContent);
       }
     }).addTo(drawnItems);
-   geoLayer.eachLayer(layer => {
+
+    geoLayer.eachLayer(layer => {
       if (layer.getBounds) {
         polygons.push(layer.getBounds());
       }
     });
+
+// Aggiungi marker ai vertici della parcella
+parcelle.coordinates.forEach(ring => {
+  ring.forEach(coord => {
+    const [lng, lat] = coord;
+    const category = parcelle.category || "";
+    const color = colorMap[category] || "blue"; // prendi il colore assegnato alla categoria
+
+    const icon = new L.Icon({
+      iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+      shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/images/marker-shadow.png",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41],
+    });
+
+    const marker = L.marker([lat, lng], { icon }).addTo(layerGroup);
+    marker.bindPopup(`<strong>${parcelle.name}</strong><br>Catégorie: ${parcelle.category}`);
+  });
+});
+
+
+
   });
 
-   if (polygons.length === 1) {
-    map.fitBounds(polygons[0], { padding: [20, 20] });
-  } else if (polygons.length > 1) {
-    const allBounds = polygons.reduce((acc, b) => acc.extend(b), polygons[0]);
-    map.fitBounds(allBounds, { padding: [30, 30] });
+    if (polygons.length === 1) {
+      map.fitBounds(polygons[0], { padding: [30, 30] });
+    } else if (polygons.length > 1) {
+      const bounds = L.latLngBounds([]);
+     polygons.forEach((b) => bounds.extend(b)); // ogni b è già un LatLngBounds
+     map.fitBounds(bounds, { padding: [30, 30] });
+    }
   }
-}
-        // Initialize map only once, then update content
-        if (!map) {
-          initializeMap();
-        }
+  // ========================
+  // Avvio mappa
+  // ========================
+  if (!map) initializeMap();
+  setTimeout(() => {
+    map.invalidateSize();
+    updateMap();
+  }, 200);
 
-        setTimeout(() => {
-          map.invalidateSize(); // Ensure map is resized
-          updateMap(); // Update markers and polylines
-        }, 100); // Short delay to ensure rendering
+  // ========================
+  // User map
+  // ========================
+  const userMap = {};
+  fieldUsers.forEach((u) => (userMap[u._id] = u.email));
+
+  // ========================
+  // DataTables
+  // ========================
+  const dtParcelles = parcelles.map((p) => ({
+    name: p.name,
+    category: p.category || '',   // <-- fallback se undefined
+    createdAtFormatted: p.createdAtFormatted,   // visibile in tabella
+    createdAtISO: p.createdAtISO,      // nascosto per i filtri
+    userEmail: p.userEmail || "❓utente sconosciuto",
+    userId: p.userId || null,
+    _id: p._id,
+    coordinates: p.coordinates || p.geometry?.coordinates || []
+  }));
+
+  console.log("💠 dtPoints per DataTables:", dtParcelles);
+const table = $("#main-table").DataTable({
+  data: dtParcelles,
+  columns: [
+    { data: 'name', title: 'Name' },
+    { data: 'category', title: 'Category' },   
+    { data: 'createdAtFormatted', title: 'Date' },  
+    { data: 'createdAtISO', visible: false },   
+    {
+      data: null,
+      title: 'Action',
+      orderable: false,
+      render: function(data, type, row) {
+        return `<a href="/delete/${row._id}" class="btn btn-xs btn-error"><i class="fas fa-trash"></i></a>`;
+      }
+    }
+  ],
   
-    // 1. INIZIALIZZA DATATABLES - SPOSTATO IN FONDO
-    const tableElement = document.getElementById('main-table');
-if (tableElement) {
-   /* const table = $('#main-table').DataTable({
-        pageLength: 20,
-        language: {
-           url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/it-IT.json'
-        }
-    });*/
-    
-     // 2. GESTIONE CAMBIO ELEMENTI PER PAGINA
-  /*  $('#page-length').on('change', function() {
-        table.page.len($(this).val()).draw();
-    });
-   */
-
-    // 3. AGGIORNA SELECT CON VALORE CORRENTE
- /*   table.on('length.dt', function(e, settings, len) {
-        $('#page-length').val(len);
-    });
+  order: [[1, 'asc']],
+  rowGroup: { dataSrc: "userId",
+     startRender: function(rows, group) {
+    const email = rows.data().pluck("userEmail")[0];
+    return $('<tr/>')
+    .addClass('group-row')
+    .append(`
+      <td colspan="5" class="bg-base-300 font-bold">
+        <i class="fas fa-user"></i> ${email}
+      </td>
+    `);
+   }
+  },
+});
+/*
+  // Popoliamo il select categorie dinamicamente
+const categories = [...new Set(dtParcelles.map(p => p.category))];
+categories.forEach(cat => {
+  $("#filter-category").append(`<option value="${cat}">${cat}</option>`);
+});
 */
-    // Aggiungi questi console.log per debug
-   // console.log("DataTables inizializzato:", table);
-   // console.log("Elementi nella tabella:", table.rows().count());
-    } else {
-  console.warn("Tabella non trovata: #main-table");
-}
-}); 
+// Dopo aver creato la DataTable
+const uniqueCategories = [...new Set(dtParcelles.map(p => p.category).filter(Boolean))];
+uniqueCategories.forEach(cat => {
+  $("#filter-category").append(`<option value="${cat}">${cat}</option>`);
+});
+
+$("#filter-date").on("change", function () {
+  const val = this.value;
+  table.column(3).search(val || "").draw();
+  console.log("🔍 Filtro data attivo:", val);
+});
+
+  // Filtro categoria
+  $("#filter-category").on("change", function () {
+    const val = this.value;
+    table.column(1).search(val ? "^" + val + "$" : "", true, false).draw();
+    console.log("🔍 Filtro categoria attivo:", val);
+
+      // Aggiorna mappa con soli dati filtrati
+  const filteredData = table.rows({ filter: 'applied' }).data().toArray();
+  updateMap(filteredData);
+  });
+
+  $("#page-length").on("change", function () {
+    table.page.len($(this).val()).draw();
+  });
+
+  table.on("length.dt", function (e, settings, len) {
+    $("#page-length").val(len);
+  });
+
+//  console.log("DataTables inizializzato:", table);
+  console.log("Elementi nella tabella:", table.rows().count());
+});
+   

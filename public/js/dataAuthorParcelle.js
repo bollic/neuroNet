@@ -4,28 +4,20 @@ document.addEventListener("DOMContentLoaded", function() {
     let map; 
     let layerGroup;  
     let drawnItems;  
-    //  AGGIORNA I DATI CON LA RISPOSTA DEL SERVER
-  
-    const sidebar = document.getElementById('sidebar');
-     // Gestione eventi Bootstrap
-    sidebar.addEventListener('shown.bs.collapse', function() {
-        document.body.classList.add('sidebar-open');
-        setTimeout(() => map.invalidateSize(), 300);
-    });
+     // DaisyUI drawer toggle
+        const drawerToggle = document.getElementById("my-drawer");
 
-    sidebar.addEventListener('hidden.bs.collapse', function() {
-        document.body.classList.remove('sidebar-open');
-        map.invalidateSize();
-    });
-
-    // Chiusura click esterno
-    document.addEventListener('click', function(event) {
-        if (!sidebar.contains(event.target) && 
-            !event.target.closest('.navbar-toggler') && 
-            sidebar.classList.contains('show')) {
-            bootstrap.Collapse.getInstance(sidebar).hide();
+        // Quando il drawer viene aperto
+        drawerToggle.addEventListener("change", function () {
+        if (drawerToggle.checked) {
+            document.body.classList.add("sidebar-open");
+            setTimeout(() => map.invalidateSize(), 300);
+        } else {
+            document.body.classList.remove("sidebar-open");
+            map.invalidateSize();
         }
-    });
+        });
+
     // Aggiorna la mappa dopo il rendering iniziale
     setTimeout(() => map.invalidateSize(), 500);
     
@@ -38,7 +30,7 @@ function initializeMap() {
         maxZoom: 19,
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
       }).addTo(map);      
-     // Draw control (come nella tua versione)
+     // Draw control 
      var drawControl = new L.Control.Draw({
         edit: { 
             featureGroup: drawnItems,
@@ -48,8 +40,8 @@ function initializeMap() {
         draw: false
     });
 
-  // Event handling
     map.addControl(drawControl);
+
       // Evento per la modifica dei poligoni
       map.on('draw:edited', function(e) {
         e.layers.eachLayer(async (layer) => {
@@ -78,7 +70,8 @@ function initializeMap() {
         });
     });
    
-    } // Fine della funzione initializeMap() 
+    } 
+    // Fine della funzione initializeMap() 
 
 //console.log("Triangolo con groupedArticles:", groupedArticles['trepunti']);
 //console.log("Triangoli con groupedArticles:", groupedArticles['triangle']);

@@ -1,0 +1,56 @@
+<form action="/signup" method="POST" class="space-y-4">
+
+    
+  <!-- Spiegazione veloce -->
+  <% if (role === "field") { %>
+    <p class="text-sm text-gray-600 mb-2">
+      Chaque <strong>membre</strong> rejoint un groupe déjà existant.
+      Choisissez votre communauté et inscrivez-vous.
+    </p>
+  <% } else if (role === "office") { %>
+    <p class="text-sm text-gray-600 mb-2">
+      En tant qu’<strong>Office</strong>, vous <u>créez</u> un nouveau groupe et vous en devenez le référent.
+    </p>
+  <% } %>
+
+  <!-- Groupe -->
+
+  <div>
+    <label for="group" class="block text-sm font-medium text-gray-700">
+        Groupe / Communauté
+    </label>
+    <select name="groupId" id="group" required
+      class="select select-bordered w-full mt-1">
+      <option value="TOUC">🏙️ Toulouse Centre</option>
+      <option value="LYNN">🌉 Lyon Nord</option>
+      <option value="PARE">🌆 Paris Est</option>
+      <option value="MARS">🌞 Marseille Sud</option>
+      <option value="NICO">🌊 Nice Ouest</option>
+    </select>
+  </div>
+
+  <!-- Email -->
+  <div>
+    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+    <input type="email" name="email" id="email" required
+      class="input input-bordered w-full mt-1" />
+  </div>
+
+  <!-- Password -->
+  <div>
+    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+    <input type="password" name="password" id="password" required
+      class="input input-bordered w-full mt-1" />
+  </div>
+    <!-- Ruolo nascosto -->
+  <input type="hidden" name="role" value="<%= role %>">
+
+  <!-- Bottone -->
+  <button type="submit" class="btn btn-primary w-full mt-2">
+    <% if (role === "field") { %>
+      🚀 Rejoindre le groupe
+    <% } else { %>
+      🏢 Créer le groupe
+    <% } %>
+  </button>
+</form>

@@ -1,0 +1,66 @@
+<%- include('layout/header') %>
+
+<style>
+  #group-feed {
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+</style>
+
+<div class="flex flex-row h-[80vh]">
+  <!-- Sidebar a sinistra -->
+  <aside class="w-80 bg-base-200 p-4 overflow-y-auto shadow-md">
+    <h2 class="text-xl font-bold mb-4 text-primary">
+      Gruppo: <%= groupId %>
+    </h2>
+
+    <!-- Membri -->
+    <h4 class="font-semibold mb-2">👥 Membri</h4>
+    <ul class="list-group mb-4">
+      <% if (members && members.length > 0) { %>
+        <% members.forEach(m => { %>
+          <li class="list-group-item">
+            <%= m.email %> (<%= m.role %>)
+          </li>
+        <% }) %>
+      <% } else { %>
+        <li class="list-group-item text-muted">Nessun membro trovato.</li>
+      <% } %>
+    </ul>
+
+    <!-- Tabella punti -->
+    <h4 class="font-semibold mb-2">📍 Punti del gruppo</h4>
+    <% if (points && points.length > 0) { %>
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Categoria</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% points.forEach(p => { %>
+              <tr>
+                <td><%= p.name %></td>
+                <td><%= p.category || 'Senza categoria' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <div class="text-center text-secondary mt-5">
+        Nessun punto trovato.
+      </div>
+    <% } %>
+  </aside>
+
+  <!-- Contenuto principale: il feed -->
+  <div class="flex-1 p-6">
+    <h4 class="text-lg font-semibold mb-3">📌 Feed del gruppo</h4>
+    <%- include("partials/groupFeed", { points, user: members[0] }) %>
+  </div>
+</div>
+
+<%- include('layout/footer') %>

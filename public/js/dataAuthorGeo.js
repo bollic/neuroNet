@@ -6,26 +6,21 @@ document.addEventListener("DOMContentLoaded", function() {
     let drawnItems;  
     //  AGGIORNA I DATI CON LA RISPOSTA DEL SERVER
   
-    const sidebar = document.getElementById('sidebar');
-     // Gestione eventi Bootstrap
-    sidebar.addEventListener('shown.bs.collapse', function() {
-        document.body.classList.add('sidebar-open');
-        setTimeout(() => map.invalidateSize(), 300);
-    });
+    //const sidebar = document.getElementById('sidebar');
+   // DaisyUI drawer toggle
+        const drawerToggle = document.getElementById("my-drawer");
 
-    sidebar.addEventListener('hidden.bs.collapse', function() {
-        document.body.classList.remove('sidebar-open');
-        map.invalidateSize();
-    });
-
-    // Chiusura click esterno
-    document.addEventListener('click', function(event) {
-        if (!sidebar.contains(event.target) && 
-            !event.target.closest('.navbar-toggler') && 
-            sidebar.classList.contains('show')) {
-            bootstrap.Collapse.getInstance(sidebar).hide();
+        // Quando il drawer viene aperto
+        drawerToggle.addEventListener("change", function () {
+        if (drawerToggle.checked) {
+            document.body.classList.add("sidebar-open");
+            setTimeout(() => map.invalidateSize(), 300);
+        } else {
+            document.body.classList.remove("sidebar-open");
+            map.invalidateSize();
         }
-    });
+        });
+
     // Aggiorna la mappa dopo il rendering iniziale
     setTimeout(() => map.invalidateSize(), 500);
     
@@ -83,7 +78,9 @@ function initializeMap() {
 //console.log("Triangolo con groupedArticles:", groupedArticles['trepunti']);
 //console.log("Triangoli con groupedArticles:", groupedArticles['triangle']);
 //console.log("Pentagoni con groupedArticles:", groupedArticles['pentagone']);
- function updateMap() {
+console.log("📌 points ricevuti:", points);
+
+function updateMap() {
     console.log("updateMap triggered");  
     layerGroup.clearLayers();
     drawnItems.clearLayers();    
@@ -144,12 +141,12 @@ console.log("🖌️ Mappa colori categorie:", colorMap);
             }
 
         }).bindPopup(`
-  <div style="min-width: 180px;">
-    <strong><i class="fas fa-map-marker-alt text-danger me-1"></i>${geoJson.properties.name}</strong><br>
-      
-<i class="fas fa-tag text-primary me-1"></i>Catégorie: ${geoJson.properties.category || 'Senza categoria'}<br>
- <i class="fas fa-location-arrow text-success me-1"></i>Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}
-  </div>
+            <div style="min-width: 180px;">
+                <strong><i class="fas fa-map-marker-alt text-danger me-1"></i>${geoJson.properties.name}</strong><br>                
+                <i class="fas fa-tag text-primary me-1"></i>Catégorie: ${geoJson.properties.category || 'Senza categoria'}<br>
+                <i class="fas fa-location-arrow text-success me-1"></i>Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}<br>
+                ${point.image ? `<img src="${point.image}" alt="Immagine punto" style="width: 40px; height: 40px; margin-top: 6px; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">` : ''}
+            </div>
 `)
         .addTo(drawnItems);
 

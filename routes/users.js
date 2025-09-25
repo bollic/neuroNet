@@ -21,10 +21,21 @@ function isAdmin(req, res, next) {
 
     return next(); // Si l'admin est connecté, continuer l'exécution
   } else {
-    // Memorizza la route originaria nella sessione per redirigere dopo il login
+    // Memorizza la route originaria nella sessione per redirigere dopo il lgin
     req.session.redirectTo = req.originalUrl;
     return res.redirect('/login'); 
    }
+}
+function sameOrgOrAdmin(req, res, next) {
+  const user = req.session.user;
+  if (!user) return res.status(401).send('Non autenticato');
+
+  if (user.role === 'admin') return next();
+
+  // Serve impostare prima req.resourceOrg (o groupId)
+  if (String(user.groupId) === String(req.resourceGroupId)) return next();
+
+  return res.status(403).send('Accesso negato');
 }
 
 //VADO A: qs e' l indirizzo web ed event. Links http://localhost:3000/login
@@ -99,10 +110,11 @@ console.log("🧪 bcrypt.compare (TEST) →", await bcrypt.compare("field1", "$2
       _id: userFromDb._id, // 👈 AGGIUNGI QUESTO!
       email: userFromDb.email,
       role: userFromDb.role,
+      groupId: userFromDb.groupId,   // 👈 aggiunto
       isAdmin: userFromDb.role === 'admin'
     };
     console.log('📦 Sessione prima del salvataggio:', req.session);
-    console.log('🧠 Sessione impostata:', req.session.user);
+ console.log("🧩 Sessione dopo login:", req.session.user);
     // 🔁 Decidi il redirect finale
 let redirectTo = req.session.redirectTo;
     
@@ -194,7 +206,7 @@ router.get("/signup", (req, res) => {
 });
 // Traitement du formulaire de signup
 router.post('/signup', async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password, role, groupId } = req.body;
   console.log('📨 [SIGNUP] Richiesta ricevuta');
   console.log('📨 [SIGNUP] Email:', email);
   console.log('📨 [SIGNUP] Password in chiaro dal form:', password);
@@ -231,7 +243,8 @@ const newUser = new User({
   email: email,
   password: hashedPassword,
   role: ['office', 'field'].includes(role) ? role : 'field',
-  categories: inheritedCategories
+  categories: inheritedCategories,
+  groupId: groupId
 });
 
       // lo salvo
@@ -250,6 +263,7 @@ const newUser = new User({
     _id: newUser._id,  
     email: newUser.email,
     role: newUser.role,
+    groupId: newUser.groupId,
     isAdmin: newUser.role === 'admin'
    };
    console.log('Sessione al User:', req.session);
@@ -312,6 +326,16 @@ async function ensureAdminExists(req, res, next) {
     return res.status(500).send('Erreur serveur');
   }
 }
+
+router.post('/users/:id/groupId', isAdmin, async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(req.params.id, { groupId: req.body.groupId });
+    res.sendStatus(200); // Risponde 200 OK senza redirect
+  } catch (err) {
+    console.error('Errore aggiornamento groupId:', err);
+    res.status(500).send('Errore server');
+  }
+});
 
 // Use this middleware on a route or globally
 router.use(ensureAdminExists);

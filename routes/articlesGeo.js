@@ -1,12 +1,14 @@
 const express = require("express");
 const router = express.Router();
 const fs = require('fs');
+const path = require('path');  // <--- aggiungi questa riga
 const bcrypt = require('bcrypt'); // Utilisé pour comparer les mots de passe hachés
 
 const mongoose = require('mongoose');
 const User = require('../models/users');
 const PointModel = require('../models/Point'); 
 const ParcelleModel = require('../models/Parcelle'); 
+
 // Ottieni ObjectId da Mongoose
 const ObjectId = mongoose.Types.ObjectId;
 const multer = require('multer');
@@ -18,19 +20,15 @@ var storage = multer.diskStorage({
     cb(null, './uploads'); // Cartella di destinazione
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname); // Nome file originale
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
   },
 });
 
 // Configurazione di multer per gestire più immagini
-var upload = multer({
-  storage: storage,
-}).fields([
-  { name: 'image_0', maxCount: 1 },
-  { name: 'image_1', maxCount: 1 },
-  { name: 'image_2', maxCount: 1 },
-]);
-
+const uploadSingle = multer({ storage }).single("image");
+/*
 router.get('/', async (req, res) => {
   try {       
     const user = req.session.user || null;
@@ -46,6 +44,75 @@ router.get('/', async (req, res) => {
     res.status(500).send('Erreur lors de la récupération des points');
   }
 });
+*/
+
+
+router.get('/', async (req, res) => {
+  try {
+  console.log("➡️ Entrato in / con sessione:", req.session);
+  const user = req.session.user || null;
+  console.log("👤 Utente:", user);
+    // 👇 Redireziona subito in base al ruolo
+    if (user) {
+      if (user.role === "office") {
+        return res.redirect("/indexOfficeGeo");
+      }
+      if (user.role === "field") {
+        return res.redirect("/indexZoneGeo");
+      }
+      if (user.role === "admin") {
+        return res.redirect("/users"); // o dove preferisci
+      }
+    }
+    // 1) Trova tutti i gruppi unici
+    const groupIds = await User.distinct("groupId", { groupId: { $ne: null } });
+
+    const groupsPreview = [];
+
+    for (const groupId of groupIds) {
+      // 2) Tutti i membri del gruppo
+      const members = await User.find({ groupId }).select("email role").lean();
+
+      // 3) Punti del gruppo
+      const pointsCount = await PointModel.countDocuments({ groupId });
+
+      // 4) Preview: prendo max 5 membri (puoi cambiare numero)
+      const membersPreview = members.slice(0, 5);
+
+      groupsPreview.push({
+        groupId,
+        totalMembers: members.length,
+        pointsCount,
+        membersPreview // contiene email e role
+      });
+    }
+
+    res.render('index', {
+      title: 'La liste des points',
+      session: req.session,
+      user,
+      groupsPreview // 🔑 Passiamo i dati alla view
+    });
+
+  } catch (error) {
+    console.error('❌ Errore durante caricamento index:', error);
+    res.status(500).send('Erreur lors de la récupération des groupes');
+  }
+});
+
+router.get('/groups/:groupId', async (req, res) => {
+  const { groupId } = req.params;
+  
+  const groupMembers = await User.find({ groupId });
+  const points = await PointModel.find({ groupId });
+
+  res.render('group-detail', {
+    groupId,
+    members: groupMembers,
+    points
+  });
+});
+
 // routes/zoneParcelle.js o simile
 router.get('/indexZoneParcelle', isAuthenticated, onlyField, async (req, res) => {
   console.log('🌿 ROUTE /indexZoneParcelle chiamata');
@@ -81,59 +148,74 @@ router.get('/indexZoneParcelle', isAuthenticated, onlyField, async (req, res) =>
   }
 });
 
-/*
- router.get('/indexZoneParcelle',  isAuthenticated, onlyField,  async (req, res) => {
-  try {
-  const userId = req.session.user ? req.session.user._id : null;
-      
-     if (!userId) {
-      // Se non c'è un utente loggato, rimanda alla home o mostra un messaggio di errore
-      return res.status(401).send('Utente non autenticato');
-    } 
-
-    const parcelles = await ParcelleModel.find({ user: userId }).limit(30).populate('user');
-        // 🔽🔽🔽 AGGIUNGI QUESTO BLOCCO QUI
-    const view = req.query.view;
-    if (view === 'parcelles') {
-      return res.render('mesParcelles', {
-        userId,
-        parcelles,
-        session: req.session
-      });
-    }
-       // Passa i dati raggruppati alla vista
-    res.render('indexZoneParcelle', { 
-      parcelles, // 👈 aggiunto
-      session: req.session, // Passer la session à la vue
-      user: req.session.user, // Vérifiez si un user est connecté
-   
-    });
-  } catch (error) {
-      console.error(error);
-      res.status(500).send('Errore del server');
-  }
-});  
-*/
-
 router.get('/indexOfficeParcelle', isAuthenticated, onlyOffice, async (req, res) => {
   try {
     if (req.session.user.role !== 'office') {
       return res.redirect('/');
     }
 
-    // Trova tutti gli utenti con ruolo "field"
-    const fieldUsers = await User.find({ role: 'field' }).select('_id');
-    const fieldUserIds = fieldUsers.map(user => user._id);
+    // Recupera l'utente office attuale
+    const currentUser = await User.findById(req.session.user._id);
+    if (!currentUser) {
+      return res.status(404).send("Utente office non trovato");
+    }
 
-    // Trova tutte le parcelle create da questi utenti
-    const parcelles = await ParcelleModel.find({ user: { $in: fieldUserIds } }).populate('user');
+    const categories = currentUser.categories || ["A", "B", "C", "D", "E"];
+
+    // Recupera SOLO gli utenti field del suo gruppo
+    const fieldUsers = await User.find({
+      role: 'field',
+      groupId: currentUser.groupId,
+    });
+
+    console.log("👥 Utenti field trovati:", fieldUsers.length);
+
+    const fieldUserIds = fieldUsers.map((u) => u._id);
+    const parcellesRaw = await ParcelleModel.find({
+      user: { $in: fieldUserIds },
+      groupId: currentUser.groupId
+    }).populate('user', 'email');
+
+    console.log("📍 ParcellesRaw trovate:", parcellesRaw.length);
+    parcellesRaw.forEach((p,i) => {
+      console.log(`[${i+1}] Parcelle: ${p.name}, creato da → ${p.user ? p.user.email : '❓ utente mancante'}`);
+    });
+
+    // 👉 unico mapping per il client
+    const parcellesForClient = parcellesRaw.map(p => {
+      const date = p.createdAt ? new Date(p.createdAt) : null;
+      const cats = p.categories || (p.category ? [p.category] : []);
+
+      return {
+        _id: p._id,
+        name: p.name,
+        category: cats.length ? cats.join(', ') : '',
+        coordinates: p.geometry?.coordinates || [],
+        userEmail: p.user?.email || '❓',
+        userId: p.user?._id?.toString() || null,
+        createdAtFormatted: date
+          ? date.toLocaleString("it-IT", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "",
+        createdAtISO: date ? date.toISOString().slice(0, 10) : "",
+      };
+    });
 
     const message = req.session.message;
     req.session.message = null;
 
+    // 👉 un solo res.render
     res.render('indexOfficeParcelle', {
+      parcelles: parcellesForClient,
+      fieldUsers,
+      categories,
       user: req.session.user,
-      parcelles,
+      groupId: currentUser.groupId,
       session: req.session,
       message
     });
@@ -144,65 +226,113 @@ router.get('/indexOfficeParcelle', isAuthenticated, onlyOffice, async (req, res)
   }
 });
 
-
-router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
+router.get("/indexOfficeGeo", isAuthenticated, onlyOffice, async (req, res) => {
   try {
-    if (req.session.user.role !== 'office') {
-      return res.redirect('/');
+    // Sicurezza: solo office
+    if (req.session.user.role !== "office") {
+      return res.redirect("/");
     }
 
-    // Recupera tutti gli ID degli utenti field
-    const fieldUsers = await User.find({ role: 'field' });
-const currentUser = await User.findById(req.session.user._id);
-const categories = currentUser.categories || ['A', 'B', 'C', 'D', 'E'];
-   // const fieldUsers = await User.find({ role: 'field' }).select('_id');
-    console.log('Utenti con ruolo "field" trovati:', fieldUsers.length);
-    console.log('ID utenti field:', fieldUsers.map(u => u._id.toString()));
+    // Recupera l'utente office attuale
+    const currentUser = await User.findById(req.session.user._id);
+    if (!currentUser) {
+      return res.status(404).send("Utente office non trovato");
+    }
 
-    const fieldUserIds = fieldUsers.map(user => user._id);
+    const categories = currentUser.categories || ["A", "B", "C", "D", "E"];
 
-    // Recupera TUTTI i punti nel DB (debug temporaneo)
-    const allPoints = await PointModel.find().populate('user');
-    console.log('📦 [DEBUG] Tutti i punti nel DB (grezzi):');
-    allPoints.forEach((p, i) => {
-       const creatorEmail = p.user?.email || '❓(utente mancante)';
-      console.log(`[${i + 1}] Punto: ${p.name}, creato da email : ${creatorEmail}, user: ${p.user?._id}`);
+    // Recupera SOLO gli utenti field del suo gruppo
+    const fieldUsers = await User.find({
+      role: "field",
+      groupId: currentUser.groupId,
     });
-   console.log('🎯 [DEBUG] Numero punti PRIMA del filtro:', allPoints.length);
-  
-   // 🔍 ANALISI: Punti per ciascun utente field
-  /*  fieldUserIds.forEach(uid => {
-      const puntiUtente = allPoints.filter(p => p.user?._id.equals(uid));
-      console.log(`➡️ Punti trovati per utente ${uid}:`, puntiUtente.length);
-    });
-    */
-    fieldUsers.forEach(user => {
-  const puntiUtente = allPoints.filter(p => p.user?._id.equals(user._id));
-  console.log(`➡️ Utente field: ${user.email} (ID: ${user._id}) — Punti trovati: ${puntiUtente.length}`);
+
+    console.log("👥 Utenti field trovati:", fieldUsers.length);
+
+    const fieldUserIds = fieldUsers.map((u) => u._id); // ObjectId, NON string
+const pointsRaw = await PointModel.find({
+  user: { $in: fieldUserIds },
+  groupId: currentUser.groupId
+}).populate('user', 'email');
+// 👇 aggiungi qui i log di debug
+console.log('📍 Punti trovati dopo il filtro:', pointsRaw.length);
+pointsRaw.forEach((p,i) => {
+  console.log(`[${i+1}] Punto: ${p.name}, creato da → ${p.user ? p.user.email : '❓ utente mancante'}`);
+});
+// Mappa i punti con userEmail, userId e date
+const points = pointsRaw.map(p => {
+  const date = p.createdAt ? new Date(p.createdAt) : null;
+
+  return {
+    _id: p._id,
+    name: p.name,
+    category: p.category,
+    coordinates: p.coordinates || [], // necessario per Leaflet
+
+    createdAtFormatted: date
+      ? date.toLocaleString("it-IT", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "",
+
+    createdAtISO: date ? date.toISOString().slice(0, 10) : "", // 👈 campo nascosto per filtro DataTables
+
+    userId: p.user ? p.user._id.toString() : null,
+    userEmail: p.user ? p.user.email : "❓utente sconosciuto"
+  };
 });
 
-    // Recupera SOLO i punti creati da utenti con ruolo 'field'
-    const points = await PointModel.find({ user: { $in: fieldUserIds } }).populate('user');
-    console.log('🎯 [DEBUG] Punti filtrati da utenti "field":', points.length);
-
+    // Messaggi da sessione
     const message = req.session.message;
     req.session.message = null;
 
-    res.render('indexOfficeGeo', {
-      user: req.session.user,
-      points,
-      categories,
-      fieldUsers,  // ✅ AGGIUNGI QUESTO
-      session: req.session,
-      message
-    });
+   // render: PASSA SOLO l'array piatto (pointsForClient) al client
+res.render("indexOfficeGeo", {
+  points,           // già con userEmail e userId
+  fieldUsers,       // array field users (utile lato client)
+  categories,
+  user: req.session.user,
+  groupId: currentUser.groupId,
+  session: req.session,
+  message
+});
 
   } catch (err) {
-    console.error('❌ Errore nel recupero dei punti per office:', err);
-    res.status(500).send('Errore interno del server');
+    console.error("❌ Errore nel recupero punti per office:", err);
+    res.status(500).send("Errore interno del server");
   }
 });
 
+// ===========================
+// GET /groupFeed
+// ===========================
+router.get("/groupFeed", isAuthenticated, onlyField, async (req, res) => {
+  console.log("📩 [groupFeed] Sessione attuale:", req.session);
+  console.log("👤 [groupFeed] Utente in sessione:", req.session.user);
+
+  if (!req.session.user) {
+    console.warn("⚠️ Nessun utente trovato in sessione!");
+    return res.status(401).send("Non autenticato");
+  }
+
+  const user = await User.findById(req.session.user._id);
+  if (!user) {
+    return res.status(404).send("Utente non trovato");
+  }
+
+  console.log("✅ Utente DB trovato:", user.email, " | groupId:", user.groupId);
+
+  const points = await PointModel.find({ groupId: user.groupId }).populate(
+    "user"
+  );
+  console.log("🧾 [groupFeed] Punti trovati:", points.length);
+
+  res.render("partials/groupFeed", { points, user });
+});
 
  router.get('/indexZoneGeo', isAuthenticated, onlyField,  async (req, res) => {
 
@@ -216,7 +346,7 @@ const categories = currentUser.categories || ['A', 'B', 'C', 'D', 'E'];
 
   if (!user || !user._id) {
     console.warn('⚠️ user non autenticato o senza _id');
-    return res.status(401).send('use non autenticato');
+    return res.status(401).send('user non autenticato');
   }
  // const userId = user._id;
   if (!userId) {
@@ -226,6 +356,12 @@ const categories = currentUser.categories || ['A', 'B', 'C', 'D', 'E'];
   try {
     const points = await PointModel.find({ user: userId }).limit(30).populate('user');
     console.log('🧾 Points caricati:', points.map(p => ({ name: p.name, category: p.category })));
+     
+    // 👇 Recupera l'office del gruppo corrente
+    const referenteOffice = await User.findOne({
+      role: 'office',
+      groupId: user.groupId
+    });
 
     // 🔽🔽🔽 AGGIUNGI QUESTO BLOCCO QUI
     const view = req.query.view;
@@ -233,7 +369,8 @@ const categories = currentUser.categories || ['A', 'B', 'C', 'D', 'E'];
       return res.render('mesPoints', {
         user,
         points,
-        session: req.session
+        session: req.session,
+        referenteOffice   // 🔥 passa l’office anche qui
       });
     }
 
@@ -242,7 +379,8 @@ const categories = currentUser.categories || ['A', 'B', 'C', 'D', 'E'];
       user,
       points,
       categories: user.categories,  // 👈 AGGIUNGI QUESTO
-      session: req.session
+      session: req.session,
+      referenteOffice   // 🔥 passa l’office anche qui
      
     });
   } catch (error) {
@@ -250,6 +388,19 @@ const categories = currentUser.categories || ['A', 'B', 'C', 'D', 'E'];
       res.status(500).send('Errore del server');
   }
 });  
+
+async function loadPointAndGroup(req, res, next) {
+  try {
+    const point = await PointModel.findById(req.params.id);
+    if (!point) return res.status(404).send('Punto non trovato');
+    req.point = point;
+    req.resourceGroupId = point.groupId; // o come lo chiami nel DB
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Errore server');
+  }
+}
 
 function onlyAdmin(req, res, next) {
   if (req.session.user && req.session.user.role === 'admin') {
@@ -290,21 +441,7 @@ function isAuthenticated(req, res, next) {
 }
 //VADO A: qs e' l indirizzo web , cioe la ROUTE addForm, che vedo nell'internet
 // Links http://localhost:4000/addForm
-/*
-router.get("/addPoint", isAuthenticated, (req, res) => {
-  // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
-  console.log("Accesso a /addPoint - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
 
-  if (req.session.user) {
-  res.render("ajoute_point", { title: 'Point Form Page', user: req.session.user});
-  
-} else {
-    // Log per verificare se si viene reindirizzati al login
-    console.log("Utente non autenticato, reindirizzamento a /login");
-  res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
-}
-});
-*/
 router.get("/addPoint", isAuthenticated, async (req, res) => {
   console.log("Accesso a /addPoint - sessione utente:", req.session?.user?._id || "Nessuna sessione");
 
@@ -314,8 +451,11 @@ router.get("/addPoint", isAuthenticated, async (req, res) => {
   }
 
   try {
-    // 🔍 Recupera le categorie globali definite dall'utente office
-    const office = await User.findOne({ role: 'office' });
+     // Recupera l'utente field attuale per prendere il suo groupId
+     const currentUser = await User.findById(req.session.user._id);
+
+    // Recupera l’utente office dello stesso gruppo del field
+    const office = await User.findOne({ role: 'office', groupId: currentUser.groupId });
     const categorieDisponibili = office?.categories || ['A', 'B', 'C', 'D', 'E'];
 
     // 🔁 Recupera l’utente field (per il rendering, se ti serve)
@@ -332,43 +472,6 @@ router.get("/addPoint", isAuthenticated, async (req, res) => {
   }
 });
 
-/*
-router.post("/addPoint", isAuthenticated, onlyField, async (req, res) => {
-  const { name, category, point } = req.body;
-
-  try {
-    const user = await User.findById(req.session.user._id);
-    console.log("🧾 Body ricevuto:", req.body);
-    console.log("📥 Categoria ricevuta:", category);
-    console.log("📥 Categorie dell'utente:", user.categories);
-    // ✅ QUI controlli la validità della categoria
-    if (!user.categories.includes(category)) {
-      console.log("🧾 Body ricevuto:", req.body);
-      console.log("📥 Categoria ricevuta:", category);
-      console.log("📥 Categorie dell'utente:", user.categories);
-
-      console.warn("❌ Categoria NON valida:", category);
-      return res.status(400).send("Categoria non autorizzata");
-    }
-
-    const geo = JSON.parse(point);
-
-    const newPoint = new PointModel({
-      name,
-      category,
-      coordinates: geo.geometry.coordinates,
-      user: user._id
-    });
-
-    await newPoint.save();
-    res.redirect("/indexZoneGeo");
-
-  } catch (err) {
-    console.error("❌ Errore nella creazione del punto:", err);
-    res.status(500).send("Errore del server");
-  }
-});
-*/
 // office modifica le categorie "globali"
 router.post('/update-categories', async (req, res) => {
   try {
@@ -393,102 +496,45 @@ router.post('/update-categories', async (req, res) => {
   }
 });
 
-/*
-router.post('/update-categories', async (req, res) => {
-  try {
-    const { userId, newCategories } = req.body;
+// GET addParcelle
+router.get("/addParcelle", isAuthenticated, async (req, res) => {
+  console.log("Accesso a /addParcelle - sessione utente:", req.session?.user?._id || "Nessuna sessione");
 
-    const parsedCategories = newCategories
-      .split(',')
-      .map(cat => cat.trim().toUpperCase())
-      .filter(Boolean);
-
-    if (!userId) {
-      return res.status(400).send("ID utente mancante");
-    }
-
-    const userToUpdate = await User.findById(userId);
-    if (!userToUpdate) {
-      return res.status(404).send("Utente non trovato");
-    }
-
-    userToUpdate.categories = parsedCategories;
-    await userToUpdate.save();
-
-    console.log("✅ Categorie aggiornate per utente:", userToUpdate.email, parsedCategories);
-
-    res.redirect('/indexOfficeGeo');
-  } catch (err) {
-    console.error("❌ Errore aggiornamento categorie:", err);
-    res.status(500).send("Errore del server");
-  }
-});
-*/
-/*
-router.post('/update-categories', async (req, res) => {
-  try {
-    const { newCategories } = req.body;
-
-    // Valida input
-    const parsedCategories = newCategories.split(',').map(cat => cat.trim()).filter(Boolean);
-
-    if (!req.session?.user?._id) {
-      return res.status(401).send("Non autenticato");
-    }
-
-    const user = await User.findById(req.session.user._id);
-    user.categories = parsedCategories;
-    await user.save();
-
-    // Aggiorna la sessione (opzionale)
-    req.session.user = user;
-
-    res.redirect('/indexOfficeGeo');
-  } catch (err) {
-    console.error("Errore aggiornamento categorie:", err);
-    res.status(500).send("Errore del server");
-  }
-});
-*/
-/*
-router.post('/update-categories', async (req, res) => {
-  try {
-    const raw = req.body.newCategories || '';
-    const newCategories = raw.split(',').map(s => s.trim()).filter(Boolean);
-
-    const user = await User.findById(req.session.user._id);
-    user.categories = newCategories;
-    await user.save();
-
-    res.redirect('/indexOfficeGeo'); // o ovunque vuoi
-  } catch (err) {
-    console.error("Errore aggiornamento categorie:", err);
-    res.status(500).send("Errore durante l'aggiornamento delle categorie");
-  }
-});
-*/
-//VADO A: qs e' l indirizzo web , cioe la ROUTE addForm, che vedo nell'internet
-// Links http://localhost:4000/addForm
-router.get("/addParcelle", isAuthenticated, (req, res) => {
-  // Log per vedere se l'utente è stato autenticato correttamente e cosa contiene la sessione
-  console.log("Accesso a /addParcelle - sessione utente:", req.session ? req.session.user._id : "Nessuna sessione");
-
-  if (req.session.user) {
-  res.render("ajoute_parcelle", { title: 'Parcelle Form Page', user: req.session.user});
-  
-} else {
-    // Log per verificare se si viene reindirizzati al login
+  if (!req.session.user) {
     console.log("Utente non autenticato, reindirizzamento a /login");
-  res.redirect("/login");  // Se l'utente non è loggato, reindirizza alla pagina di login
-}
+    return res.redirect("/login");
+  }
+
+  try {
+    // Recupera l'utente field attuale per ottenere il suo groupId
+    const currentUser = await User.findById(req.session.user._id);
+
+    // Recupera l’utente office dello stesso gruppo del field (per categorie)
+    const office = await User.findOne({ role: 'office', groupId: currentUser.groupId });
+    const categorieDisponibili = office?.categories || ['A', 'B', 'C', 'D', 'E'];
+     
+     // 🔁 Recupera l’utente field (per il rendering, se ti serve)
+    const user = await User.findById(req.session.user._id);
+
+    res.render("ajoute_parcelle", {
+      title: 'Parcelle Form Page',
+      user: user,                // Passi l'utente loggato
+      categories: categorieDisponibili, // Le categorie collegate all’office
+    });
+  } catch (error) {
+    console.error("❌ Errore in GET /addParcelle:", error);
+    res.status(500).send("Errore interno del server");
+  }
 });
+
 
 
 // Gestisce la ricezione del punto dal form
-router.post("/addPoint", isAuthenticated, async (req, res) => {
+router.post("/addPoint", isAuthenticated, uploadSingle, async (req, res) => {
   try {
-    const userId = req.session.user?._id;   
-  
+    const userId = req.session.user?._id;     
+      // Qui Multer popola `req.file` se l'immagine è presente
+    console.log("📷 File ricevuto:", req.file);
    const { name, point, category } = req.body;
     console.log("🧾 Tutto il body ricevuto:", req.body);
 
@@ -503,11 +549,21 @@ router.post("/addPoint", isAuthenticated, async (req, res) => {
     if (!name || !point ) {
       return res.status(400).json({ message: "Touts les champs sonts obligoitoires" });
     }
-// Recupera le categorie dell’utente office
-const office = await User.findOne({ role: 'office' });
-const allowedCategories = office?.categories || ['A', 'B', 'C', 'D', 'E'];
+          // Recupera l'utente field loggato
+      const fieldUser = await User.findById(userId);
+      if (!fieldUser) {
+        return res.status(401).json({ message: "Utente non trovato" });
+      }
+  // Cerca l'office del suo stesso gruppo
+    const office = await User.findOne({ role: 'office',
+       groupId: fieldUser.groupId
+    });
+    
+    if (!office) {
+        return res.status(400).json({ message: "Nessun office trovato per il tuo gruppo" });
+      }
 
-
+    const allowedCategories = office?.categories || ['A', 'B', 'C', 'D', 'E'];
     // ✅ Pulizia: rimuove spazi e uniforma maiuscolo
     const cleanCategory = (category || '').trim().toUpperCase();
 
@@ -528,9 +584,16 @@ const allowedCategories = office?.categories || ['A', 'B', 'C', 'D', 'E'];
     if (existingPoints >= 5) { 
       return res.status(400).json({ message: "Hai già inserito troppi punti" });
     }
-    // Parsing del GeoJSON
-    const parsedPoint = typeof point === 'string' ? JSON.parse(point) : point;
-    
+      // Parsing GeoJSON
+    let parsedPoint = point;
+
+    if (typeof parsedPoint === "string") {
+    try {
+      parsedPoint = JSON.parse(point);
+    } catch (err) {
+      return res.status(400).json({ success: false, message: "GeoJSON non valido" });
+    }
+    }
     // ✅ Controllo automatico della validità delle coordinate
   if (
     !parsedPoint ||
@@ -548,14 +611,18 @@ const allowedCategories = office?.categories || ['A', 'B', 'C', 'D', 'E'];
 
     const [lng, lat] = parsedPoint.geometry.coordinates;
 
-  
+   // Salva nel DB anche il path dell'immagine
    await PointModel.create({
     user: userId,
     name,
     category: cleanCategory,
-    coordinates: [lng, lat]
+    coordinates: [lng, lat],
+    image: req.file ? `/uploads/${req.file.filename}` : null, // salvo URL del file
+    groupId: req.session.user.groupId // 👈 così il punto è legato al gruppo
+  
   });
   
+console.log("👉 groupId usato per il nuovo point:", req.session.user.groupId);
 
     req.session.message = {
       type: "success",
@@ -569,18 +636,41 @@ const allowedCategories = office?.categories || ['A', 'B', 'C', 'D', 'E'];
     res.status(500).json({ message: "Errore interno del server" });
   }
 });
-
+// ✅ Gestisce la ricezione della parcella dal form
 router.post("/ajoute_parcelle", isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user?._id;
-    const { name, polygon } = req.body;
+    const { name, polygon, category } = req.body;
 
-    // Verifica
-    console.log("GeoJSON ricevuto:", polygon);
-    console.log("Type:", typeof polygon);
+    console.log("🧾 Body ricevuto per parcella:", req.body);
 
     if (!name || !polygon) {
       return res.status(400).json({ message: "Tutti i campi sono obbligatori" });
+    }
+
+    // Recupera l’utente field loggato
+    const fieldUser = await User.findById(userId);
+    if (!fieldUser) {
+      return res.status(401).json({ message: "Utente non trovato" });
+    }
+
+    // Cerca l’office del suo stesso gruppo
+    const office = await User.findOne({
+      role: "office",
+      groupId: fieldUser.groupId
+    });
+    if (!office) {
+      return res.status(400).json({ message: "Nessun office trovato per il tuo gruppo" });
+    }
+
+    const allowedCategories = office?.categories || ["A", "B", "C", "D", "E"];
+    const cleanCategory = (category || "").trim().toUpperCase();
+
+    if (!allowedCategories.includes(cleanCategory)) {
+      console.log("❌ Categoria NON valida:", cleanCategory);
+      return res.status(400).json({ message: "Categoria non valida" });
+    } else {
+      console.log("✅ Categoria valida:", cleanCategory);
     }
 
     // (Opzionale) Limita numero parcelle per utente
@@ -589,40 +679,60 @@ router.post("/ajoute_parcelle", isAuthenticated, async (req, res) => {
       return res.status(400).json({ message: "Hai già inserito troppe parcelle" });
     }
 
-    const parsedPolygon = typeof polygon === 'string' ? JSON.parse(polygon) : polygon;
+    // Parsing del poligono
+    let parsedPolygon;
+    try {
+      parsedPolygon = typeof polygon === "string" ? JSON.parse(polygon) : polygon;
+    } catch (err) {
+      return res.status(400).json({ success: false, message: "GeoJSON non valido" });
+    }
+
+    // Se è solo geometry, trasformala in Feature
+    if (parsedPolygon.type === "Polygon" && parsedPolygon.coordinates) {
+      parsedPolygon = {
+        type: "Feature",
+        geometry: parsedPolygon,
+        properties: {}
+      };
+    }
 
     // ✅ Controllo che sia un poligono valido
-   if (
-  !parsedPolygon ||
-  parsedPolygon.type !== "Polygon" ||
-  !Array.isArray(parsedPolygon.coordinates)
-) {
-  return res.status(400).json({
-    message: "Il dato GeoJSON deve essere un Polygon valido"
-  });
-}
-
+    if (
+      !parsedPolygon ||
+      parsedPolygon.type !== "Feature" ||
+      !parsedPolygon.geometry ||
+      parsedPolygon.geometry.type !== "Polygon" ||
+      !Array.isArray(parsedPolygon.geometry.coordinates)
+    ) {
+      return res.status(400).json({
+        message: "Il dato GeoJSON deve essere un Feature con geometry di tipo Polygon valido"
+      });
+    }
 
     // Salvataggio nel DB
     await ParcelleModel.create({
       user: userId,
       name,
-      geometry: parsedPolygon
+      category: cleanCategory,
+      geometry: parsedPolygon.geometry, // salvo solo la geometry
+      groupId: fieldUser.groupId
     });
+
+    console.log("👉 groupId usato per la nuova parcella:", fieldUser.groupId);
 
     req.session.message = {
       type: "success",
       message: "Parcella aggiunta con successo!"
     };
-    res.redirect('/indexZoneParcelle');
 
-    //res.status(200).json({ success: true, message: "Poligono salvato!" });
+    res.status(200).json({ success: true, message: "Parcella salvata!" });
 
   } catch (err) {
-    console.error("Errore nel salvataggio della parcella:", err);
+    console.error("❌ Errore nel salvataggio della parcella:", err);
     res.status(500).json({ message: "Errore interno del server" });
   }
 });
+
 
 router.get('/delete/:pointId', isAuthenticated, async (req, res) => {
   const userId = req.session.user?._id;

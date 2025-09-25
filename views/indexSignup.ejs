@@ -54,9 +54,7 @@
                 <th>INDEX</th>  
                 <th>ID</th>              
                 <th>E-Mail</th>
-                
-                <!-- Ne pas afficher les mots de passe en clair -->
-                <!-- <th>PWD</th> -->
+                <th>Group ID</th>                
                 <th>Action</th>
               </tr>
             </thead>
@@ -66,8 +64,21 @@
                   <td><%= index  %></td>
                   <td><%= row._id %></td> <!-- Utilisation de _id au lieu de id -->
                   <td><%= row.email %></td>
-                             
-                  <!-- Mot de passe retiré pour des raisons de sécurité -->
+               <td>
+                      <% if (!row.groupId) { %>
+                        <span class="badge bg-danger">In attesa</span>
+                      <% } else { %>
+                        <span class="badge bg-success"><%= row.groupId %></span>
+                      <% } %>
+               </td>
+                   <td>
+                      <input type="text" id="groupId-<%= row._id %>" 
+                              value="<%= row.groupId || '' %>" 
+                              class="form-control form-control-sm" />
+                      <button class="btn btn-sm btn-primary mt-1" 
+                            onclick="updateGroupId('<%= row._id %>')">Save</button>
+                  </td>
+
                   <td>
                     <a href="/edit/<%= row._id %>" class="text-success"><i class="fas fa-edit fa-lg mx-1"></i></a>
                     <a href="/del/<%= row._id %>" class="text-danger"

@@ -9,6 +9,14 @@ const ParcelleSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  groupId: {
+  type: String,
+  required: false
+  }, 
+   category: {
+    type: String,
+    required: true
+  },
   geometry: {
     type: {
       type: String, // es: "Polygon"

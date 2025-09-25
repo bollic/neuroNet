@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 
-//const PointModel = require('./models/Point');
+const PointModel = require('./models/Point');
 //const ParcelleModel = require('./models/Parcelle');
 
 const mongoose = require('mongoose')
@@ -20,6 +20,27 @@ mongoose.set('debug', true);
 mongoose.connect(process.env.DATABASE_URL)
   .then(() => {
     console.log('Connexion à MongoDB réussie !');
+    (async () => {
+  try {
+    console.log("🔎 Inizio aggiornamento dei points senza groupId...");
+
+    // recupera tutti i points che non hanno groupId
+    const pointsSenzaGroup = await PointModel.find({ groupId: { $exists: false } }).populate("user");
+
+    let aggiornati = 0;
+    for (const p of pointsSenzaGroup) {
+      if (p.user && p.user.groupId) {
+        p.groupId = p.user.groupId; // copia groupId dal suo user
+        await p.save();
+        aggiornati++;
+      }
+    }
+
+    console.log(`✅ Aggiornamento completato: ${aggiornati} punti aggiornati.`);
+  } catch (err) {
+    console.error("❌ Errore durante l'aggiornamento dei points:", err);
+  }
+})();
 
     (async () => {
       try {
@@ -95,11 +116,17 @@ app.use((req, res, next) => {
 app.set('views', path.join(__dirname, 'views'));
 app.set("view engine", "ejs");
 
+
+const pricingRouter = require('./routes/pricing');
+const checkoutRoutes = require('./routes/checkout');
 const userRouter = require("./routes/users")
 const articlesGeoRoutes = require('./routes/articlesGeo');
 
+
+app.use('/', pricingRouter);
+app.use('/', checkoutRoutes);
 app.use('/', articlesGeoRoutes);
-app.use("/", userRouter)
+app.use('/', userRouter);
 
 
 //app.use("/posts", postRouter)

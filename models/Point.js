@@ -7,15 +7,21 @@ const PointSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-category: {
+  groupId: {
   type: String,
-  required: true
-},
-
- 
+  required: false
+  }, 
+  category: {
+    type: String,
+    required: true
+  },
   coordinates: {
     type: [Number], // ✅ coppia [lng, lat] per un punto
     required: true
+  },
+   image: {
+    type: String,  // percorso o URL dell'immagine
+    default: null  // opzionale, se nessuna immagine
   },
   createdAt: { type: Date, default: Date.now }
 });

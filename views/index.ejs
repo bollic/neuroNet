@@ -1,51 +1,122 @@
 <%- include('layout/header') %>
- <!-- Fine dell' header -->
 
-<div class='container'>
-  <div class="row my-4">
-    <div class="col-lg-12">
-       <!-- Pulsante per visualizzare la mappa -->
-      <% if (message) { %> 
-        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
-          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-          <i class="fas fa-exclamation-circle me-2"></i>   
-          <strong><%= message.message %></strong>     
-        </div>
-             <% } %>
-             <% if (!user) { %>
-              <div class="container text-center my-5">
-                <h2>Select your access area</h2>
-                <div class="d-flex justify-content-center gap-3 mt-4">
-        
+<div class="flex flex-col items-center justify-center min-h-screen p-6 space-y-10">
 
-                  <a href="/login?role=field" class="btn btn-success btn-lg px-4">Field</a>
-                  <a href="/login?role=admin" class="btn btn-danger btn-lg px-4">Admin</a>
-                </div>
-              </div>
-          <div class="container text-center my-5">
-              <h2>Register as </h2>
-              <div class="d-flex justify-content-center gap-3 mt-4">
-                 <a href="/signup?role=field" class="btn btn-outline-success px-4">Field</a>
-              
-              </div>
-          </div>
+  <% if (message) { %>
+    <div class="alert shadow-lg w-full max-w-xl">
+      <div>
+        <i class="fas fa-exclamation-circle"></i>
+        <span><strong><%= message.message %></strong></span>
+      </div>
+      <button class="btn btn-sm btn-circle btn-ghost" onclick="this.closest('.alert').remove()">✕</button>
+    </div>
+  <% } %>
 
-              <% } %>
-              
-      <div class="table-responsive">
-        <% if (user) { %>
-          <h2>Welcome, <%= user.email %>!</h2>
-        
-          <a href="/logout" class="btn btn-secondary">Logout</a>
-        <% } else { %>
-          <a href="/login">Se connecter</a>
-          <a href="/signup">S'inscrire</a>
-        <% } %>
-         <!-- Verifico se ci sono dei punti -->
-      
+  <% if (!user) { %>
+    <!-- HERO -->
+    <div class="text-center w-full max-w-xl space-y-4">
+      <h1 class="text-4xl font-extrabold text-purple-700">Bienvenue sur Nephis</h1>
+      <p class="text-lg text-gray-700">Créez votre groupe, rejoignez votre communauté et restez connectés en toute simplicité.</p>
+      <a href="/pricing" class="btn btn-primary btn-lg">💎 Voir les plans tarifaires</a>
+    </div>
+
+    <!-- ROLES -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
+      <!-- Membre -->
+      <div class="card shadow-lg bg-white p-6 rounded-2xl">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i class="fas fa-user text-purple-600"></i> Membre
+        </h2>
+        <a href="/login?role=field" class="btn btn-outline btn-primary w-full mb-4">Se connecter</a>
+        <%- include('partials/signup-form', { role: "field" }) %>
+      </div>
+
+      <!-- Superviseur -->
+      <div class="card shadow-lg bg-white p-6 rounded-2xl">
+        <h2 class="text-xl font-semibold mb-4">Superviseur</h2>
+        <a href="/login?role=office" class="btn btn-outline btn-primary w-full mb-4">Se connecter</a>
+        <%- include('partials/signup-form', { role: "office" }) %>
+      </div>
+
+      <!-- Admin -->
+      <div class="card shadow-lg bg-white p-6 rounded-2xl">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Administrateur</h2>
+        <a href="/login?role=admin" class="btn btn-secondary w-full">🔑 Accès admin</a>
       </div>
     </div>
-  </div>
+
+    <!-- GROUPS PREVIEW -->
+  <!-- GROUPS PREVIEW - VERSION PROMO -->
+<div class="card shadow-lg bg-white p-6 w-full max-w-4xl">
+  <h2 class="text-2xl font-bold mb-6 flex items-center gap-2 text-purple-700">
+    🌟 Découvrez les communautés actives
+  </h2>
+
+  <% if (groupsPreview.length > 0) { %>
+    <% groupsPreview.slice(0,3).forEach(group => { %>
+      <div class="mb-6 border rounded-xl p-4 hover:shadow-lg transition bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50">
+        <div class="flex justify-between items-center mb-3">
+          <span class="font-semibold text-lg text-purple-700 flex items-center gap-2">
+            <i class="fas fa-users"></i> <%= group.groupId %>
+          </span>
+          <span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 font-medium">
+            Populaire
+          </span>
+        </div>
+
+        <p class="text-sm text-gray-600 mb-3">
+          <%= group.totalMembers %> membres • <%= group.pointsCount %> points
+        </p>
+
+        <!-- Avatars -->
+        <div class="flex -space-x-2 mb-4">
+          <% group.membersPreview.forEach(member => { %>
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm border-2 border-white 
+                <%= member.role === 'office' ? 'bg-purple-600' : 'bg-gray-400' %> text-white shadow">
+              <%= member.email[0].toUpperCase() %>
+            </div>
+          <% }) %>
+          <% if (group.totalMembers > group.membersPreview.length) { %>
+            <div class="w-9 h-9 rounded-full bg-gray-400 flex items-center justify-center text-sm text-white border-2 border-white shadow">
+              +<%= group.totalMembers - group.membersPreview.length %>
+            </div>
+          <% } %>
+        </div>
+
+        <!-- CTA buttons -->
+        <div class="flex gap-3">
+          <a href="/groups/<%= group.groupId %>" 
+             class="btn btn-sm btn-outline btn-primary flex-1">
+             👀 Voir le groupe
+          </a>
+          <a href="/signup?role=field&group=<%= group.groupId %>" 
+             class="btn btn-sm btn-primary flex-1">
+             🚀 Rejoindre
+          </a>
+        </div>
+      </div>
+    <% }) %>
+
+    <!-- Link to more groups -->
+    <div class="text-center mt-6">
+      <a href="/groups" class="text-blue-600 hover:underline text-sm">
+        Voir tous les groupes →
+      </a>
+    </div>
+  <% } else { %>
+    <p class="text-gray-500 text-sm">Aucun groupe actif pour le moment.</p>
+  <% } %>
+</div>
+
+  <% } %>
+
+  <% if (user) { %>
+    <div class="card shadow-lg w-full max-w-xl p-6 bg-white text-center">
+      <h4 class="text-xl font-bold mb-3">Welcome, <%= user.email %>!</h4>
+      <a href="/logout" class="btn btn-outline btn-secondary">Logout</a>
+    </div>
+  <% } %>
+
 </div>
 
 <%- include('layout/footer') %>

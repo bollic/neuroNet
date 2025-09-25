@@ -1,146 +1,131 @@
 <%- include('layout/headerZoneGeo') %>
 
-<div class="container my-3">
+<style>
+  html, body { height: 100%; }
+  #map { height: 100%; min-height: 80vh; }
+  .leaflet-container {
+  z-index: 0 !important;
+}
+</style>
+<style>
+  #group-feed {
+    max-height: none !important;   /* niente limite altezza */
+    overflow-y: visible !important; /* elimina scrollbar verticale */
+  }
+</style>
 
-  <div class="row">
-    <div class="col-12 text-center">            
-      <!-- Aggiungi QUESTO PULSANTE SUBITO DOPO LA NAVBAR -->
-      <button class="sidebar-toggler btn btn-warning d-md-none" 
-         data-bs-toggle="collapse" 
-         data-bs-target="#sidebar">
-                       ☰ 
-      </button>    
-    </div>
-  </div>
-  </div>
-  
-  <div class="container-fluid">
-    <div class="row position-relative flex-nowrap"> 
-      <!-- Sidebar-->
-      <div id="sidebar" class="overflow-auto" style="background: #f8f9fa;">
-           <% if (message) { %> 
-        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
-          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-          <i class="fas fa-exclamation-circle me-2"></i>   
-          <strong><%= message.message %></strong>     
-        </div>
-             <% } %>
+   <!-- 1: inizio flex -->
+<div class="flex flex-row h-[80vh]">
+<!-- 2: drawer -->
+    <div class="drawer drawer-start">
+      <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
-     
-        <!-- Tabella dei punti -->
-      <div class="table-responsive mt-4">      
-      <script>
-  // Garantisce che filteredUsers e groupedByUser siano definite
-   if (typeof filteredUsers === 'undefined') var filteredUsers = [];
-  </script>
-     <!-- Verifico se ci sono dei points -->
-     <% if (points && points.length > 0) { %>   
-          <!-- Visualizza un gruppo per ogni type (Punto 4: Migliorato il Layout) -->        
-        
-            <% } else { %>
-              <h1 class="text-center text-secondary mt-5">Aucun point trouvé dans la base de données!</h1>
-            <% } %>
+      <!-- Contenuto principale (mappa) -->
+      <div class="drawer-content relative">
+    <!-- Pulsante toggle sempre visibile -->
+      <a class="absolute top-4 left-4 z-50">
+        <label for="my-drawer" class="btn btn-primary btn-sm shadow-lg">
+          ☰ Menu
+        </label>
+      </a>
+          <!-- unica mappa -->
+        <div id="map" class="w-full h-[80vh] rounded-lg shadow-md"></div>
+          <!-- Pulsante Add point -->
+        <a href="/addPoint" class="absolute top-4 right-4 z-50">
+          <button class="btn btn-warning btn-sm shadow-lg">
+            <i class="fas fa-plus"></i> Add point
+          </button>
+        </a>
+      </div>
       
-      </div>
-        <button id="closeSidebar" class="close-btn d-md-none" data-bs-toggle="collapse" data-bs-target="#sidebar">&times;</button><br>
-        <div class="mb-3">
-       
-        </div>
- 
-  <% if (points && points.length > 0) { %>
-    <div class="table-responsive">
-     <!-- AGGIUNGI id="main-table" QUI -->
-  <table id="main-table" class="table table-hover table-bordered table-striped">
-       <thead class="table-dark">
-          <tr>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% points.forEach((row, index) => { %>
-            <tr class="align-middle">               
-                <td><%= row.name %></td>                
-              <td><%= row.category || 'Senza categoria' %></td>
-              <td>               
-                <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger">
-                  <i class="fas fa-trash"></i>
-                </a>
-              </td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
- <% } else { %>
-  <div class="text-center">
- 
-  <div class="alert alert-info d-flex align-items-center" role="alert">
-    <i class="fas fa-map-pin me-2"></i>
-    Aucun point trouvé. Cliquez sur <strong>“Add a point”</strong> en haut à droite de la carte pour commencer.  </div>
-  </div>
-<% } %>
+        <!-- Sidebar- a sinistra -->
+        <div class="drawer-side">
+        <label for="my-drawer" class="drawer-overlay"></label>
+        <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
+          <% if (message) { %>
+            <div class="alert alert-<%= message.type || 'info' %> shadow-lg rounded-lg p-3">
+              <i class="fas fa-exclamation-circle mr-2"></i>
+              <strong><%= message.message %></strong>
+            </div>
+          <% } %>
+          
+          <!-- Tabella dei punti -->
+          <% if (points && points.length > 0) { %>
+            <div class="table table-zebra mt-4">
+              <table id="main-table" class="table table-zebra w-full">
+                <thead class="table-dark">
+                  <tr>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% points.forEach((row) => { %>
+                    <tr>
+                      <td><%= row.name %></td>
+                      <td><%= row.category || 'Senza categoria' %></td>
+                      <td>
+                        <a href="/delete/<%= row._id %>" class="btn btn-xs btn-error">
+                          <i class="fas fa-trash"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="text-center text-secondary mt-5">
+              Aucun point trouvé dans la base de données!
+            </div>
+          <% } %>
+            <!-- Feed del gruppo (ajax) -->
+            <div id="group-feed" class="mt-4 p-2 bg-base-100 rounded shadow-sm">
+                  <!-- Qui AJAX inserirà i punti -->
+                    <div class="text-center text-muted">Caricamento feed...</div>
+            </div>
 
-      </div>  
-      <!-- Mappa a destra-->
-      <div class="col-md-9 map-container"> <!-- Aggiungi la classe qui -->
-       <div id="map" style="width: 100%; height: 100%;">
-              <!-- Pulsante flottante -->
-            <a href="/addPoint" style="position: absolute; top: 10px; right: 10px; z-index: 9999;">
-              <button id="add-point" class="btn btn-warning btn-sm shadow rounded">
-                <i class="fas fa-plus me-1"></i>Add a point
-              </button>
-            </a>
-        </div>
-      </div>
-  </div>
-</div>
-<!-- Fine .container-fluid -->
- <!-- Fine .container-fluid -->
-<!-- Link in basso visibili sempre -->
-<div class="container my-2">
-  <div class="d-flex flex-wrap justify-content-center gap-2 text-center">
-
-    <% if (user) { %>
-    <span class="text-dark">
-      Wellcome, <strong><%= user.email %></strong>
-    </span>
-    <a class="btn btn-sm btn-outline-secondary" href="/logout">
-        Log out
-    </a>
+          <button id="closeSidebar" class="close-btn d-md-none" data-bs-toggle="collapse" data-bs-target="#sidebar">&times;</button><br>
     
-      <!-- 🔁 QUI metti il nuovo FORM corretto -->
-  <form method="POST" action="/delete_account" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');" style="display: inline;">
-    <button class="btn btn-sm btn-outline-danger" type="submit">
-      Delete account
-    </button>
-  </form>
-  <% } else { %>
-    <a class="btn btn-outline-primary" href="/login">
-      <i class="fas fa-sign-in-alt me-1"></i> Log in
-    </a>
-  <% } %>
-    <a class="btn btn-outline-success" href="/indexZoneParcelle">
-      <i class="fas fa-draw-polygon"></i> Parcelle
-    </a>
-    <a class="btn btn-outline-primary" href="/indexZoneGeo">
-      <i class="fas fa-circle-dot"></i> Point
-    </a>
+        </aside>
+    <script>
+      async function loadGroupFeed() {
+        try {
+          const res = await fetch('/groupFeed');
+          if (!res.ok) throw new Error("Errore HTTP " + res.status);
+          const html = await res.text();
+          const feed = document.getElementById('group-feed');
+          const oldHeight = feed.scrollHeight;
+          feed.innerHTML = html;
+            // Scroll automatico se il contenuto è aumentato
+          if (feed.scrollHeight > oldHeight) {
+            feed.scrollTop = feed.scrollHeight;
+          }
+        } catch (err) {
+          console.error("❌ Errore caricamento feed:", err);
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', loadGroupFeed);
+      setInterval(loadGroupFeed, 30000);
+    </script>
 
 
-<a href="/indexZoneGeo?view=points" class="btn btn-outline-primary">
-  <i class="fas fa-map-pin me-1"></i> My Points
-</a>
 
-  </div>
-</div>
+    </div>
+    <!-- Fine .container-fluid -->
 
-<script>
-  const points = <%- JSON.stringify(points || []) %>;
-    console.log("🧪 categorie dell'utente field:", <%- JSON.stringify(user.categories || []) %>);
-    console.log("🔎 Points lato client:", <%- JSON.stringify(points || []) %>);
-</script>
+    <!-- Link in basso visibili sempre -->
+
+    <script>
+      var points = <%- JSON.stringify(points || []) %>;
+      console.log("🧪 categorie dell'utente field:", <%- JSON.stringify(user.categories || []) %>);
+      console.log("🔎 Points lato client:", <%- JSON.stringify(points || []) %>);
+
+    </script>
+    </div> <!-- 🔒 chiusura drawer -->
+</div> <!-- 🔒 chiusura flex-row -->
 <%- include('layout/footer') %>
 
 <script src="/js/dataAuthorGeo.js" defer></script>

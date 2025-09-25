@@ -1,121 +1,102 @@
 <%- include('layout/headerOfficeGeo') %>
+<style>
+  html, body { height: 100%; }
+  #map { height: 100%; min-height: 80vh; }
+  .leaflet-container {
+    z-index: 0 !important;
+  }
+</style>
+<style>
+  #group-feed {
+    max-height: none !important;   /* niente limite altezza */
+    overflow-y: visible !important; /* elimina scrollbar verticale */
+  }
+</style>
+<!-- Layout principale con drawer (sidebar a sinistra + mappa a destra) -->
+<div class="drawer lg:drawer-open">
+  <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
-<div class="container my-3">
-  <% if (user) { %>
-    <div class="alert alert-info d-flex justify-content-center align-items-center text-center gap-3">
-      <strong>Bienvenue, <%= user.email %>!</strong>
-      <a href="/logout" class="btn btn-sm btn-outline-secondary">Se déconnecter</a>
-    </div>
+   <div class="drawer-content flex flex-col">
 
-  <% } %>
-  <div class="row">
-    <div class="col-12 text-center">            
-      <!-- Aggiungi QUESTO PULSANTE SUBITO DOPO LA NAVBAR -->
-      <button class="sidebar-toggler btn btn-warning d-md-none" 
-         data-bs-toggle="collapse" 
-         data-bs-target="#sidebar">
-                       ☰ 
-      </button>
-          
-    </div>
-  </div>
-  </div>
-  <div class="container-fluid">
-    <div class="row position-relative flex-nowrap"> 
-      <!-- Sidebar -->
-      <div id="sidebar" class="col-md-3">
-        <button id="closeSidebar" class="close-btn d-md-none" data-bs-toggle="collapse" data-bs-target="#sidebar">&times;</button><br>
-        <div class="mb-3">       
-        </div>
- <select id="page-length">
-  <option value="10">10</option>
-  <option value="20">20</option>
-  <option value="50">50</option>
-</select>
-
-  <% if (parcelles && parcelles.length > 0) { %>
-    <div class="table-responsive">
-     <!-- AGGIUNGI id="main-table" QUI -->
-  <table id="main-table" class="table table-hover table-bordered table-striped text-center">   <thead class="table-dark">
-          <tr>
-            <th>Numero</th>
-            <th>Name</th>           
-             <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-<% 
-    let currentUserEmail = null;
-    parcelles.forEach((parcelle, index) => {
-      const thisUserEmail = parcelle.user.email;
-  %>
-  
-    <% if (!currentUserEmail || currentUserEmail !== thisUserEmail) { %>
-      <tr class="table-secondary">
-        <td colspan="3"><strong><i class="fas fa-user"></i> <%= thisUserEmail %></strong></td>
-      </tr>
-      <% currentUserEmail = thisUserEmail; %>
-    <% } %>
-      <% const firstCoord = parcelle.geometry.coordinates[0][0]; %>
-    <tr class="align-middle">
-      <td><%= parcelle.name %></td>
-      <td><%= parcelle.name %></td>
-      <td>
-        <a href="/delete/<%= parcelle._id %>" class="btn btn-sm btn-outline-danger">
-          <i class="fas fa-trash"></i>
-        </a>
-      </td>
-    </tr>
-
-  <% }) %>
-</tbody>
-
-      </table>
-    </div>
-  <% } else { %>
-    <p>Nessuna parcelle trovata</p>
-  <% } %>
-      </div>  
-      <!-- Mappa -->
-      <div class="col-md-9 map-container">
-        <div id="map" style="width: 100%; height: 100%;"></div>
+    <% if (message) { %>
+      <div class="alert alert-<%= message.type || 'info' %> shadow-lg rounded-lg p-3">
+        <i class="fas fa-exclamation-circle mr-2"></i>
+        <strong><%= message.message %></strong>
       </div>
-  </div>
-</div><!-- Fine .container-fluid -->
-<!-- Link in basso visibili sempre -->
-<div class="container my-2">
-  <div class="d-flex justify-content-center gap-3">
-    <a class="btn btn-outline-success" href="/indexOfficeParcelle">
-      <i class="fas fa-draw-polygon"></i> Parcelle
-    </a>
-    <a class="btn btn-outline-primary" href="/indexOfficeGeo">
-      <i class="fas fa-circle-dot"></i> Point
-    </a>
-  </div>
-</div>
-<div class='container'>
-  <div class="row my-4">
-    <div class="col-lg-12">
-       
-      <% if (message) { %> 
-        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
-          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-          <i class="fas fa-exclamation-circle me-2"></i>   
-          <strong><%= message.message %></strong>     
-        </div>
-             <% } %>
+    <% } %>
+   <!-- Contenuto principale (mappa) -->
+    <div class="drawer-content relative"> 
+     <!-- Pulsante toggle -->       
+   <a class="absolute top-4 left-4 z-50">
+          <label for="my-drawer" class="btn btn-primary btn-sm shadow-lg">
+            ☰ Menu
+          </label>
+        </a>
 
-
-     
-    
+     <!-- Qui va la mappa -->
+         <div id="map" class="w-full h-[85vh] rounded-lg shadow-md"></div>
     </div>
+   </div>
+ 
+    <!-- Sidebar- a sinistra -->
+  <div class="drawer-side">
+  <!-- Filtri category e date-->
+<div class="flex space-x-4 my-3">
+  <!-- Filtro Category -->
+  <select id="filter-category" class="select select-bordered">
+    <option value="">Toutes le categories</option>
+  </select>
+  
+  <!-- Filtro Data -->
+  <input type="date" id="filter-date" class="input input-bordered" />
+</div>
+ <!-- Fine Filtri category e date-->
+  <!-- Sidebar -->
+    <label for="my-drawer" class="drawer-overlay"></label>
+    <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
+      
+      <!-- Tabella delle parcelle -->
+      <% if (parcelles && parcelles.length > 0) { %>
+        <div class="overflow-x-auto">
+          <table id="main-table" class="table table-zebra w-full">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Category</th>
+                
+                 <th>Date</th>
+                <th style="display:none;">createdAtISO</th>
+                <th>Category</th>
+              </tr>
+            </thead>
+            <tbody>
+             
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="text-center text-secondary mt-5">
+          Aucune parcelle trouvée dans la base de données!
+        </div>
+      <% } %>
+
+    </aside>
   </div>
 </div>
+
+
 <script>
-  const parcelles = <%- JSON.stringify(parcelles || []) %>;
-  console.log("PARCELLES:", parcelles);
+  const fieldUsers = <%- JSON.stringify(fieldUsers || []) %>;
+  console.log("🔍 fieldUsers nel template:", fieldUsers);
+</script>
+<script>
+ window.FIELD_USERS = <%- JSON.stringify(fieldUsers || []) %>;
+  window.PARCELLES = <%- JSON.stringify(parcelles || []) %>; 
+  console.log("🔍 fieldUsers nel template:", window.FIELD_USERS);
+  console.log("📊 PARCELLES (client):", window.PARCELLES);
 </script>
 
-<%- include('layout/footer') %>
+
+<%- include('layout/footerOffice') %>
 
 <script src="/js/dataOfficeParcelle.js" defer></script>

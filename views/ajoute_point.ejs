@@ -63,33 +63,27 @@
 const form = document.getElementById("add-point");
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
+   // Controllo GeoJSON
   const pointValue = document.getElementById("point").value;
   if (!pointValue) {
     alert("Ajoute un point avant d'envoyer!");
     return;
   }
-try {
-  JSON.parse(pointValue);
-} catch (err) {
-  alert("GeoJSON invalide.");
-  return;
-}
-
-  const formData = {
-    name: document.querySelector('[name="name"]').value,
-    category: document.querySelector('[name="category"]').value || null,   
-    point: pointValue,  
-
-  };
+  try {
+    JSON.parse(pointValue);
+  } catch (err) {
+    alert("GeoJSON invalide.");
+    return;
+  }
+   // Costruisco FormData dal form HTML
+  const formData = new FormData(form);
 
   try {
     const response = await fetch("/addPoint", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
+      body: formData, // niente Content-Type, lo mette FormData
     });
+     const result = await response.json();
 
     if (response.ok) {
       alert("Point ajouté!");
@@ -228,19 +222,29 @@ manualButton.addEventListener("click", () => {
              <h3 class="text-light">Add a point</h3>
             </div>       
             <div class="card-body p-4">
-                <form action="/addPoint" method="POST" id="add-point">
-                    <div class="mb-3">
-                      <br>                         
+                <form action="/addPoint" enctype="multipart/form-data" method="POST" id="add-point">
+                    <input type="hidden" id="point" name="point" />
+                    <% if (user) { %>
+                      <input type="hidden" name="id" value="<%= user._id %>">
+                    <% } %>
+                                    
+                  <!-- Nome -->
+                  <div class="mb-3">                                         
                         <label for="name">Name</label>
                         <input type="text" name="name" class="form-control form-control-lg" 
                         placeholder="Enter name" value="Default Name"  required />
                     </div>     
-                  
-<select name="category" id="category" class="form-control" required>
-  <% categories.forEach(function(cat) { %>
-    <option value="<%= cat %>"><%= cat %></option>
-  <% }); %>
-</select>
+                     <!-- Categoria -->                  
+                    <select name="category" id="category" class="form-control" required>
+                      <% categories.forEach(function(cat) { %>
+                        <option value="<%= cat %>"><%= cat %></option>
+                      <% }); %>
+                    </select>
+                      <!-- Upload immagine -->
+                    <div class="mb-3 mt-3">
+                      <label for="image">Image (optional)</label>
+                      <input type="file" name="image" id="image" class="form-control" accept="image/*">
+                    </div>
 
 
                              <div class="mb-3">
@@ -268,13 +272,7 @@ manualButton.addEventListener("click", () => {
                                         </div>
                                     </div>
 
-                                 
-
-                    <% if (user) { %>
-                      <input type="hidden" name="id" value="<%= user._id %>">
-                    <% } %>
-                   
-                  <input type="hidden" id="point" name="point" />
+                                               
                     <div class="mb-3 d-grid">                      
                         <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />
                     </div>

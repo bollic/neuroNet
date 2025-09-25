@@ -1,0 +1,122 @@
+<%- include('layout/header') %>
+
+<div class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100 p-4 space-y-6">
+
+  <% if (message) { %>
+    <div class="alert shadow-lg w-full max-w-xl">
+      <div>
+        <i class="fas fa-exclamation-circle"></i>
+        <span><strong><%= message.message %></strong></span>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-circle btn-ghost" onclick="this.closest('.alert').remove()">✕</button>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (!user) { %>
+    <div class="text-center space-y-6 w-full max-w-xl">
+      <h1 class="text-4xl font-extrabold text-purple-700">Bienvenue sur Nephis</h1>
+      <p class="text-lg text-gray-700">
+        Créez votre groupe, rejoignez votre communauté et restez connectés en toute simplicité.
+      </p>
+      
+      <div class="mt-6">
+  <a href="/pricing" class="btn btn-primary btn-lg">
+    💎 Voir les plans tarifaires
+  </a>
+</div>
+      
+      <div class="card shadow-xl p-6 bg-white mt-8 transition-transform hover:scale-105 rounded-2xl">
+       <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+    <i class="fas fa-user text-purple-600"></i>
+    Se connecter comme
+  </h2>
+        <div class="flex justify-center gap-4">
+          <a href="/login?role=field" class="btn btn-outline btn-primary">MEMBRE</a>
+        </div>
+      </div>
+      <!-- Form signup rapido inline -->
+      <div class="card shadow-lg p-6 bg-white mt-6">
+        <h2 class="text-xl font-semibold mb-4">Inscription rapide</h2>
+        <%- include('partials/signup-form', { role: "field" }) %>
+      </div>
+      <div class="flex justify-center gap-4">
+          <a href="/login?role=office" class="btn btn-outline btn-primary">Superviseur</a>
+      </div>
+      <div class="card shadow-lg p-6 bg-white mt-6">
+        <h2 class="text-xl font-semibold mb-4">Créer un groupe (Office)</h2>
+        <%- include('partials/signup-form', { role: "office" }) %>
+      </div>
+      <div class="card shadow-lg p-6 bg-white mt-6">
+  <h2 class="text-xl font-semibold mb-4">Aperçu des groupes</h2>
+  <% if (groupsPreview.length > 0) { %>
+    <% groupsPreview.forEach(group => { %>
+      <div class="mb-4 border rounded-lg p-3 hover:shadow-lg transition">
+        <div class="flex justify-between items-center mb-2">
+          <span class="font-semibold text-purple-700"><%= group.groupId %></span>
+             <div class="flex items-center gap-3">   
+              <a href="/groups/<%= group.groupId %>" 
+                  class="text-sm text-blue-600 hover:underline">
+                  Voir le groupe →
+                </a>
+
+          <span class="text-sm text-gray-500">
+            <%= group.totalMembers %> membres • <%= group.pointsCount %> points
+          </span>
+        </div>
+        </div>
+        <div class="flex -space-x-2">
+          <% group.membersPreview.forEach(member => { %>
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs border-2 border-white 
+                          <%= member.role === 'office' ? 'bg-purple-600' : 'bg-gray-400' %> text-white">
+                        <%= member.email[0].toUpperCase() %>
+                     </div>
+          <% }) %>
+          <% if (group.totalMembers > group.membersPreview.length) { %>
+            <div class="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center text-xs text-white border-2 border-white">
+              +<%= group.totalMembers - group.membersPreview.length %>
+            </div>
+          <% } %>
+        </div>
+
+
+
+      </div>
+    <% }) %>
+  <% } else { %>
+    <p class="text-gray-500 text-sm">Aucun groupe actif pour le moment.</p>
+  <% } %>
+</div>
+
+
+      <!-- Card Admin separata -->
+      <div class="card shadow-lg p-6 bg-white mt-8">
+        <h2 class="text-xl font-semibold mb-4 text-gray-800">Espace administrateur</h2>
+        <div class="flex justify-center">
+          <a href="/login?role=admin" class="btn btn-secondary btn-lg">
+            🔑 Accès admin
+          </a>
+        </div>
+      </div>
+
+    </div>
+  <% } %>
+
+  <% if (user) { %>
+    <div class="card shadow-lg w-full max-w-xl p-6 bg-white text-center">
+      <h4 class="text-xl font-bold mb-3">Welcome, <%= user.email %>!</h4>
+      <div class="flex justify-center gap-4">
+      <a href="/logout" class="btn btn-outline btn-secondary">Logout</a>
+      <a href="https://ko-fi.com/piknephis" target="_blank" 
+         class="btn bg-red-500 hover:bg-red-600 text-white gap-2 rounded-full shadow-md">
+        ☕ Jetez un œil à Ko-fi
+      </a>
+    </div>
+  
+  </div>
+  <% } %>
+
+</div>
+
+<%- include('layout/footer') %>
