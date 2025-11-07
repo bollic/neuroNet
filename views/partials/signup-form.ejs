@@ -1,56 +1,111 @@
-<form action="/signup" method="POST" class="space-y-4">
+<!-- partials/signup-form.ejs -->
+<% if (role === "field") { %>
+  <!-- 🧭 Membre / Field : form d'inscription dans un groupe existant -->
+  <form action="/signup" method="POST" class="space-y-4">
 
-    
-  <!-- Spiegazione veloce -->
-  <% if (role === "field") { %>
     <p class="text-sm text-gray-600 mb-2">
-      Chaque <strong>membre</strong> rejoint un groupe déjà existant.
-      Choisissez votre communauté et inscrivez-vous.
+      En tant que <strong>membre (Field)</strong>, vous rejoignez un groupe existant.
     </p>
-  <% } else if (role === "office") { %>
-    <p class="text-sm text-gray-600 mb-2">
-      En tant qu’<strong>Office</strong>, vous <u>créez</u> un nouveau groupe et vous en devenez le référent.
-    </p>
-  <% } %>
 
-  <!-- Groupe -->
+    <!-- Groupe (pré-rempli depuis l’URL) -->
+    <div>
+      <label for="group" class="block text-sm font-medium text-gray-700">
+        Code du groupe
+      </label>
+      <input
+        type="text"
+        id="group"
+        name="group"
+        value="<%= group || '' %>"
+        readonly
+        required
+        class="input input-bordered w-full mt-1"
+      />
+    </div>
 
-  <div>
-    <label for="group" class="block text-sm font-medium text-gray-700">
-        Groupe / Communauté
-    </label>
-    <select name="groupId" id="group" required
-      class="select select-bordered w-full mt-1">
-      <option value="TOUC">🏙️ Toulouse Centre</option>
-      <option value="LYNN">🌉 Lyon Nord</option>
-      <option value="PARE">🌆 Paris Est</option>
-      <option value="MARS">🌞 Marseille Sud</option>
-      <option value="NICO">🌊 Nice Ouest</option>
-    </select>
-  </div>
+    <!-- Email -->
+    <div>
+      <label for="email" class="block text-sm font-medium text-gray-700">
+        Email
+      </label>
+      <input
+        type="email"
+        name="email"
+        id="email"
+        required
+        class="input input-bordered w-full mt-1"
+      />
+    </div>
 
-  <!-- Email -->
-  <div>
-    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-    <input type="email" name="email" id="email" required
-      class="input input-bordered w-full mt-1" />
-  </div>
+    <!-- Password -->
+    <div>
+      <label for="password" class="block text-sm font-medium text-gray-700">
+        Mot de passe
+      </label>
+      <input
+        type="password"
+        name="password"
+        id="password"
+        required
+        class="input input-bordered w-full mt-1"
+      />
+    </div>
 
-  <!-- Password -->
-  <div>
-    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-    <input type="password" name="password" id="password" required
-      class="input input-bordered w-full mt-1" />
-  </div>
-    <!-- Ruolo nascosto -->
-  <input type="hidden" name="role" value="<%= role %>">
+    <!-- Rôle caché -->
+    <input type="hidden" name="role" value="field">
 
-  <!-- Bottone -->
-  <button type="submit" class="btn btn-primary w-full mt-2">
-    <% if (role === "field") { %>
+    <!-- Bouton -->
+    <button type="submit" class="btn btn-primary w-full mt-2">
       🚀 Rejoindre le groupe
-    <% } else { %>
-      🏢 Créer le groupe
-    <% } %>
-  </button>
-</form>
+    </button>
+  </form>
+<% } else if (role === "office") { %>
+  <!-- 🏢 Office : form de création de groupe -->
+  <form action="/signup" method="POST" class="space-y-4">
+
+    <p class="text-sm text-gray-600 mb-2">
+      En tant qu’<strong>Office</strong>, vous <u>créez</u> un nouveau groupe
+      et en devenez le référent principal.
+    </p>
+
+    <!-- Nom du groupe -->
+    <div>
+      <label for="group" class="block text-sm font-medium text-gray-700">
+        Nom du groupe / communauté
+      </label>
+      <input type="text" id="group" name="group"
+        placeholder="Ex. 9369 ou TOUC"
+        required
+        class="input input-bordered w-full mt-1" />
+    </div>
+
+    <!-- Email -->
+    <div>
+      <label for="email" class="block text-sm font-medium text-gray-700">
+        Email
+      </label>
+      <input type="email" name="email" id="email" required
+        class="input input-bordered w-full mt-1" />
+    </div>
+
+    <!-- Password -->
+    <div>
+      <label for="password" class="block text-sm font-medium text-gray-700">
+        Password
+      </label>
+      <input type="password" name="password" id="password" required
+        class="input input-bordered w-full mt-1" />
+    </div>
+
+    <!-- Rôle caché -->
+    <input type="hidden" name="role" value="office">
+
+    <!-- Bouton -->
+    <button type="submit" class="btn btn-primary w-full mt-2">
+      🏢 Créer mon groupe
+    </button>
+  </form>
+<% } else { %>
+  <!-- 🛠️ Autres rôles (admin ou inconnu) -->
+  <p class="text-sm text-gray-500">Aucune inscription disponible pour ce rôle.</p>
+<% } %>

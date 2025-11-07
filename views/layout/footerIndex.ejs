@@ -1,0 +1,61 @@
+<!-- Link in basso visibili sempre -->
+ <footer class="fixed bottom-0 w-full bg-white/70 backdrop-blur-sm py-4 shadow-inner z-40">
+  <div class="flex flex-wrap justify-center items-center gap-3 text-center text-sm text-gray-700">
+
+    <% if (typeof user !== "undefined" && user) { %>
+      <span>
+        Wellcome, <strong><%= user.email %></strong> 
+        (<%= user.role %> | Group: <%= user.groupId || 'N/A'  %> )
+      </span>
+        <% if (typeof referenteOffice !== "undefined" && referenteOffice) { %>
+          <span class="text-gray-500 text-xs">
+            Référent : <strong><%= referenteOffice.email %></strong>
+          </span>
+        <% } %>
+    
+      
+      <a class="btn btn-sm btn-outline" href="/logout">Log out</a>
+      <form method="POST" action="/delete_account"
+            onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');"
+            style="display: inline;">
+        <button class="btn btn-sm btn-error" type="submit">
+          Delete account
+        </button>
+      </form>
+    <% } %>
+
+    <!-- 🔹 Link utile per la home -->
+    <a href="/pricing" class="btn btn-sm btn-primary rounded-full shadow-sm">
+      💎 Voir les plans tarifaires
+    </a>
+  </div>
+</footer>
+
+
+<!-- I tuoi script personalizzati -->
+<script src="/js/popupMod.js"></script>
+
+<script>
+async function updateGroupId(userId) {
+  const newGroupId = document.getElementById(`groupId-${userId}`).value;
+
+  try {
+    const res = await fetch(`/users/${userId}/groupId`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupId: newGroupId })
+    });
+
+    if (res.ok) {
+      alert('Group ID aggiornato con successo!');
+    } else {
+      alert('Errore durante aggiornamento');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Errore di rete');
+  }
+}
+</script>
+</body>
+</html>

@@ -42,8 +42,8 @@ mongoose.connect(process.env.DATABASE_URL)
   }
 })();
 
-    (async () => {
-      try {
+  
+      
     /*    PointModel.deleteMany({
   user: { $in: ['683a1e037fdec5305b3c0cf2', '683b4242c4bc1d2fd38df94a'] }
 }).then(result => {
@@ -63,11 +63,17 @@ mongoose.connect(process.env.DATABASE_URL)
 const deletedPoints = await PointModel.deleteMany({});
     console.log(`🧹 Pulizia completa. Punti eliminati: ${deletedPoints.deletedCount}`);
     */ 
-
+   // BLOCCO PRONTO PER ELIMINARE I PINTI CON CAMPO isAnon
+ /* (async () => {
+      try {
+        const result = await PointModel.deleteMany({ isAnon: true });
+    console.log(`🧹 Punti anonimi eliminati: ${result.deletedCount}`);
       } catch (error) {
-        console.error('Errore durante l\'eliminazione dei dati di Coucou:', error);
+        console.error('Errore durante l\'eliminazione dei punti anonimi:', error);
       }
     })();
+    */
+   
   })
   .catch(() => console.log('Connexion à MongoDB échouée !'));
 
@@ -85,7 +91,7 @@ app.set('trust proxy', 1);
 app.use(session({
   secret: 'tonia', // Remplace par une clé secrète sécurisée
   resave: false,
-  saveUninitialized: false, 
+  saveUninitialized: true, 
   store: MongoStore.create({
       mongoUrl: process.env.DATABASE_URL
   }),

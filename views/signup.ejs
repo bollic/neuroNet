@@ -1,9 +1,16 @@
 <%- include('layout/header') %>
 
 <div class="flex justify-center items-center min-h-screen">
-<div class="card shadow-lg w-full max-w-md p-6 bg-white mt-10">
-  <h2 class="text-xl font-semibold mb-4">Inscription rapide</h2>
-  <%- include('partials/signup-form', { role: "field" }) %>
+  <div class="card shadow-lg w-full max-w-md p-6 bg-white mt-10">
+    <h2 class="text-xl font-semibold mb-4">Inscription rapide</h2>
+
+    <%- include('partials/signup-form', { 
+        role: typeof role !== 'undefined' ? role : 'field', 
+        group: typeof group !== 'undefined' ? group : '', 
+        groups: typeof groups !== 'undefined' ? groups : [] 
+    }) %>
+
+  </div>
 </div>
-</div>
-    <%- include('layout/footer') %>
+
+<%- include('layout/footer') %>

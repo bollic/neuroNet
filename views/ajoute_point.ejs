@@ -1,3 +1,4 @@
+<!-- ajoute_point.ejs -->
 <%- include('layout/headerZoneGeo') %>
  <!-- Code de la carte Leaflet -->
  <script defer>
@@ -79,23 +80,45 @@ form.addEventListener("submit", async (e) => {
   const formData = new FormData(form);
 
   try {
-    const response = await fetch("/addPoint", {
-      method: "POST",
-      body: formData, // niente Content-Type, lo mette FormData
-    });
-     const result = await response.json();
+     const response = await fetch("<%= user ? '/addPoint' : '/addPointAnon' %>", {
+    method: "POST",
+    body: formData,
+    credentials: "include"   
+  });
+if (response.redirected) {
+  // 👈 se il server ha mandato un redirect lo seguiamo
+  window.location.href = response.url;
+  return;
+}
 
-    if (response.ok) {
-      alert("Point ajouté!");
-      window.location.href = "/indexZoneGeo";
-    } else {
-      const errorData = await response.json();
-      alert(`Errore: ${errorData.message}`);
-    }
-  } catch (err) {
-    console.error("Errore durante l'invio:", err);
-    alert("Errore di connessione");
+let result;
+try {
+  result = await response.json();
+} catch (e) {
+  console.warn("Risposta non JSON:", e);
+}
+// 👇 aggiungi qui il check
+if (result?.redirectTo) {
+  window.location.href = result.redirectTo;
+  return;
+}
+if (response.ok) {
+  alert("Point ajouté!");
+
+  // 👇 Mostra alert se il backend ha assegnato un nuovo badge
+  if (result && result.newBadge) {
+    alert(`🏆 Nouveau badge débloqué : ${result.newBadge} !`);
   }
+  // Poi reindirizza come prima
+  window.location.href = "<%= user ? '/indexZoneGeo' : '/indexZoneGeoAnon' %>";
+} else {
+  alert(`Errore: ${result?.message || "Qualcosa è andato storto"}`);
+}
+
+} catch (err) {
+  console.error("Errore durante l'invio:", err);
+  alert("Errore di connessione");
+}
 });
 
 // Gestione click sul bottone "Usa la mia posizione"
@@ -222,7 +245,11 @@ manualButton.addEventListener("click", () => {
              <h3 class="text-light">Add a point</h3>
             </div>       
             <div class="card-body p-4">
-                <form action="/addPoint" enctype="multipart/form-data" method="POST" id="add-point">
+              <form action="<%= user ? '/addPoint' : '/addPointAnon' %>" enctype="multipart/form-data" 
+                    method="POST" 
+                    id="add-point">
+
+               
                     <input type="hidden" id="point" name="point" />
                     <% if (user) { %>
                       <input type="hidden" name="id" value="<%= user._id %>">
@@ -237,7 +264,7 @@ manualButton.addEventListener("click", () => {
                      <!-- Categoria -->                  
                     <select name="category" id="category" class="form-control" required>
                       <% categories.forEach(function(cat) { %>
-                        <option value="<%= cat %>"><%= cat %></option>
+                        <option value="<%= cat.name %>"><%= cat.icon %> - <%= cat.name %></option>
                       <% }); %>
                     </select>
                       <!-- Upload immagine -->
@@ -274,7 +301,7 @@ manualButton.addEventListener("click", () => {
 
                                                
                     <div class="mb-3 d-grid">                      
-                        <input type="submit" name="submit" value="Add User" class="btn btn-primary btn-lg"  />
+                        <input type="submit" name="submit" value="Ajoute un Point" class="btn btn-primary btn-lg"  />
                     </div>
              
                 </form>

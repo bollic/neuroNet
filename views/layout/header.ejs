@@ -26,23 +26,32 @@
   <!-- Custom CSS -->
   <link rel="stylesheet" href="/style.css">
 </head>
-<body class="min-h-screen bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100">
+<body class="pt-16 min-h-screen bg-gradient-to-r from-pink-100 via-purple-100 to-blue-100">
 
   <!-- Navbar -->
-  <nav class="bg-white shadow-md">
-    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-      <a href="/" class="text-xl font-bold text-purple-600">Nephis</a>
-      
-          <div class="flex space-x-2">
-              <a href="/" class="btn btn-sm btn-ghost gap-2">
-                <i class="fas fa-home"></i> Home
-              </a>
+ <nav class="bg-white/90 backdrop-blur-md shadow-sm fixed w-full top-0 z-50">
+  <div class="max-w-6xl mx-auto px-4 py-2 flex justify-between items-center">
+    <a href="/" class="text-xl font-extrabold text-purple-700">Nephis</a>
+    
+    <div class="flex items-center gap-2">
+      <a href="/" class="btn btn-sm btn-ghost text-gray-700 hover:text-purple-700">
+        <i class="fas fa-home"></i>
+      </a>
 
-            <a href="https://ko-fi.com/piknephis" target="_blank" 
-              class="btn btn-sm bg-red-500 hover:bg-red-600 text-white gap-2 rounded-full shadow-md">
-              ☕ Jetez un œil à Ko-fi
-            </a>
-          </div>
+      <div class="dropdown dropdown-end">
+        <label tabindex="0" class="btn btn-sm btn-ghost text-sm text-gray-700">Accès</label>
+        <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-white rounded-box w-44">
+          <li><a href="/login?role=field">👤 Membre</a></li>
+          <li><a href="/login?role=office">👥 Superviseur</a></li>
+          <li><a href="/signup?role=office">🏢 Créer un groupe</a></li>
+          <li><a href="/login?role=admin">🔑 Admin</a></li>
+        </ul>
+      </div>
 
+      <a href="https://ko-fi.com/piknephis" target="_blank" 
+         class="btn btn-sm bg-pink-500 hover:bg-pink-600 text-white rounded-full shadow">
+        ☕ Ko-fi
+      </a>
     </div>
-  </nav>
+  </div>
+</nav>

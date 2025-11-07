@@ -41,7 +41,7 @@ function sameOrgOrAdmin(req, res, next) {
 //VADO A: qs e' l indirizzo web ed event. Links http://localhost:3000/login
 router.get("/login", (req, res) => {
   //recupero qs file da ejs
-  res.render("login", { title: 'Form Page', error: null })
+  res.render("login", { title: 'Form Page', error: null, success: req.session.success || null })
 });
 
 router.post('/login', async (req, res) => {
@@ -167,46 +167,143 @@ router.get('/logout', (req, res) => {
     console.log('✅ Logout completato, sessione distrutta.');
     res.redirect('/');
   });
-});
+});// DELETE ACCOUNT
 router.post('/delete_account', async (req, res) => {
   try {
-    const userId = req.session.user?._id;
-
-    if (!userId) {
-      return res.status(401).send("Non autorizzato");
-    }
+    const userId = req.session.user._id;
 
     // Elimina l'utente
     await User.findByIdAndDelete(userId);
 
-    // Elimina la sessione
+    // Elimina i punti associati
+    if (req.session.user.role === "field" || req.session.user.role === "office") {
+      await Point.deleteMany({ groupId: req.session.user.groupId });
+    } else {
+      await Point.deleteMany({ sessionId: req.sessionID });
+    }
+
+    // Svuota subito i dati utente dalla sessione
+    req.session.user = null;
+
+    // Distruggi sessione
     req.session.destroy(err => {
       if (err) {
-        console.error('Errore durante la distruzione della sessione:', err);
-        return res.status(500).send("Errore durante la disconnessione.");
+        console.error('❌ Errore distruzione sessione:', err);
+        return res.status(500).send("Errore durante logout.");
       }
 
       res.clearCookie('connect.sid');
-      
-      console.log('✅ Utente eliminato e logout completato.');
+      console.log('✅ Utente eliminato e sessione distrutta.');
       res.redirect('/');
-     // alert("Désincription completée!");
+    });
+
+  } catch (err) {
+    console.error('❌ Errore delete_account:', err);
+    res.status(500).send("Errore interno server.");
+  }
+});
+router.get("/signup", async (req, res) => {
+  const role = req.query.role || 'office';
+  const group = req.query.group || null;
+   try {
+
+        // ✳️ AUTO-SIGNUP per field con group (senza form)
+    if (role === 'field' && group) {
+      console.log("⚡ Auto-signup attivato per field nel gruppo:", group);
+
+      // 1️⃣ Genera email e password automatiche
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      const email = `field${rand}@local.test`;
+      const password = "test1234";
+      const bcrypt = require("bcryptjs");
+      const hashedPassword = await bcrypt.hash(password, 6);
+
+      // 2️⃣ Trova eventuali categorie da un office del gruppo
+      const officeUser = await User.findOne({ role: 'office', groupId: group });
+      let inheritedCategories = [
+        { name: 'A', icon: '🟥' },
+        { name: 'B', icon: '🟧' },
+        { name: 'C', icon: '🟨' },
+        { name: 'D', icon: '🟩' },
+        { name: 'E', icon: '🟦' },
+      ];
+      if (officeUser && Array.isArray(officeUser.categories)) {
+        inheritedCategories = officeUser.categories;
+      }
+
+      // 3️⃣ Crea e salva il nuovo utente
+      const newUser = new User({
+        email,
+        password: hashedPassword,
+        role: 'field',
+        groupId: group,
+        categories: inheritedCategories,
+      });
+      await newUser.save();
+      console.log("✅ Auto-user creato:", newUser.email);
+
+      // 4️⃣ Sessione immediata
+      req.session.regenerate(function (err) {
+        if (err) {
+          console.error("❌ Errore rigenerazione sessione:", err);
+          return res.status(500).send("Erreur session");
+        }
+        req.session.user = {
+          _id: newUser._id,
+          email: newUser.email,
+          role: newUser.role,
+          groupId: newUser.groupId,
+        };
+        req.session.save((err) => {
+          if (err) {
+            console.error("❌ Errore salvataggio sessione:", err);
+            return res.status(500).send("Erreur session");
+          }
+           // 💬 FLASH MESSAGE — qui si salva nella sessione!
+  req.session.flashMessage = `🎉 Bienvenue parmi nous !
+Un compte a été créé pour vous : ${newUser.email} (mot de passe : test1234)
+Vous êtes prêt à rejoindre votre communauté 🚀
+Mot de passe : test1234`;
+
+          req.session.showWelcome = true;
+
+          console.log("🚀 Login automatico completato per:", newUser.email);
+          return res.redirect("/indexZoneGeo");
+        });
+      });
+
+      return; // 🧠 Fermiamo qui: non serve più renderizzare la pagina
+    }
+//normale pagina di login
+    // Recupera tutti i groupId distinti già presenti nel DB
+    const groups = await User.find({ role: 'office' })
+                         .distinct('groupId');
+ console.log("📋 Gruppi disponibili per la select:", groups);
+
+    res.render("signup", {
+      title: "Form Page",
+      error: null,
+      role,
+      group,
+      groups, // ✅ li passiamo davvero al template
     });
   } catch (err) {
-    console.error('❌ Errore durante l\'eliminazione account:', err);
-    res.status(500).send("Errore interno del server.");
+    console.error("❌ Errore durante il recupero gruppi:", err);
+    res.render("signup", {
+      title: "Form Page",
+      error: "Erreur serveur",
+      role,
+      group,
+      groups: [],
+    });
   }
 });
 
-
-router.get("/signup", (req, res) => {
-   const role = req.query.role || 'office'; // se non arriva dalla query, imposta 'field' come default
-  //recupero qs file da ejs
-  res.render("signup", { title: 'Form Page', error: null, role })
-});
 // Traitement du formulaire de signup
 router.post('/signup', async (req, res) => {
-  const { email, password, role, groupId } = req.body;
+  const { email, password, role, group } = req.body;
+    // 🔹 Log del gruppo ricevuto
+  console.log('🔹 POST signup, gruppo scelto:', group);
   console.log('📨 [SIGNUP] Richiesta ricevuta');
   console.log('📨 [SIGNUP] Email:', email);
   console.log('📨 [SIGNUP] Password in chiaro dal form:', password);
@@ -224,16 +321,26 @@ router.post('/signup', async (req, res) => {
        console.log('⚠️ [SIGNUP] Email già presente nel DB:', email);
     return res.render('signup', {
       error: 'Cet email est déjà utilisé.',
-      role: role || 'field'  // 👈 Aggiunto
+      role: role || 'field',
+         group,
+        groups: await User.find({ role: 'office' }).distinct('groupId')
     });
   }
     // Si l'user n'existe pas, créer un nouvel user
     const hashedPassword = await bcrypt.hash(password, 6); // Hacher le mot de passe avec bcrypt
     console.log('🔐 [SIGNUP] Password criptata con bcrypt:', hashedPassword);
-  let inheritedCategories = ['A', 'B', 'C', 'D', 'E']; // fallback
-
+ // let inheritedCategories = ['A', 'B', 'C', 'D', 'E']; // fallback
+// Prepara le categorie come array di oggetti, non stringhe
+    let inheritedCategories = [
+      { name: 'A', icon: '🟥' },
+      { name: 'B', icon: '🟧' },
+      { name: 'C', icon: '🟨' },
+      { name: 'D', icon: '🟩' },
+      { name: 'E', icon: '🟦' },
+    ];
+     // Se è field, eredita le categorie dall'office dello stesso gruppo
 if (role === 'field') {
-  const officeUser = await User.findOne({ role: 'office' });
+  const officeUser = await User.findOne({ role: 'office', groupId: group });
   if (officeUser && Array.isArray(officeUser.categories)) {
     inheritedCategories = officeUser.categories;
   }
@@ -244,11 +351,12 @@ const newUser = new User({
   password: hashedPassword,
   role: ['office', 'field'].includes(role) ? role : 'field',
   categories: inheritedCategories,
-  groupId: groupId
+  groupId: group || null, // ✅ collega subito al gruppo
 });
 
       // lo salvo
     await newUser.save(); // Enregistrer le nouvel user dans la base de données
+  
     console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);
     console.log('🧪 [SIGNUP] Verifica bcrypt.compare(password, hash):', await bcrypt.compare(password, newUser.password));
     console.log("🧪 Password da form:", password);    
@@ -268,6 +376,7 @@ const newUser = new User({
    };
    console.log('Sessione al User:', req.session);
    console.log('📦 [SIGNUP] Sessione impostata:', req.session.user);
+     req.session.flashMessage = `🎉 Bienvenue parmi nous ! Un compte a été créé pour vous : ${newUser.email} (mot de passe : test1234) 🚀`;
 
       // 🔁 Redirezione in base al ruolo
       let redirectTo;
@@ -299,7 +408,9 @@ const newUser = new User({
     console.error('🔥 [SIGNUP] Errore server:', error);
     res.render('signup', {
       error: 'Erreur serveur : ' + error.message,
-      role: role || 'office'
+      role: role || 'office',
+      group,
+      groups: await User.find({ role: 'office' }).distinct('groupId')
     });
    }
 });

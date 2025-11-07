@@ -1,0 +1,83 @@
+<!-- ===============================
+  PARTIAL: map-dashboard.ejs
+  Ruolo: FIELD (utente autenticato)
+  Derivato da: indexZoneGeo.ejs
+================================== -->
+
+<div class="w-full min-h-screen flex flex-col bg-gray-50">
+  
+  <!-- HEADER UTENTE -->
+  <div class="w-full bg-purple-700 text-white py-4 px-6 flex justify-between items-center shadow-md">
+    <h1 class="text-2xl font-bold flex items-center gap-2">
+      <i class="fas fa-map-marked-alt"></i>
+      Tableau de bord - <%= user.email %>
+    </h1>
+    <div class="flex items-center gap-3">
+      <a href="/logout" class="btn btn-sm btn-outline text-white border-white hover:bg-white hover:text-purple-700 transition">Logout</a>
+    </div>
+  </div>
+
+  <!-- MAPPA -->
+  <div id="map" class="flex-1 w-full" style="height: calc(100vh - 140px);"></div>
+
+  <!-- FOOTER / AZIONI -->
+  <div class="bg-white shadow-inner py-4 px-6 flex justify-between items-center">
+    <span class="text-gray-600 text-sm">
+      🗺️ Ajoutez vos points sur la carte ou explorez votre zone.
+    </span>
+    <form action="/delete_account" method="POST" onsubmit="return confirm('Voulez-vous vraiment supprimer votre compte ?');">
+      <button type="submit" class="btn btn-sm btn-error text-white">Supprimer mon compte</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===============================
+  SCRIPTS MAPPE (Leaflet + Init)
+================================== -->
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    // 📍 Init mappa
+    const map = L.map('map', {
+      center: [48.8566, 2.3522], // Paris par défaut
+      zoom: 11,
+      zoomControl: true
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // 📦 Carica punti dal server
+    try {
+      const res = await fetch('/points/json');
+      const points = await res.json();
+      points.forEach(p => {
+        const marker = L.marker([p.lat, p.lng]).addTo(map);
+        marker.bindPopup(`<strong>${p.title || 'Point'}</strong><br>${p.description || ''}`);
+      });
+    } catch (err) {
+      console.error('Erreur chargement points:', err);
+    }
+
+    // 🟣 Aggiunta di punti con click
+    map.on('click', async (e) => {
+      const { lat, lng } = e.latlng;
+      const title = prompt("Nom du point ?");
+      if (!title) return;
+      try {
+        const res = await fetch('/points', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lng, title })
+        });
+        if (res.ok) {
+          L.marker([lat, lng]).addTo(map).bindPopup(`<strong>${title}</strong>`);
+        } else {
+          alert("Erreur lors de l'ajout du point.");
+        }
+      } catch (err) {
+        console.error('Erreur ajout point:', err);
+      }
+    });
+  });
+</script>

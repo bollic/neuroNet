@@ -4,6 +4,45 @@ document.addEventListener("DOMContentLoaded", function() {
     let map; 
     let layerGroup;  
     let drawnItems;  
+
+    // 🔄 Aggiorna le categorie all’avvio
+async function loadCategories() {
+  try {
+    const res = await fetch('/api/categories');
+    const data = await res.json();
+    if (data.success) {
+      window.CATEGORIES = data.categories;
+      console.log("✅ Categorie aggiornate:", data.categories);
+    } else {
+      console.warn("⚠️ Nessuna categoria trovata");
+    }
+  } catch (err) {
+    console.error("❌ Errore fetch categorie:", err);
+  }
+}
+
+// 🔧 Funzione per ottenere l'icona associata a una categoria
+function getIconForCategory(categoryName) {
+  if (!window.CATEGORIES || !Array.isArray(window.CATEGORIES)) return '🔴';
+  const match = window.CATEGORIES.find(c => c.name === categoryName);
+  if (!match) return '🔴';
+
+  const iconKey = match.icon;
+  const iconMap = {
+    "🟥": "🚚",
+    "🟧": "🏠",
+    "🟨": "🏪",
+    "🟩": "🌳",
+    "🟦": "🏭",
+    "truck": "🚚",
+    "home": "🏠",
+    "shop": "🏪",
+    "tree": "🌳",
+    "factory": "🏭"
+  };
+  return iconMap[iconKey] || iconKey || '🔴';
+}
+
      // DaisyUI drawer toggle
         const drawerToggle = document.getElementById("my-drawer");
 
@@ -19,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function() {
         });
 
     // Aggiorna la mappa dopo il rendering iniziale
-    setTimeout(() => map.invalidateSize(), 500);
+  //  setTimeout(() => map.invalidateSize(), 500);
     
 function initializeMap() {
       map = L.map("map", { center: [43.2, 1.30], zoom: 10 });       
@@ -76,62 +115,97 @@ function initializeMap() {
 //console.log("Triangolo con groupedArticles:", groupedArticles['trepunti']);
 //console.log("Triangoli con groupedArticles:", groupedArticles['triangle']);
 //console.log("Pentagoni con groupedArticles:", groupedArticles['pentagone']);
+function updateMap() {
+  if (!Array.isArray(parcelles)) {
+    console.warn("Nessuna parcella da visualizzare");
+    return;
+  }
 
-  function updateMap() {
-    if (!Array.isArray(parcelles)) {
-      console.warn("Nessuna parcella da visualizzare");
+  drawnItems.clearLayers();
+  const polygons = [];
+
+  parcelles.forEach((parcelle) => {
+    if (
+      !parcelle.geometry ||
+      parcelle.geometry.type !== "Polygon" ||
+      !Array.isArray(parcelle.geometry.coordinates)
+    ) {
+      console.warn("Dati non validi:", parcelle);
       return;
     }
 
-    drawnItems.clearLayers();
-    const polygons = [];
+    const geoJson = {
+      type: "Feature",
+      geometry: parcelle.geometry,
+      properties: {
+        name: parcelle.name || "Parcelle sans nom",
+        category: parcelle.category || "",
+      },
+    };
 
-    parcelles.forEach((parcelle) => {
-      if (
-        !parcelle.geometry ||
-        parcelle.geometry.type !== "Polygon" ||
-        !Array.isArray(parcelle.geometry.coordinates)
-      ) {
-        console.warn("Dati non validi:", parcelle);
-        return;
-      }
+    // 🔹 1. Disegna il poligono come prima
+    const geoLayer = L.geoJSON(geoJson).bindPopup(`
+      <div>
+        <strong>${geoJson.properties.name}</strong>
+      </div>
+    `).addTo(drawnItems);
 
-      const geoJson = {
-        type: "Feature",
-        geometry: parcelle.geometry,
-        properties: {
-          name: parcelle.name || "Parcelle sans nom",
-        },
-      };
+    geoLayer.eachLayer((layer) => polygons.push(layer));
 
-      const geoLayer = L.geoJSON(geoJson).bindPopup(`
-        <div>
-          <strong>${geoJson.properties.name}</strong>
-        </div>
-      `).addTo(drawnItems);
+    // 🔹 2. Mostra emoji sui vertici del poligono
+    try {
+      const coords = parcelle.geometry.coordinates[0]; // primo anello del poligono
+      const iconEmoji = getIconForCategory(parcelle.category || "");
 
-      geoLayer.eachLayer((layer) => polygons.push(layer));
-    });
-
-    if (polygons.length === 1) {
-      map.fitBounds(polygons[0].getBounds());
-    } else if (polygons.length > 1) {
-      const bounds = L.latLngBounds([]);
-      polygons.forEach((poly) => bounds.extend(poly.getBounds()));
-      map.fitBounds(bounds, { padding: [30, 30] });
+      coords.forEach(([lng, lat]) => {
+        L.marker([lat, lng], {
+          icon: L.divIcon({
+            html: `<div style="font-size:24px;">${iconEmoji}</div>`,
+            className: '',
+            iconSize: [26, 26],
+           iconAnchor: [13, 13]
+      })
+    })
+    .addTo(drawnItems)
+          .bindPopup(`
+      <div>
+        <strong>${parcelle.name || "Parcelle sans nom"}</strong><br>
+        Categoria: ${parcelle.category || "Senza categoria"}<br>
+        Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}
+      </div>
+    `);
+      });
+    } catch (e) {
+      console.warn("Errore creando emoji sui vertici:", e);
     }
+  });
+
+  // 🔹 3. Manteniamo la tua logica per centrare la mappa
+  if (polygons.length === 1) {
+    map.fitBounds(polygons[0].getBounds());
+  } else if (polygons.length > 1) {
+    const bounds = L.latLngBounds([]);
+    polygons.forEach((poly) => bounds.extend(poly.getBounds()));
+    map.fitBounds(bounds, { padding: [30, 30] });
+  }
+}
+
+
+    loadCategories().then(() => {
+  if (!map) {
+    initializeMap();
   }
 
-        // Initialize map only once, then update content
-        if (!map) {
-          initializeMap();
-        }
+  setTimeout(() => {
+    if (map) {              // ✅ evita errore se map non è ancora pronta
+      map.invalidateSize();
+      updateMap();
+    } else {
+      console.warn("⚠️ Mappa non ancora inizializzata al timeout");
+    }
+  }, 150); 
+});
 
-        setTimeout(() => {
-          map.invalidateSize(); // Ensure map is resized
-          updateMap(); // Update markers and polylines
-        }, 100); // Short delay to ensure rendering
-  
 
     // 1. INIZIALIZZA DATATABLES - SPOSTATO IN FONDO
     const table = $('#main-table').DataTable({

@@ -9,20 +9,20 @@
   <div class="row">
     <div class="col-lg-6 mx-auto">
       <form id="add-parcelle" method="POST">
-        <div class="mb-3">
-          <label for="name">Nome parcella</label>
-          <input type="text" name="name" class="form-control" placeholder="Inserisci nome" required>
-        </div>
+     
 
-        <div class="mb-3">
-          <label for="category">Categoria</label>
-          <select name="category" class="form-control" required>
-            <% categories.forEach(function(cat) { %>
-              <option value="<%= cat %>"><%= cat %></option>
-            <% }); %>
-          </select>
-        </div>
-
+                <div class="mb-3">                                         
+                        <label for="name">Name</label>
+                        <input type="text" name="name" class="form-control form-control-lg" 
+                        placeholder="Enter name" value="Default Name"  required />
+                
+                     <!-- Categoria -->                  
+                    <select name="category" id="category" class="form-control" required>
+                      <% categories.forEach(function(cat) { %>
+                        <option value="<%= cat.name %>"><%= cat.icon %> - <%= cat.name %></option>
+                      <% }); %>
+                    </select>
+       </div>  
         <input type="hidden" id="polygon" name="polygon">
 
         <div class="mb-3 d-grid">
