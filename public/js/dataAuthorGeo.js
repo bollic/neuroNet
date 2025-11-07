@@ -7,8 +7,9 @@ document.addEventListener("DOMContentLoaded", function() {
     // -------------------
     let map; 
     let layerGroup;  
-    let drawnItems;  
-
+    let drawnItems; 
+    let userUsedGeolocation = false; // 👈 variabile globale
+ 
     // 🔄 Aggiorna le categorie all’avvio
     async function loadCategories() {
         try {
@@ -96,7 +97,44 @@ document.addEventListener("DOMContentLoaded", function() {
         });
         // ✅ Qui garantiamo che map esista
     setTimeout(() => map.invalidateSize(), 500);
+        // 📍 Pulsante “Usa la mia posizione”
+const locationButton = document.getElementById("use-my-location");
+if (locationButton) {
+  locationButton.addEventListener("click", function () {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function (position) {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          console.log("📍 Geolocalizzazione:", lat, lng);
+
+          // Centra la mappa sulla posizione trovata
+          map.setView([lat, lng], 14);
+            userUsedGeolocation = true; // ✅ segna che la posizione manuale è stata impostata
+            console.log("📍 userUsedGeolocation (dopo click):", userUsedGeolocation);
+          // Crea marker
+         L.marker([lat, lng])
+            .addTo(map)
+            .bindPopup("📍 Tu es ici")
+            .openPopup();
+
+        },
+        function (err) {
+          alert("Erreur de géolocalisation : " + err.message);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000
+        }
+      );
+    } else {
+      alert("❌ Géolocalisation non supportée par le navigateur.");
     }
+  });
+}  // <-- chiude if(locationButton)
+}  // <-- chiude la funzione initializeMap()
+
 // Aggiorna mappa + tabella quando cambio lo switch
 const toggleGroupPoints = document.getElementById("toggleGroupPoints");
 // Legge il valore iniziale dello switch
@@ -112,12 +150,15 @@ if (toggleGroupPoints) {
     // FUNZIONE AGGIORNA MAPPA
     // -------------------
     function updateMap() {
-        if (!layerGroup || !drawnItems || !points) return;
+        console.log("🗺️ updateMap chiamata — userUsedGeolocation:", userUsedGeolocation);
+
+            if (!layerGroup || !drawnItems || !points) return;
 
         layerGroup.clearLayers();
         drawnItems.clearLayers();
 
         const markers = [];
+    
         // Controlla se l’utente vuole vedere anche i punti del gruppo
     const showGroupPoints = document.getElementById("toggleGroupPoints")?.checked ?? true;
         
@@ -154,13 +195,15 @@ if (toggleGroupPoints) {
 
         markers.push(marker);
     });
+            // Centra la mappa sui marker, ma solo se l’utente NON ha appena usato la geolocalizzazione
+            if (!userUsedGeolocation) {
+                if (markers.length === 1) {
+                    map.setView(markers[0].getLatLng(), 14);
+                } else if (markers.length > 1) {
+                    map.fitBounds(L.latLngBounds(markers.map(m => m.getLatLng())), { padding: [30, 30] });
+                }
+            }
 
-        // Centra la mappa sui marker
-        if (markers.length === 1) {
-            map.setView(markers[0].getLatLng(), 14);
-        } else if (markers.length > 1) {
-            map.fitBounds(L.latLngBounds(markers.map(m => m.getLatLng())), { padding: [30, 30] });
-        }
     }
     // -------------------
 // AGGIORNA LA TABELLA IN BASE AL TOGGLE
@@ -191,13 +234,6 @@ function updateTable() {
 
     dt.draw();
 }
-
-
-
-
-    // -------------------
-    // CARICAMENTO CATEGORIE E MAPPA
-    // -------------------
    // -------------------
 // CARICAMENTO CATEGORIE E MAPPA
 // -------------------
@@ -228,12 +264,7 @@ loadCategories().then(() => {
   // -------------------
     // DATATABLES
     // -------------------
-  // -------------------
-// DATATABLES
-// -------------------
-// -------------------
-// DATATABLES
-// -------------------
+
 const table = $('#main-table').DataTable({
   pageLength: 20,
   scrollX: true,
