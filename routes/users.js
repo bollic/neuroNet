@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs'); // Utilisé pour comparer les mots de passe 
 const mongoose = require('mongoose');
 
 const User = require('../models/users');
-const Point = require('../models/Point'); // aggiorna il path se necessario
+const PointModel = require('../models/Point'); // aggiorna il path se necessario
 
 router.use(logger);
 
@@ -99,7 +99,12 @@ console.log("🧪 bcrypt.compare (TEST) →", await bcrypt.compare("field1", "$2
       console.log('Password errata nel DB');
       return res.status(401).send('Email o password errata.');
     }
-      // 🔁 Rigenera sessione per evitare problemi tra login diversi
+   
+   // 🔥 Calcola XP PRIMA della rigenerazione della sessione
+const userXp = await PointModel.countDocuments({ user: userFromDb._id });
+console.log("🔥 XP calcolato al login:", userXp);
+
+    // 🔁 Rigenera sessione per evitare problemi tra login diversi
  req.session.regenerate(function(err) {
     if (err) {
       console.error('Errore nel rigenerare la sessione:', err);
@@ -110,14 +115,19 @@ console.log("🧪 bcrypt.compare (TEST) →", await bcrypt.compare("field1", "$2
       _id: userFromDb._id, // 👈 AGGIUNGI QUESTO!
       email: userFromDb.email,
       role: userFromDb.role,
-      groupId: userFromDb.groupId,   // 👈 aggiunto
-      isAdmin: userFromDb.role === 'admin'
+      groupId: userFromDb.groupId,   // 👈 aggiunto      
+      isAdmin: userFromDb.role === 'admin',
+       xp: userXp // ← Adesso funziona
     };
+    /// 🔥 RICALCOLA XP AL LOGIN
+     req.session.user.xp = userXp;
+console.log("🔥 XP calcolato al login:", userXp);
+
     console.log('📦 Sessione prima del salvataggio:', req.session);
- console.log("🧩 Sessione dopo login:", req.session.user);
-    // 🔁 Decidi il redirect finale
-let redirectTo = req.session.redirectTo;
-    
+    console.log("🧩 Sessione dopo login:", req.session.user);
+        // 🔁 Decidi il redirect finale
+    let redirectTo = req.session.redirectTo;
+        
 if (!redirectTo) {
   switch (userFromDb.role) {
     case 'field':
@@ -177,9 +187,9 @@ router.post('/delete_account', async (req, res) => {
 
     // Elimina i punti associati
     if (req.session.user.role === "field" || req.session.user.role === "office") {
-      await Point.deleteMany({ groupId: req.session.user.groupId });
+      await PointModel.deleteMany({ groupId: req.session.user.groupId });
     } else {
-      await Point.deleteMany({ sessionId: req.sessionID });
+      await PointModel.deleteMany({ sessionId: req.sessionID });
     }
 
     // Svuota subito i dati utente dalla sessione
@@ -488,7 +498,7 @@ router.get('/del/:id', async (req, res) => {
     }
     console.log('User eliminato:', deletedUser.email);
     // 2) Elimina tutti gli articoli di quell'utente
-    const result = await Point.deleteMany({ user: id });
+    const result = await PointModel.deleteMany({ user: id });
     console.log(`Eliminati ${result.deletedCount} articoli di ${deletedUser.email}`);
 
     // 3) Redirect alla lista utenti

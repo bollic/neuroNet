@@ -182,7 +182,7 @@ if (addBtn && list) {
   const form = document.getElementById("categories-form");
   if (form) {
     form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+     // e.preventDefault();
       const formData = new FormData(form);
       const entries = Array.from(formData.entries());
       const categories = [];
@@ -251,15 +251,15 @@ if (addBtn && list) {
   listDiv.appendChild(row);
 });
           updateMap();
-          alert("Categorie aggiornate con successo!");
+         // alert("Categorie aggiornate con successo!");
           console.log("📥 Risposta server:", result);
 
         } else {
-          alert("Errore aggiornamento categorie.");
+          //alert("Errore aggiornamento categorie.");
         }
       } catch (err) {
         console.error("❌ Errore durante update-categories:", err);
-        alert("Errore di connessione al server.");
+       // alert("Errore di connessione al server.");
       }
     });
   }

@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // -------------------
     let map; 
     let layerGroup;  
+    let markersMap = {}; // key = point._id, value = marker Leaflet
     let drawnItems; 
     let userUsedGeolocation = false; // 👈 variabile globale
  
@@ -146,6 +147,35 @@ if (toggleGroupPoints) {
     });
 }
 
+
+function highlightTableRow(pointId) {
+
+     // 👉 Apri automaticamente il drawer se è chiuso
+    const drawerToggle = document.getElementById("my-drawer");
+    if (drawerToggle && !drawerToggle.checked) {
+        drawerToggle.checked = true;
+        setTimeout(() => map.invalidateSize(), 300);
+    }
+    // Rimuove evidenziazione da tutte le righe
+    $('#main-table tbody tr').removeClass('highlight-row');
+
+    // Trova la riga corrispondente
+    const row = $(`#main-table tbody tr[data-point-id='${pointId}']`);
+
+    // Se esiste, evidenziale e scrolla fino a lei
+    if (row.length > 0) {
+        row.addClass('highlight-row');
+
+        // Scroll automatico dentro la tabella
+        const container = $('.dataTables_scrollBody');
+        if (container.length) {
+            container.animate({
+                scrollTop: row.position().top + container.scrollTop() - 100
+            }, 300);
+        }
+    }
+}
+
     // -------------------
     // FUNZIONE AGGIORNA MAPPA
     // -------------------
@@ -192,7 +222,12 @@ if (toggleGroupPoints) {
                 ${point.image ? `<br><img src="${point.image}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">` : ''}
             </div>
         `).addTo(drawnItems);
+            marker.on('click', () => {
+    highlightTableRow(point._id);
+});
 
+// ❌ Aggiungi questa riga per la sincronizzazione
+markersMap[point._id] = marker;
         markers.push(marker);
     });
             // Centra la mappa sui marker, ma solo se l’utente NON ha appena usato la geolocalizzazione
@@ -229,10 +264,33 @@ function updateTable() {
             ? `<a href="/delete/${point._id}" class="btn btn-xs btn-error"><i class="fas fa-trash"></i></a>`
             : `<span class="text-gray-400 text-xs italic">—</span>`;
 
-        dt.row.add([icon, name, actionCell]);
+       // dt.row.add([icon, name, actionCell]);
+         // Aggiungi la riga e prendi il nodo TR
+    const newRow = dt.row.add([icon, name, actionCell]).node();
+    $(newRow).attr('data-point-id', point._id);  // 👈 aggiungi l'ID qui
     });
 
     dt.draw();
+    // 👇 aggiungi dopo dt.draw();
+$('#main-table tbody tr').each(function() {
+    const pointId = $(this).data('point-id');
+    if (pointId) {
+        $(this).off('click').on('click', function() {
+
+             // 👉 Evidenzia la riga nella tabella
+            highlightTableRow(pointId);
+            
+            const marker = markersMap[pointId];
+            if (marker) {
+                marker.openPopup();
+                // opzionale: anima marker
+                marker._icon.classList.add('marker-highlight');
+                setTimeout(() => marker._icon.classList.remove('marker-highlight'), 1000);
+            }
+        });
+    }
+});
+
 }
    // -------------------
 // CARICAMENTO CATEGORIE E MAPPA

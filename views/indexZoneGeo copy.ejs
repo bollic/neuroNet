@@ -51,12 +51,6 @@
 }
 </style>
 <style>
-.highlight-row {
-    background-color: #ffe9a8 !important;
-    transition: background-color 0.3s ease
-}
-</style>
-<style>
   #group-feed {
     max-height: none !important;   /* niente limite altezza */
     overflow-y: visible !important; /* elimina scrollbar verticale */
@@ -115,30 +109,44 @@
 }
 </style>
 
+
+
+
+
+
    <!-- 1: inizio flex -->
 <div class="flex flex-row h-screen">
 <!-- 2: drawer -->
-    <div class="drawer drawer-start drawer-mobile md:drawer-open">
-
+    <div class="drawer drawer-start">
       <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
       <!-- Contenuto principale (mappa) -->
       <div class="drawer-content relative">
     <!-- Pulsante toggle sempre visibile -->
+
+
+      <!-- Pulsante flottante in basso a sinistra -->
+
+
+
           <!-- unica mappa -->
      <div id="content-sections" class="relative w-full h-full">
 
   <!-- 🗺️ MAPPA -->
   <div id="map-section" class="h-full">
     <div id="map" class="w-full h-full rounded-lg shadow-md"></div>
-      <!-- 🔴 Pulsante Add Point centrato sopra il footer -->
-      <a href="/addPoint"
-        class="fixed bottom-20 left-1/2 -translate-x-1/2 z-10">
-      <button
-          class="bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
-          <i class="fas fa-plus text-gray-700 text-xl"></i>
-        </button>
-      </a>
+  
+
+<!-- 🔴 Pulsante Add Point centrato sopra il footer -->
+<a href="/addPoint"
+   class="fixed bottom-20 left-1/2 -translate-x-1/2 z-10">
+<button
+    class="bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
+    <i class="fas fa-plus text-gray-700 text-xl"></i>
+  </button>
+</a>
+
+
   </div>
 
 <!-- 🕸️ Pulsante toggle drawer (resta sopra tutto) -->
@@ -211,51 +219,39 @@
         <div class="drawer-side">
         <label for="my-drawer" class="drawer-overlay"></label>
         <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
-    
           <% if (message) { %>
             <div class="alert alert-<%= message.type || 'info' %> shadow-lg rounded-lg p-3">
               <i class="fas fa-exclamation-circle mr-2"></i>
               <strong><%= message.message %></strong>
             </div>
           <% } %>
-
+        <!-- 👤 Info utente -->
 <!-- 👤 Info utente -->
-  <div class="bg-base-100 rounded-lg shadow-md p-4 mb-4">
-    <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
-      <i class="fas fa-user-circle text-primary"></i> Profil 
-    </h2>
-    <p><strong>Email:</strong> <%= user.email %></p>
-    <p><strong>XP:</strong> <span class="badge badge-primary"><%= user.xp || 0 %></span></p>
-    <p><strong>Badge:</strong>
-      <% if (user.badges && user.badges.length > 0) { %>
-        <% user.badges.forEach(b => { %>
-          <span class="badge badge-accent mr-1 mb-1"><%= b.name %></span>
-        <% }) %>
-      <% } else { %>
-        <span class="text-gray-500">—</span>
-      <% } %>
-    </p>
-  </div>
+<div class="bg-base-100 rounded-lg shadow-md p-4 mb-4 ml-20">
+  <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
+    <i class="fas fa-user-circle text-primary"></i> Profil 
+  </h2>
 
+  <p><strong>Email:</strong> <%= user.email %></p>
+  <p><strong>XP:</strong> 
+    <span class="badge badge-primary"><%= user.xp || 0 %></span>
+  </p>
+  <p><strong>Badge:</strong>
+    <% if (user.badges && user.badges.length > 0) { %>
+      <% user.badges.forEach(b => { %>
+        <span class="badge badge-accent mr-1 mb-1"><%= b.name %></span>
+      <% }) %>
+    <% } else { %>
+      <span class="text-gray-500">—</span>
+    <% } %>
+  </p>
+</div>
 <!-- Aggiungi switch “Mostra punti del gruppo” -->
 <div class="form-control mb-4">
   <label class="cursor-pointer label flex items-center justify-between">
     <span class="label-text font-semibold">👥 Montrer les points du group</span>
     <input type="checkbox" id="toggleGroupPoints" class="toggle toggle-primary" />
   </label>
-</div>
-
-<!-- Badge piano e limite punti -->
-<div class="my-3 p-3 bg-base-100 rounded-lg shadow-md">
-  <h3 class="font-bold text-lg mb-1">Votre plan</h3>
-  <% if (plan === "free") { %>
-    <span class="badge badge-warning">FREE</span>
-  <% } else if (plan === "pro") { %>
-    <span class="badge badge-success">PRO</span>
-  <% } else { %>
-    <span class="badge badge-primary">ENTERPRISE</span>
-  <% } %>
-  <p class="text-sm mt-1">Limite punti per field: <%= pointLimit %></p>
 </div>
 
   <!-- 🔹 Tabella dei punti con DataTables -->
@@ -269,9 +265,8 @@
       </tr>
     </thead>
     <tbody>
-     
       <% points.forEach((row) => { %>
-        <tr data-point-id="<%= row._id %>">
+        <tr>
           <td><%= row.category || 'Senza categoria' %></td>
           <td><%= row.name || 'Senza nom' %></td>
           <td style="text-align: center;">
@@ -289,11 +284,15 @@
   </table>
 </div>
 
+<!-- Feed del gruppo (ajax) -->
+<div id="group-feed" class="mt-4 p-2 bg-base-100 rounded shadow-sm">
+  <div class="text-center text-muted">Caricamento feed...</div>
+</div>
 
-  <!-- Feed del gruppo -->
-  <div id="group-feed" class="mt-4 p-2 bg-base-100 rounded shadow-sm">
-    <div class="text-center text-muted">Caricamento feed...</div>
-  </div>
+            <div id="group-feed" class="mt-4 p-2 bg-base-100 rounded shadow-sm">
+                  <!-- Qui AJAX inserirà i punti -->
+                    <div class="text-center text-muted">Caricamento feed...</div>
+            </div>
 
           <button id="closeSidebar" class="close-btn d-md-none" data-bs-toggle="collapse" data-bs-target="#sidebar">&times;</button><br>
     
@@ -302,9 +301,7 @@
     <script>
       async function loadGroupFeed() {
         try {
-            const res = await fetch('/groupFeed', {
-            credentials: "include"   // 👈 OBBLIGATORIO
-          });
+          const res = await fetch('/groupFeed');
           if (!res.ok) throw new Error("Errore HTTP " + res.status);
           const html = await res.text();
           const feed = document.getElementById('group-feed');

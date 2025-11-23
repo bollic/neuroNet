@@ -91,7 +91,7 @@ app.set('trust proxy', 1);
 app.use(session({
   secret: 'tonia', // Remplace par une clé secrète sécurisée
   resave: false,
-  saveUninitialized: true, 
+  saveUninitialized: false, 
   store: MongoStore.create({
       mongoUrl: process.env.DATABASE_URL
   }),
@@ -107,15 +107,28 @@ app.use(session({
 }));
 console.log('Ambiente di esecuzione:', process.env.NODE_ENV);
 
+
 app.use((req, res, next) => {
-  console.log('🔎 Sessione corrente:', req.session);
+    if (req.session.message) {
+        res.locals.message = req.session.message;
+        req.session.message = null;   // 🔥 cancellalo SOLO QUI
+    } else {
+        res.locals.message = null;
+    }
+    next();
+});
+
+// 🔐 Rende l'utente disponibile ovunque
+app.use((req, res, next) => {
+  req.user = req.session.user || null;
+  res.locals.user = req.session.user || null;
   next();
 });
+
 app.use((req, res, next) => {
-    res.locals.message = req.session.message;
-    delete req.session.message;
-    next();
-})
+  console.log("💡 Middleware globale - sessione attuale:", req.session);
+  next();
+});
 
 
 // Setting EJS as templating engine

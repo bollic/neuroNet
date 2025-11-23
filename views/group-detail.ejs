@@ -1,66 +1,136 @@
 <%- include('layout/header') %>
 
-<style>
-  #group-feed {
-    max-height: none !important;
-    overflow-y: visible !important;
-  }
-</style>
+<div class="max-w-6xl mx-auto px-4 py-8 space-y-8">
 
-<div class="flex flex-row h-[80vh]">
-  <!-- Sidebar a sinistra -->
-  <aside class="w-80 bg-base-200 p-4 overflow-y-auto shadow-md">
-    <h2 class="text-xl font-bold mb-4 text-primary">
-      Gruppo: <%= groupId %>
+  <!-- 🔹 Titolo -->
+  <h1 class="text-3xl font-extrabold text-primary text-center mb-6">
+    🌐 Gruppo <%= groupId %>
+  </h1>
+
+  <!-- ✏️ Form Admin -->
+<% if (user && (user.role === 'admin' || isGroupOffice)) { %>
+    <form action="/groups/<%= groupId %>/updateInfo" method="POST" class="mt-4 text-center space-y-3">
+      
+      <input 
+        type="text" 
+        name="name" 
+        value="<%= group.name %>"
+        placeholder="Nome del gruppo" 
+        class="input input-bordered w-1/2" 
+      />
+
+      <textarea 
+        name="description"
+        placeholder="Descrizione del gruppo"
+        class="textarea textarea-bordered w-1/2"
+      ><%= group.description %></textarea>
+
+      <input 
+        type="text" 
+        name="keywords" 
+        value="<%= group.keywords?.join(', ') %>"
+        placeholder="Parole chiave separate da virgola" 
+        class="input input-bordered w-1/2" 
+      />
+
+      <div>
+        <button type="submit" class="btn btn-primary">💾 Salva</button>
+      </div>
+    </form>
+  <% } %>
+
+  <!-- 🔍 Descrizione e parole chiave -->
+  <div class="text-center text-gray-600 mb-8">
+    <h2 class="text-2xl font-semibold text-primary">
+      <%= group.name || "Nome non disponibile" %>
     </h2>
 
-    <!-- Membri -->
-    <h4 class="font-semibold mb-2">👥 Membri</h4>
-    <ul class="list-group mb-4">
-      <% if (members && members.length > 0) { %>
-        <% members.forEach(m => { %>
-          <li class="list-group-item">
-            <%= m.email %> (<%= m.role %>)
-          </li>
-        <% }) %>
-      <% } else { %>
-        <li class="list-group-item text-muted">Nessun membro trovato.</li>
-      <% } %>
-    </ul>
+    <p class="mt-2 italic">
+      <%= group.description || "Nessuna descrizione disponibile." %>
+    </p>
 
-    <!-- Tabella punti -->
-    <h4 class="font-semibold mb-2">📍 Punti del gruppo</h4>
-    <% if (points && points.length > 0) { %>
-      <div class="overflow-x-auto">
-        <table class="table table-zebra w-full">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Categoria</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% points.forEach(p => { %>
-              <tr>
-                <td><%= p.name %></td>
-                <td><%= p.category || 'Senza categoria' %></td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </div>
-    <% } else { %>
-      <div class="text-center text-secondary mt-5">
-        Nessun punto trovato.
-      </div>
+    <% if (group.keywords && group.keywords.length > 0) { %>
+      <p class="mt-2 text-sm text-gray-500">
+        <strong>Parole chiave:</strong> 
+        <%= group.keywords.join(', ') %>
+      </p>
     <% } %>
-  </aside>
-
-  <!-- Contenuto principale: il feed -->
-  <div class="flex-1 p-6">
-    <h4 class="text-lg font-semibold mb-3">📌 Feed del gruppo</h4>
-    <%- include("partials/groupFeed", { points, user: members[0] }) %>
   </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <!-- 📋 Colonna sinistra -->
+    <aside class="md:col-span-1 bg-base-200 rounded-2xl shadow-md p-5 space-y-6">
+
+      <!-- 👥 Membri -->
+      <section>
+        <h3 class="text-lg font-semibold text-primary mb-2">👥 Membri</h3>
+
+        <% if (members && members.length > 0) { %>
+          <ul class="space-y-1 text-gray-700">
+            <% members.forEach(m => { %>
+              <li class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-primary rounded-full"></span>
+                <%= m.email %> 
+                <span class="text-xs text-gray-500">(<%= m.role %>)</span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="text-gray-400 text-sm">Nessun membro trovato.</p>
+        <% } %>
+      </section>
+
+      <!-- 📍 Punti -->
+      <section>
+        <h3 class="text-lg font-semibold text-primary mb-2">📍 Punti del gruppo</h3>
+
+        <% if (points && points.length > 0) { %>
+          <div class="overflow-x-auto border border-gray-200 rounded-lg">
+            <table class="w-full text-sm">
+              <thead class="bg-primary/10">
+                <tr class="text-left">
+                  <th class="p-2">Nome</th>
+                  <th class="p-2">Categoria</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% points.forEach(p => { %>
+                  <tr class="border-t hover:bg-primary/5">
+                    <td class="p-2"><%= p.name || '–' %></td>
+                    <td class="p-2"><%= p.category || 'Senza categoria' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p class="text-gray-400 text-sm">Nessun punto trovato.</p>
+        <% } %>
+      </section>
+    </aside>
+
+    <!-- 📌 Feed -->
+    <div class="md:col-span-2 flex flex-col space-y-6">
+      <div class="bg-base-100 rounded-2xl shadow-md p-5">
+        <h3 class="text-lg font-semibold text-primary mb-3">📌 Feed del gruppo</h3>
+
+        <%- include("partials/groupFeed", { points, user }) %>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔙 Torna ai gruppi -->
+  <div class="text-center mt-12 pb-16">
+    <a href="/groups" class="btn btn-outline btn-primary shadow-md hover:shadow-lg transition">
+      ← Torna ai gruppi
+    </a>
+  </div>
+
 </div>
+
+<p class="text-xs opacity-50 text-center mt-6">
+  DEBUG USER: <%= JSON.stringify(user) %>
+</p>
 
 <%- include('layout/footer') %>

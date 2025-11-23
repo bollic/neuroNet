@@ -1,36 +1,36 @@
 <%- include('layout/header') %>
 
 <div class="min-h-screen bg-gradient-to-r from-purple-100 via-pink-100 to-blue-100 p-8">
-  <h1 class="text-4xl font-bold text-center text-purple-700 mb-10">Nos plans</h1>
-  
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-    <!-- Free -->
-    <div class="card bg-white shadow-xl p-6 text-center">
-      <h2 class="text-2xl font-bold">Free</h2>
-      <p class="mt-2 text-gray-600">Jusqu’à 50 points</p>
-      <p class="text-3xl font-bold mt-4">€0</p>
-      <a href="/signup?role=field" class="btn btn-outline btn-primary mt-6">Commencer</a>
-    </div>
 
-    <!-- Pro -->
-    <div class="card bg-white shadow-xl p-6 text-center border-2 border-purple-400">
-      <h2 class="text-2xl font-bold">Pro</h2>
-      <p class="mt-2 text-gray-600">Jusqu’à 50 points</p>
-      <p class="text-3xl font-bold mt-4">€19/mois</p>
-      <form action="/create-checkout-session" method="POST">
-        <input type="hidden" name="priceId" value="price_12345">
-        <button class="btn btn-primary mt-6">S’abonner</button>
-      </form>
-    </div>
+  <h1 class="text-4xl font-bold text-center text-purple-700 mb-10">Mettre à niveau votre groupe</h1>
 
-    <!-- Enterprise -->
-    <div class="card bg-white shadow-xl p-6 text-center">
-      <h2 class="text-2xl font-bold">Enterprise</h2>
-      <p class="mt-2 text-gray-600">Illimité + API</p>
-      <p class="text-3xl font-bold mt-4">Sur devis</p>
-      <a href="/contact" class="btn btn-outline btn-secondary mt-6">Contactez-nous</a>
-    </div>
+    <div class="max-w-lg mx-auto">
+
+<% if (typeof session !== "undefined" && session.message) { %>
+  <div class="mb-6 p-4 rounded <%= session.message.type === 'success' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800' %>">
+    <%= session.message.message %>
   </div>
+  <% session.message = null; %>
+<% } %>
+
+
+      <div class="card bg-white shadow-xl p-6 text-center border-2 border-purple-400">
+        <h2 class="text-2xl font-bold">Pro</h2>
+        <p class="mt-2 text-gray-600">Jusqu’à 50 points pour votre groupe</p>
+        <p class="text-3xl font-bold mt-4">€5/mois</p>
+
+        <form action="/upgrade-plan" method="POST">
+          <input type="hidden" name="newPlan" value="pro">
+          <button class="btn btn-primary mt-6 w-full">
+            S’abonner
+          </button>
+        </form>
+
+      </div>
+
+    </div>
+
+
 </div>
 
 <%- include('layout/footer') %>

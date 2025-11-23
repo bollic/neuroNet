@@ -8,20 +8,17 @@
 
 <div class="drawer lg:drawer-open">
   <input id="my-drawer" type="checkbox" class="drawer-toggle" />
-
   <div class="drawer-content flex flex-col">
-    <% if (message) { %>
-      <div class="alert alert-<%= message.type || 'info' %> shadow-lg rounded-lg p-3">
-        <i class="fas fa-exclamation-circle mr-2"></i>
+  <% if (message) { %>
+    <div class="p-4 mb-3 rounded-lg shadow bg-green-100 text-green-800 border border-green-300">
+        <i class="fas fa-check-circle mr-2"></i>
         <strong><%= message.message %></strong>
-      </div>
-    <% } %>
-
+    </div>
+  <% } %>
     <div class="drawer-content relative">        
       <a class="absolute top-4 left-4 z-50">
         <label for="my-drawer" class="btn btn-primary btn-sm shadow-lg">☰ Menu</label>
       </a>
-
       <div id="map" class="w-full h-[85vh] rounded-lg shadow-md"></div>
     </div> 
   </div>
@@ -36,6 +33,20 @@
         </select>
         <input type="date" id="filter-date" class="input input-bordered" />
       </div>
+      <!-- Stato piano -->
+<div class="my-3 p-3 bg-base-100 rounded-lg shadow-md">
+  <h3 class="font-bold text-lg mb-1">Votre plan</h3>
+  <% if (plan === "free") { %>
+    <span class="badge badge-warning">FREE</span>
+    <p class="text-sm mt-1">Limite: 2 points</p>
+  <% } else if (plan === "pro") { %>
+    <span class="badge badge-success">PRO</span>
+    <p class="text-sm mt-1">Limite: 50 points</p>
+  <% } else if (plan === "enterprise") { %>
+    <span class="badge badge-primary">ENTERPRISE</span>
+    <p class="text-sm mt-1">Points illimités 🚀</p>
+  <% } %>
+</div>
 
       <!-- Tabella -->
       <% if (points && points.length > 0) { %>
@@ -84,7 +95,7 @@
                       placeholder="😊 incolla qui emoji" 
                       class="input input-bordered w-1/4 text-center custom-emoji-input"
                     />
-<button type="button" class="btn btn-sm btn-ghost emoji-picker-btn">😄</button>
+        <button type="button" class="btn btn-sm btn-ghost emoji-picker-btn">😄</button>
                   <button type="button" class="btn btn-error btn-sm remove-category">✖</button>
                 </div>
               <% }) %>
