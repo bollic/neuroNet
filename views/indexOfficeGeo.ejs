@@ -9,12 +9,7 @@
 <div class="drawer lg:drawer-open">
   <input id="my-drawer" type="checkbox" class="drawer-toggle" />
   <div class="drawer-content flex flex-col">
-  <% if (message) { %>
-    <div class="p-4 mb-3 rounded-lg shadow bg-green-100 text-green-800 border border-green-300">
-        <i class="fas fa-check-circle mr-2"></i>
-        <strong><%= message.message %></strong>
-    </div>
-  <% } %>
+
     <div class="drawer-content relative">        
       <a class="absolute top-4 left-4 z-50">
         <label for="my-drawer" class="btn btn-primary btn-sm shadow-lg">☰ Menu</label>
@@ -26,6 +21,13 @@
   <div class="drawer-side" style="width: 440px; flex: 0 0 440px;">
   <label for="my-drawer" class="drawer-overlay"></label>
   <aside class="w-full bg-base-200 p-4 overflow-y-auto">
+    <!-- 🔧 Gestione info gruppo -->
+      <div class="mb-4">
+        <a href="/groups"
+          class="btn btn-outline btn-primary w-full">
+          ✏️ Modifier les informations du groupe
+        </a>
+      </div>
       <!-- Filtro -->
       <div class="flex space-x-4 my-3">
         <select id="filter-category" class="select select-bordered">
@@ -33,41 +35,95 @@
         </select>
         <input type="date" id="filter-date" class="input input-bordered" />
       </div>
+      
       <!-- Stato piano -->
-<div class="my-3 p-3 bg-base-100 rounded-lg shadow-md">
+       
+      <div class="my-3 p-3 bg-base-100 rounded-lg shadow-md">
   <h3 class="font-bold text-lg mb-1">Votre plan</h3>
-  <% if (plan === "free") { %>
-    <span class="badge badge-warning">FREE</span>
-    <p class="text-sm mt-1">Limite: 2 points</p>
-  <% } else if (plan === "pro") { %>
-    <span class="badge badge-success">PRO</span>
-    <p class="text-sm mt-1">Limite: 50 points</p>
-  <% } else if (plan === "enterprise") { %>
-    <span class="badge badge-primary">ENTERPRISE</span>
-    <p class="text-sm mt-1">Points illimités 🚀</p>
-  <% } %>
+
+<span class="badge <%= plan === 'free' ? 'badge-warning' : plan === 'pro' ? 'badge-success' : 'badge-primary' %>">
+  <%= plan.toUpperCase() %>
+</span>
+<p class="text-sm mt-1">
+  Limite: <%= maxPoints === Infinity ? 'illimités 🚀' : maxPoints + ' points' %>
+</p>
+
+<% if (group.planExpiresAt) { %>
+  <p class="text-xs text-warning">
+    Demo PRO scade il: <%= new Date(group.planExpiresAt).toLocaleString() %>
+  </p>
+<% } %>
+
+<% if (plan === 'free') { %>
+  <form action="/pay/pro" method="POST" class="mt-3">
+    <button type="submit" class="btn btn-success w-full">
+     🚀 Débloquer le plan Pro
+
+    </button>
+  </form>
+  <p class="text-xs text-gray-500 mt-1 text-center">
+  Essai Pro • aucun paiement • activation immédiate
+</p>
+<% } else { %>
+  <p class="mt-3 text-sm text-success font-medium">
+    ✅ Plan Pro actif – limites étendus
+  </p>
+<% } %>
+
+
 </div>
 
-      <!-- Tabella -->
-      <% if (points && points.length > 0) { %>
-        <div class="overflow-x-auto">
-          <table id="main-table" class="table table-zebra w-full">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Categorie</th>
-                <th>Date</th>
-                <th style="display:none;">createdAtISO</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      <% } else { %>
-        <div class="text-center text-secondary mt-5">
-          Nessun punto trovato!
-        </div>
-      <% } %>
+<!-- Tabella punti (stile lista card) -->
+<div class="mt-4 card bg-base-100 shadow-md">
+  <div class="card-body">
+    <h5 class="text-lg font-bold mb-2">Points par utilisateur</h5>
+    <details class="mb-4">
+  <summary class="cursor-pointer font-semibold">
+    🔐 Gestion champ description
+  </summary>
+    <% pointsByField.forEach(f => { %>
+  <div class="mb-4 p-3 border rounded">
+    <h6 class="font-semibold">
+      <%= f.email %> (<%= f.points.length %> punti)
+    </h6>
+
+    <% f.points.forEach(p => { %>
+      <div class="flex items-center gap-2 ml-4 mt-2">
+        <span>📍 <%= p.name %></span>
+
+        <select
+          class="select select-bordered select-sm"
+          onchange="shareDescription('<%= p._id %>', this.value)">
+          <option value="">Condividi con…</option>
+
+          <% fieldUsers.forEach(u => { 
+               if (u._id.toString() !== f.userId) { %>
+            <option value="<%= u._id %>">
+              <%= u.email %>
+            </option>
+          <% } }) %>
+        </select>
+      </div>
+    <% }) %>
+  </div>
+<% }) %>
+  
+</details>
+    <div class="overflow-x-auto">
+      <table id="main-table" class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Categorie</th>
+            <th>Date</th>
+            <th style="display:none;">createdAtISO</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
       <!-- Form categorie globali -->
       <div class="mt-4 card bg-base-100 shadow-md">
@@ -110,6 +166,20 @@
     </aside>
   </div>
 </div>
+<script>
+async function shareDescription(pointId, fieldId) {
+  if (!fieldId) return;
+
+  await fetch(`/office/points/${pointId}/visibility`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ fieldId })
+  });
+
+  alert('Description condivisa');
+}
+</script>
 
 <script>
   window.FIELD_USERS = <%- JSON.stringify(fieldUsers || []) %>;

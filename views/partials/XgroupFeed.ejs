@@ -1,0 +1,39 @@
+<div id="group-feed" class="mt-4 space-y-4">
+
+  <% if (user) { %>
+    <p class="text-sm text-gray-700 mb-2">
+      Benvenuto, <%= user.email %>!
+    </p>
+  <% } else { %>
+    <p class="text-sm text-gray-500 mb-2">
+      Visitatore anonimo
+    </p>
+  <% } %>
+
+  <h5 class="mb-3 text-purple-700 font-bold flex items-center gap-2">
+    <i class="fas fa-comments"></i> Group Feed
+  </h5>
+
+  <% if (points && points.length > 0) { %>
+    <% points.forEach(p => { %>
+      <div class="flex justify-center">
+        <% if (p.image) { %>
+          <img 
+            src="<%= p.image %>" 
+            alt="Image"
+            class="w-24 h-24 rounded-full object-cover shadow-md hover:scale-105 transition"
+          />
+        <% } else { %>
+          <div class="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center text-4xl shadow-md">
+            📍
+          </div>
+        <% } %>
+      </div>
+    <% }) %>
+  <% } else { %>
+    <p class="text-gray-500 text-sm">
+      Aucun contenu publié pour l’instant…
+    </p>
+  <% } %>
+
+</div>

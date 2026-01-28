@@ -1,100 +1,37 @@
 <%- include('layout/header') %>
 
-<div class="flex flex-col items-center min-h-screen p-4 pb-16 space-y-4">
+<div class="flex flex-col items-center justify-center text-center min-h-screen px-4 pb-24 space-y-6">
 
-  <% if (message) { %>
-    <div class="alert shadow-lg w-full max-w-xl">
-      <div>
-        <i class="fas fa-exclamation-circle"></i>
-        <span><strong><%= message.message %></strong></span>
-      </div>
-      <button class="btn btn-sm btn-circle btn-ghost" onclick="this.closest('.alert').remove()">✕</button>
-    </div>
-  <% } %>
+  <h1 class="text-4xl font-extrabold text-purple-700">
+    🗺️ Terria
+  </h1>
 
-  <% if (!user) { %>
+  <p class="text-lg text-gray-700 max-w-xl">
+     La carte opérationnelle pour organiser équipes et territoires.
+  </p>
 
-  <!-- 🟣 HERO ESTESA -->
-  <section class="bg-gradient-to-b from-purple-50 via-pink-50/30 to-white py-16 w-full shadow-inner">
-    <div class="max-w-6xl mx-auto text-center space-y-12 px-4">
+  <ul class="text-gray-600 space-y-1">
+    <li>• Points terrain partagés</li>
+    <li>• Zones et parcelles sur carte</li>
+    <li>• Organisation par groupe</li>
 
-      <!-- 🗺️ MAPPA DEMO -->
-      <div class="w-full max-w-4xl mx-auto rounded-2xl overflow-hidden shadow-md">
-        <% 
-          const safePoints = typeof points !== 'undefined' ? points : [];
-          const safeCategories = typeof categories !== 'undefined' ? categories : [];
-        %>
-        <%- include('partials/map-onboarding', { points: safePoints, categories: safeCategories }) %>
-      </div>
+  </ul>
 
-      <!-- 🫂 COMMUNAUTÉS ACTIVES -->
-      <div class="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-lg max-w-4xl mx-auto text-left border border-purple-100">
-        <h2 class="text-3xl font-bold mb-8 text-purple-700 text-center">
-          🌟 Découvrez les communautés actives
-        </h2>
-        
-  <!-- 💜 Bloc dinamico con anteprime -->
-        <% if (groupsPreview.length > 0) { %>
-          <div class="grid md:grid-cols-3 gap-6">
-            <% groupsPreview.slice(0,3).forEach(group => { %>
-              <div class="border rounded-xl p-4 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 hover:shadow-xl transition">
-                <div class="flex justify-between items-center mb-2">
-                  <span class="font-semibold text-lg text-purple-700 flex items-center gap-2">
-                    <i class="fas fa-users"></i> <%= group.groupId %>
-                  </span>
-                  <span class="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700 font-medium">
-                    Populaire
-                  </span>
-                </div>
+  <div class="flex gap-4 mt-6">
+        <a href="/login?role=field" class="btn btn-primary btn-lg">
+        👤 Accès terrain
+      </a>
 
-                <p class="text-sm text-gray-600 mb-1">
-                  <%= group.totalMembers %> membres • <%= group.pointsCount %> points
-                </p>
+      <a href="/login?role=office" class="btn btn-outline btn-lg">
+        🏢 Accès superviseur
+      </a>
 
-                <p class="text-xs text-gray-500 mb-3">
-                  🕓 Dernier point :
-                  <%= group.lastPoint ? group.lastPoint.name : '–' %>
-                  <% if (group.lastPoint && group.lastPoint.createdAt) { %>
-                    (<%= new Date(group.lastPoint.createdAt).toLocaleDateString('fr-FR') %>)
-                  <% } %>
-                </p>
+      <a href="/groups" class="btn btn-ghost btn-lg">
+        🌍 Découvrir / rejoindre un groupe
+      </a>
 
-                <div class="flex -space-x-2 mb-4">
-                  <% group.membersPreview.forEach(member => { %>
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs border-2 border-white 
-                      <%= member.role === 'office' ? 'bg-purple-600' : 'bg-gray-400' %> text-white shadow">
-                      <%= member.email[0].toUpperCase() %>
-                    </div>
-                  <% }) %>
-                </div>
-
-                <div class="flex gap-2">
-                  <a href="/groups/<%= group.groupId %>" class="btn btn-xs btn-outline btn-primary flex-1">👀 Voir</a>
-                  <a href="/signup?role=field&group=<%= group.groupId %>" class="btn btn-xs btn-primary flex-1">🚀 Rejoindre</a>
-                </div>
-              </div>
-            <% }) %>
-          </div>
-
-          <div class="text-center mt-8">
-            <a href="/groups" class="text-blue-600 hover:underline text-sm">Voir tous les groupes →</a>
-          </div>
-        <% } else { %>
-          <p class="text-gray-500 text-sm text-center">Aucun groupe actif pour le moment.</p>
-        <% } %>
-      </div>
-    </div>
-  </section>
-
-  <% } %>
-
-  <% if (user) { %>
-    <div class="card shadow-lg w-full max-w-xl p-6 bg-white text-center">
-      <h4 class="text-xl font-bold mb-3">Welcome, <%= user.email %>!</h4>
-      <a href="/logout" class="btn btn-outline btn-secondary">Logout</a>
-    </div>
-  <% } %>
+  </div>
 
 </div>
 
-<%- include('layout/footerIndex') %>
+<%- include('layout/footerIndexCopy') %>

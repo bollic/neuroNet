@@ -18,11 +18,14 @@
             <tr>
               <td><%= row.name %></td>
               <td><%= row.category || 'Senza categoria' %></td>
-              <td>
-                <a href="/delete/<%= row._id %>" class="btn btn-sm btn-outline-danger">
-                  <i class="fas fa-trash"></i>
-                </a>
-              </td>
+           <td>
+  <form action="/delete/<%= row._id %>" method="POST" class="delete-point-form d-inline">
+    <button type="submit" class="btn btn-sm btn-outline-danger">
+      <i class="fas fa-trash"></i>
+    </button>
+  </form>
+</td>
+
             </tr>
           <% }) %>
         </tbody>

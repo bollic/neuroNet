@@ -1,3 +1,5 @@
+
+<!-- views/group-detail.ejs-->
 <%- include('layout/header') %>
 
 <div class="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -38,6 +40,23 @@
       </div>
     </form>
   <% } %>
+<% if (user && (user.role === 'admin' || isGroupOffice)) { %>
+
+  <form 
+    action="/groups/<%= groupId %>/toggle-visibility" 
+    method="POST"
+    class="mt-4 text-center"
+  >
+    <button type="submit" class="btn btn-outline btn-warning">
+      <% if (group.isPublic) { %>
+        🔒 Rendi gruppo privato
+      <% } else { %>
+        🔓 Rendi gruppo pubblico
+      <% } %>
+    </button>
+  </form>
+
+<% } %>
 
   <!-- 🔍 Descrizione e parole chiave -->
   <div class="text-center text-gray-600 mb-8">
@@ -112,13 +131,20 @@
 
     <!-- 📌 Feed -->
     <div class="md:col-span-2 flex flex-col space-y-6">
-      <div class="bg-base-100 rounded-2xl shadow-md p-5">
-        <h3 class="text-lg font-semibold text-primary mb-3">📌 Feed del gruppo</h3>
+  <div class="bg-base-100 rounded-2xl shadow-md p-5">
+    <h3 class="text-lg font-semibold text-primary mb-3">📌 Feed del gruppo</h3>
 
-        <%- include("partials/groupFeed", { points, user }) %>
-      </div>
+    <!-- 👇 QUI PASSA groupId AL JS -->
+    <div
+      id="group-feed"
+      data-group-id="<%= groupId %>"
+      class="mt-4 space-y-4">
+      <%- include("partials/groupFeedPublic", { points }) %>
     </div>
+
   </div>
+</div>
+
 
   <!-- 🔙 Torna ai gruppi -->
   <div class="text-center mt-12 pb-16">
@@ -130,7 +156,7 @@
 </div>
 
 <p class="text-xs opacity-50 text-center mt-6">
-  DEBUG USER: <%= JSON.stringify(user) %>
+ 
 </p>
 
 <%- include('layout/footer') %>

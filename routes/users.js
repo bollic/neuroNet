@@ -6,8 +6,13 @@ const mongoose = require('mongoose');
 
 const User = require('../models/users');
 const PointModel = require('../models/Point'); // aggiorna il path se necessario
+const Group = require('../models/Group');
+const PLANS = require('../config/plans');
+router.use((req, res, next) => {
+  res.locals.user = req.session.user || null;
+  next();
+});
 
-router.use(logger);
 
 // Questo è l'unico utente ammesso
 const SINGLE_USER = {
@@ -26,141 +31,137 @@ function isAdmin(req, res, next) {
     return res.redirect('/login'); 
    }
 }
-function sameOrgOrAdmin(req, res, next) {
-  const user = req.session.user;
-  if (!user) return res.status(401).send('Non autenticato');
-
-  if (user.role === 'admin') return next();
-
-  // Serve impostare prima req.resourceOrg (o groupId)
-  if (String(user.groupId) === String(req.resourceGroupId)) return next();
-
-  return res.status(403).send('Accesso negato');
-}
 
 //VADO A: qs e' l indirizzo web ed event. Links http://localhost:3000/login
 router.get("/login", (req, res) => {
   //recupero qs file da ejs
   res.render("login", { title: 'Form Page', error: null, success: req.session.success || null })
 });
-
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   console.log('Tentativo di login con:', email);
   console.log('🧪 Password in chiaro dal form:', password);
-  // Caso 1: login con SINGLE_USER (admin hardcoded)
+
+  // Caso 1: SINGLE_USER (admin hardcoded)
   if (email === SINGLE_USER.email) {
     const passwordMatch = await bcrypt.compare(password, SINGLE_USER.passwordHash);
-    console.log('Rigenerazione sessione completata.');
 
-    if (passwordMatch) {
+    if (!passwordMatch) {
+      return res.status(401).send('Login: Email o password errata.');
+    }
+
+    // Rigenera sessione per sicurezza
+    req.session.regenerate((err) => {
+      if (err) {
+        console.error('Errore nel rigenerare la sessione (SINGLE_USER):', err);
+        return res.status(500).send('Errore di sessione');
+      }
+
       req.session.user = {
         email: SINGLE_USER.email,
         isAdmin: true,
         role: 'admin'
       };
-      console.log('📦 Sessione prima del salvataggio:', req.session);
-      console.log('🧠 Sessione impostata:', req.session.user);
 
-      console.log('Login riuscito (SINGLE_USER):', req.session.user);
+      // Salva e redirect (unico save)
       const redirectTo = req.session.redirectTo || '/users';
-       req.session.save((err) => {
-    if (err) {
-      console.error('Errore nel salvataggio della sessione:', err);
-      return res.status(500).send("Errore nel salvataggio della sessione");
-    }
-    delete req.session.redirectTo;
-     console.log('Redirect effettuato verso:', redirectTo);
-    return res.redirect(redirectTo);
-  });
-     // 🛑 Aggiungi return per evitare di proseguire
-    return;
-    }
-     //console.log('Ruolo utente nel DB:', userFromDb.role);
-    return res.status(401).send('Login:Email o password errata.');
+      req.session.save((err) => {
+        if (err) {
+          console.error('Errore nel salvataggio della sessione (SINGLE_USER):', err);
+          return res.status(500).send("Errore nel salvataggio della sessione");
+        }
+        delete req.session.redirectTo;
+        console.log('Redirect effettuato verso (SINGLE_USER):', redirectTo);
+        return res.redirect(redirectTo);
+      });
+    });
+
+    return; // importante: esci qui
   }
 
-  // Caso 2: login con utente dal DB (User collection)
+  // Caso 2: utente dal DB
   try {
     const userFromDb = await User.findOne({ email });
     if (!userFromDb) {
       console.log('Email non trovata nel DB');
-      return res.status(401).send('Login:Email o password non corretta.');
+      return res.status(401).send('Login: Email o password non corretta.');
     }
-    // 👇 AGGIUNGI QUESTO
-  console.log('🔑 Password nel DB (userFromDb.password):', userFromDb.password);
-  console.log('Utente trovato:', userFromDb);
-    console.log('🧪 Password salvata nel DB:', userFromDb.password);
-console.log('🧪 Match bcrypt? →', await bcrypt.compare(password, userFromDb.password));
-console.log("🧪 bcrypt.compare (TEST) →", await bcrypt.compare("field1", "$2b$06$KHcUwrna5LV25h3VDXmC.eeubbsx5m9tIAHaOKOgn7cQqEU8zqe5a"));
 
+    // debug password
+    console.log('🔑 Password nel DB (userFromDb.password):', userFromDb.password);
     const passwordMatch = await bcrypt.compare(password, userFromDb.password);
+    console.log('🧪 Match bcrypt? →', passwordMatch);
+
     if (!passwordMatch) {
       console.log('Password errata nel DB');
       return res.status(401).send('Email o password errata.');
     }
+
+    // calcola XP prima di rigenerare la sessione
+ const userXp = await PointModel.countDocuments({ user: userFromDb._id, isAnon: { $ne: true } });
+
+console.log("🧮 PUNTI FIELD:", userXp);
+
+    console.log("🔥 XP calcolato al login:", userXp);
    
-   // 🔥 Calcola XP PRIMA della rigenerazione della sessione
-const userXp = await PointModel.countDocuments({ user: userFromDb._id });
-console.log("🔥 XP calcolato al login:", userXp);
+    let groupPlan = 'free';
 
-    // 🔁 Rigenera sessione per evitare problemi tra login diversi
- req.session.regenerate(function(err) {
-    if (err) {
-      console.error('Errore nel rigenerare la sessione:', err);
-      return res.status(500).send("Errore di sessione");
-    }
-    // ✅ Imposta nuova sessione
-    req.session.user = {
-      _id: userFromDb._id, // 👈 AGGIUNGI QUESTO!
-      email: userFromDb.email,
-      role: userFromDb.role,
-      groupId: userFromDb.groupId,   // 👈 aggiunto      
-      isAdmin: userFromDb.role === 'admin',
-       xp: userXp // ← Adesso funziona
-    };
-    /// 🔥 RICALCOLA XP AL LOGIN
-     req.session.user.xp = userXp;
-console.log("🔥 XP calcolato al login:", userXp);
-
-    console.log('📦 Sessione prima del salvataggio:', req.session);
-    console.log("🧩 Sessione dopo login:", req.session.user);
-        // 🔁 Decidi il redirect finale
-    let redirectTo = req.session.redirectTo;
-        
-if (!redirectTo) {
-  switch (userFromDb.role) {
-    case 'field':
-      redirectTo = '/indexZoneGeo';
-      break;
-    case 'office':
-      redirectTo = '/indexOfficeGeo';
-      break;
-    case 'admin':
-      redirectTo = '/users';
-      break;
-    default:
-      redirectTo = '/';
+if (userFromDb.role === 'office' && userFromDb.groupId) {
+  const group = await Group.findOne({ groupId: userFromDb.groupId });
+  if (group) {
+    groupPlan = group.plan;
   }
 }
- console.log(`Ruolo utente: ${userFromDb.role}`);
-  console.log(`Redirect finale: ${redirectTo}`);
-  // Questo è il punto esatto dove aggiungere il log finale:
-console.log('Redirect effettuato verso:', redirectTo);
-    // ✅ SALVA LA SESSIONE PRIMA DEL REDIRECT!
-  req.session.save((err) => {
-    if (err) {
-      console.error('❌ Errore nel salvataggio della sessione:', err);
-      return res.status(500).send("Errore nel salvataggio della sessione");
-    } 
-    console.log('✅ Sessione salvata correttamente.');
-    delete req.session.redirectTo;
-    console.log('Redirect effettuato verso:', redirectTo);
-    return res.redirect(redirectTo);
-    //return res.redirect(redirectTo);
-  });
-   
-})
+
+    // rigenera sessione
+    req.session.regenerate(function (err) {
+      if (err) {
+        console.error('Errore nel rigenerare la sessione:', err);
+        return res.status(500).send("Errore di sessione");
+      }
+
+  // 1️⃣ imposta user in sessione
+      req.session.user = {
+        _id: userFromDb._id,
+        email: userFromDb.email,
+        role: userFromDb.role,
+        groupId: userFromDb.groupId,
+        isAdmin: userFromDb.role === 'admin',
+        xp: userXp,
+       plan: groupPlan        // ⭐ QUI
+      };
+
+     // 2️⃣ calcola redirect PRIMA del save
+      let redirectTo = req.session.redirectTo;
+      if (!redirectTo) {
+        switch (userFromDb.role) {
+          case 'field':
+            redirectTo = '/indexZoneGeo';
+            break;
+          case 'office':
+            redirectTo = '/indexOfficeGeo';
+            break;
+          case 'admin':
+            redirectTo = '/users';
+            break;
+          default:
+            redirectTo = '/';
+        }
+      }
+
+ // 3️⃣ salva UNA VOLTA SOLA e poi redirect
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ Errore nel salvataggio della sessione:', err);
+          return res.status(500).send("Errore nel salvataggio della sessione");
+        }
+        delete req.session.redirectTo;
+        console.log('Redirect effettuato verso:', redirectTo);
+        return res.redirect(redirectTo);
+      });
+
+    }); // fine regenerate
+
   } catch (err) {
     console.error('Errore nel login DB:', err);
     return res.status(500).send('Errore del server');
@@ -177,22 +178,44 @@ router.get('/logout', (req, res) => {
     console.log('✅ Logout completato, sessione distrutta.');
     res.redirect('/');
   });
-});// DELETE ACCOUNT
+});
+// DELETE ACCOUNT
 router.post('/delete_account', async (req, res) => {
   try {
     const userId = req.session.user._id;
+    const role = req.session.user.role;
+    const groupId = req.session.user.groupId;
 
-    // Elimina l'utente
-    await User.findByIdAndDelete(userId);
+    if (role === "office") {
+      // 1. Elimina tutti i punti del gruppo
+      await PointModel.deleteMany({ groupId });
 
-    // Elimina i punti associati
-    if (req.session.user.role === "field" || req.session.user.role === "office") {
-      await PointModel.deleteMany({ groupId: req.session.user.groupId });
-    } else {
+      // 2. Elimina tutti i field del gruppo
+      await User.deleteMany({ role: "field", groupId });
+
+      // 3. Elimina se stesso (office)
+      await User.findByIdAndDelete(userId);
+
+      // 4. Elimina il documento del gruppo (pulizia DB)
+      await Group.findOneAndDelete({ groupId });
+
+      console.log(`🔥 Office, gruppo "${groupId}" e tutti i field eliminati.`);
+    } 
+    else if (role === "field") {
+      // Elimina solo i punti personali
+      await PointModel.deleteMany({ userId });
+
+      // Elimina l'utente field
+      await User.findByIdAndDelete(userId);
+
+      console.log(`🔥 Field eliminato: ${userId}`);
+    } 
+    else {
+      // fallback per sessioni anonime
       await PointModel.deleteMany({ sessionId: req.sessionID });
     }
 
-    // Svuota subito i dati utente dalla sessione
+    // Logout pulito
     req.session.user = null;
 
     // Distruggi sessione
@@ -212,40 +235,49 @@ router.post('/delete_account', async (req, res) => {
     res.status(500).send("Errore interno server.");
   }
 });
-router.get("/signup", async (req, res) => {
-  const role = req.query.role || 'office';
-  const group = req.query.group || null;
-   try {
 
-        // ✳️ AUTO-SIGNUP per field con group (senza form)
-    if (role === 'field' && group) {
+router.get("/signup", async (req, res) => {
+  const role = req.query.role || "office";
+  const group = req.query.group || null;
+  // 🔐 Se field → il gruppo deve esistere
+if (role === "field" && group) {
+  const groupExists = await Group.findOne({ groupId: group });
+  if (!groupExists) {
+    return res.status(400).send("Groupe inexistant");
+  }
+}
+
+  try {
+    // ✳️ AUTO-SIGNUP per FIELD
+ /*   if (role === "field" && group) {
+        const groupExists = await Group.findOne({ groupId: group });
+      if (!groupExists) {
+        return res.status(400).send("Groupe inexistant");
+      }
       console.log("⚡ Auto-signup attivato per field nel gruppo:", group);
 
-      // 1️⃣ Genera email e password automatiche
+      // 1️⃣ Email e password random
       const rand = Math.floor(1000 + Math.random() * 9000);
       const email = `field${rand}@local.test`;
       const password = "test1234";
       const bcrypt = require("bcryptjs");
       const hashedPassword = await bcrypt.hash(password, 6);
 
-      // 2️⃣ Trova eventuali categorie da un office del gruppo
-      const officeUser = await User.findOne({ role: 'office', groupId: group });
+      // 2️⃣ Inherit categories
+      const officeUser = await User.findOne({ role: "office", groupId: group });
       let inheritedCategories = [
-        { name: 'A', icon: '🟥' },
-        { name: 'B', icon: '🟧' },
-        { name: 'C', icon: '🟨' },
-        { name: 'D', icon: '🟩' },
-        { name: 'E', icon: '🟦' },
+        { name: "A", icon: "🟥" },
+        { name: "B", icon: "🟧" },
       ];
       if (officeUser && Array.isArray(officeUser.categories)) {
         inheritedCategories = officeUser.categories;
       }
 
-      // 3️⃣ Crea e salva il nuovo utente
+      // 3️⃣ Create new user
       const newUser = new User({
         email,
         password: hashedPassword,
-        role: 'field',
+        role: "field",
         groupId: group,
         categories: inheritedCategories,
       });
@@ -253,65 +285,66 @@ router.get("/signup", async (req, res) => {
       console.log("✅ Auto-user creato:", newUser.email);
 
       // 4️⃣ Sessione immediata
-      req.session.regenerate(function (err) {
+      req.session.regenerate((err) => {
         if (err) {
           console.error("❌ Errore rigenerazione sessione:", err);
           return res.status(500).send("Erreur session");
         }
+
         req.session.user = {
           _id: newUser._id,
           email: newUser.email,
           role: newUser.role,
           groupId: newUser.groupId,
         };
+
         req.session.save((err) => {
           if (err) {
             console.error("❌ Errore salvataggio sessione:", err);
             return res.status(500).send("Erreur session");
           }
-           // 💬 FLASH MESSAGE — qui si salva nella sessione!
-  req.session.flashMessage = `🎉 Bienvenue parmi nous !
-Un compte a été créé pour vous : ${newUser.email} (mot de passe : test1234)
-Vous êtes prêt à rejoindre votre communauté 🚀
-Mot de passe : test1234`;
-
-          req.session.showWelcome = true;
-
           console.log("🚀 Login automatico completato per:", newUser.email);
           return res.redirect("/indexZoneGeo");
         });
       });
 
-      return; // 🧠 Fermiamo qui: non serve più renderizzare la pagina
+      return; // STOP
     }
-//normale pagina di login
-    // Recupera tutti i groupId distinti già presenti nel DB
-    const groups = await User.find({ role: 'office' })
-                         .distinct('groupId');
- console.log("📋 Gruppi disponibili per la select:", groups);
+*/
+    // 🟦 FORM NORMALE: recupera lista gruppi
+    const groups = await Group.find({}, 'groupId name').lean();
+    console.log("📋 Gruppi disponibili per la select:", groups);
 
-    res.render("signup", {
+    // 🟦 Render singolo, corretto
+    return res.render("signup", {
       title: "Form Page",
       error: null,
       role,
       group,
-      groups, // ✅ li passiamo davvero al template
+      groups,
+      user: req.session.user || null,
     });
+
   } catch (err) {
     console.error("❌ Errore durante il recupero gruppi:", err);
-    res.render("signup", {
+
+    return res.render("signup", {
       title: "Form Page",
       error: "Erreur serveur",
       role,
       group,
       groups: [],
+      user: req.session.user || null,
     });
   }
 });
 
 // Traitement du formulaire de signup
 router.post('/signup', async (req, res) => {
-  const { email, password, role, group } = req.body;
+  const { email, password, role, group, groupName} = req.body;
+  const groupId = (group || "").trim();
+
+
     // 🔹 Log del gruppo ricevuto
   console.log('🔹 POST signup, gruppo scelto:', group);
   console.log('📨 [SIGNUP] Richiesta ricevuta');
@@ -324,6 +357,35 @@ router.post('/signup', async (req, res) => {
 }
 */
   try {
+
+      // 🔐 FIELD → gruppo obbligatorio
+if (role === 'field') {
+    if (!groupId) {
+    return res.status(400).send("Un groupe est requis pour les membres field");
+  }
+
+// Recupera il limite dal piano del gruppo
+const groupDoc = await Group.findOne({ groupId });
+if (!groupDoc) {
+  return res.status(400).send("Groupe inexistant");
+}
+ const currentFields = await User.countDocuments({
+    groupId,
+    role: 'field'
+  });
+const planName = groupDoc.plan || "free";
+const maxFields = PLANS[planName]?.maxFields ?? Infinity;
+console.log('📌 Plan gruppo:', planName, '→ maxFields:', maxFields, '→ currentFields:', currentFields);
+
+if (currentFields >= maxFields) {
+ return res.render('signup', {
+    error: `Le nombre maximum de membres pour le plan ${planName} a été atteint.`,
+    role: 'field',
+   group: req.body.group || req.query.group || '' // prende il gruppo dalla richiesta // così il campo gruppo rimane precompilato
+  });
+}
+
+}
     // Vérifier si l'user existe déjà
     const existingUser = await User.findOne({ email });
     console.log('🔍 [SIGNUP] Controllo utente esistente per:', email);
@@ -344,9 +406,7 @@ router.post('/signup', async (req, res) => {
     let inheritedCategories = [
       { name: 'A', icon: '🟥' },
       { name: 'B', icon: '🟧' },
-      { name: 'C', icon: '🟨' },
-      { name: 'D', icon: '🟩' },
-      { name: 'E', icon: '🟦' },
+      
     ];
      // Se è field, eredita le categorie dall'office dello stesso gruppo
 if (role === 'field') {
@@ -355,18 +415,38 @@ if (role === 'field') {
     inheritedCategories = officeUser.categories;
   }
 }
+const generatedGroupId = role === 'office'
+  ? `group-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+  : group || null;
 
 const newUser = new User({
+ 
   email: email,
   password: hashedPassword,
   role: ['office', 'field'].includes(role) ? role : 'field',
   categories: inheritedCategories,
-  groupId: group || null, // ✅ collega subito al gruppo
+  groupId: generatedGroupId,
 });
 
       // lo salvo
     await newUser.save(); // Enregistrer le nouvel user dans la base de données
-  
+   
+console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);
+
+// 🔹 CREAZIONE/AGGIORNAMENTO AUTOMATICA DEL GROUP SE È OFFICE
+    if (role === "office") {
+   await Group.findOneAndUpdate(
+     { groupId: generatedGroupId },
+     {
+        groupId: generatedGroupId,
+        name: groupName,
+        plan: "free"
+     },
+     { upsert: true }
+   );
+}
+
+
     console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);
     console.log('🧪 [SIGNUP] Verifica bcrypt.compare(password, hash):', await bcrypt.compare(password, newUser.password));
     console.log("🧪 Password da form:", password);    
@@ -382,12 +462,12 @@ const newUser = new User({
     email: newUser.email,
     role: newUser.role,
     groupId: newUser.groupId,
-    isAdmin: newUser.role === 'admin'
+    isAdmin: newUser.role === 'admin',
+     
    };
    console.log('Sessione al User:', req.session);
    console.log('📦 [SIGNUP] Sessione impostata:', req.session.user);
-     req.session.flashMessage = `🎉 Bienvenue parmi nous ! Un compte a été créé pour vous : ${newUser.email} (mot de passe : test1234) 🚀`;
-
+   
       // 🔁 Redirezione in base al ruolo
       let redirectTo;
       switch (newUser.role) {
@@ -403,15 +483,13 @@ const newUser = new User({
         default:
           redirectTo = '/';
       }
-      console.log('➡️ [SIGNUP] Redirect verso:', redirectTo);
-      req.session.save((err) => {
-        if (err) {
-           console.error('❌ [SIGNUP] Errore nel salvataggio della sessione:', err);
-           return res.status(500).send("Errore nel salvataggio della sessione");
-        }
-        console.log('✅ [SIGNUP] Sessione salvata correttamente.');
-        return res.redirect(redirectTo);
-      });
+   //   console.log('➡️ [SIGNUP] Redirect verso:', redirectTo);
+  req.session.save((err) => {
+  if (err) return console.error('❌ Errore salvataggio sessione:', err);
+  console.log('✅ Sessione salvata, user:', req.session.user);
+  return res.redirect(redirectTo);
+});
+
     });
 
   } catch (error) {
@@ -436,6 +514,7 @@ async function ensureAdminExists(req, res, next) {
         const adminUser = new User({
         email: adminEmail,
         password: adminPasswordHash,
+        role: 'admin',  // <- così sarà corretto
       });
       await adminUser.save();
       console.log("Admin user created:", adminUser);
@@ -467,6 +546,12 @@ router.get('/users', isAdmin, async (req, res) => {
   try {
     const users  = await User.find(); // Récupère tous les users de la base de données
      
+    // 🔹 Conteggio field per gruppo
+    const groups = [...new Set(users.map(u => u.groupId).filter(Boolean))];
+    for (const g of groups) {
+      const count = await User.countDocuments({ groupId: g, role: 'field' });
+      console.log(`📊 Gruppo "${g}" ha ${count} field.`);
+    }
          res.render('indexSignup', 
            { title:'la liste des users',  // Passe les users récupérés à la vue
             users: users, // Passe les users récupérés à la vue
@@ -523,22 +608,9 @@ router.param("id", async (req, res, next, id) => {
     res.status(500).send('Erreur serveur lors de la récupération de l\'user');
   }
 });
-//req.session.redirectTo = req.originalUrl;
-//const redirectTo = req.session.redirectTo || '/users';
-//delete req.session.redirectTo; 
-function logger(req, res, next) {
-  console.log(req.originalUrl)
-  next()
-}
 
 // Assicurati di esportare il router e altre funzioni se necessario
 module.exports = router;  // <-- Questo esporta correttamente il router
 
 module.exports.isAdmin = isAdmin;  //  Se vuoi esportare anche la funzione isAdmin
-// Esporta il middleware isAdmin per poterlo usare in altri file
-/*
-module.exports = {
-  router,
-  isAdmin
-};
-*/
+

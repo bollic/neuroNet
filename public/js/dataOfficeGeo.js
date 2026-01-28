@@ -6,8 +6,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const points = window.POINTS || [];
   const fieldUsers = window.FIELD_USERS || [];
-  const list = document.getElementById("category-list");
-const addBtn = document.getElementById("add-category");
+    const list = document.getElementById("category-list");
+    const addBtn = document.getElementById("add-category");
 
   // ========================
   // Colori categorie GLOBALI
@@ -53,6 +53,49 @@ if (addBtn && list) {
     list.appendChild(row);
   });
 }
+// ========================
+// 🧩 Emoji Picker (delegato, globale)
+// ========================
+let emojiPicker = null;
+let activeEmojiInput = null;
+
+if (list) {
+  // crea UNA SOLA volta il picker
+  emojiPicker = document.createElement('emoji-picker');
+  emojiPicker.style.position = 'absolute';
+  emojiPicker.style.zIndex = '1000';
+  emojiPicker.style.display = 'none';
+  document.body.appendChild(emojiPicker);
+
+  // click su bottone 😄 (delegato)
+  list.addEventListener('click', (e) => {
+    const btn = e.target.closest('.emoji-picker-btn');
+    if (!btn) return;
+
+    e.stopPropagation();
+
+    activeEmojiInput = btn.previousElementSibling; // input customEmoji
+    if (!activeEmojiInput) return;
+
+    const rect = btn.getBoundingClientRect();
+    emojiPicker.style.top = `${rect.bottom + window.scrollY}px`;
+    emojiPicker.style.left = `${rect.left + window.scrollX}px`;
+    emojiPicker.style.display = 'block';
+  });
+
+  // selezione emoji
+  emojiPicker.addEventListener('emoji-click', (e) => {
+    if (activeEmojiInput) {
+      activeEmojiInput.value = e.detail.unicode;
+    }
+    emojiPicker.style.display = 'none';
+  });
+
+  // chiudi cliccando fuori
+  document.addEventListener('click', () => {
+    emojiPicker.style.display = 'none';
+  });
+}
 
   // ========================
   // Funzioni mappa
@@ -77,39 +120,24 @@ if (addBtn && list) {
     });
     map.addControl(drawControl);
   }
-  function getIconEmoji(categoryName) {
-  const cat = (window.CATEGORIES || []).find(c => c.name === categoryName);
-  if (!cat) {
-    console.warn("Categoria non trovata:", categoryName);
-    return "🔴";
+ function getIconEmoji(point) {
+  // 1️⃣ se il punto ha già un'emoji → usala
+  if (point.icon && point.icon.trim() !== "") {
+    return point.icon;
   }
-  switch (cat.icon) {
-    case "truck": return "🚚";
-    case "home": return "🏠";
-    case "red": return "🔴";
-    case "custom": return cat.customEmoji || "✨";
-    default: return cat.icon || "🔴";
-  }
-}
 
- // ========================
-  // Emoji icone per categoria
-  // ========================
- /* function getIconEmoji(categoryName) {
-  const cat = (window.CATEGORIES || []).find(c => c.name === categoryName);
-  if (!cat) {
-    console.warn("Categoria non trovata:", categoryName);
-    return "🔴";
+  // 2️⃣ fallback sulle categorie (vecchi punti)
+  const cat = (window.CATEGORIES || []).find(
+    c => c.name.toUpperCase() === point.category.toUpperCase()
+  );
+
+  if (cat && cat.icon) {
+    return cat.icon;
   }
-  switch (cat.icon) {
-    case "truck": return "🚚";
-    case "home": return "🏠";
-    case "red": return "🔴";
-    case "custom": return cat.customEmoji || "✨";
-    default: return cat.icon || "🔴";
-  }
+
+  // 3️⃣ fallback finale
+  return "🔴";
 }
-*/
 
   function updateMap(filterCategory = "", filterDate = "") {
     console.log("updateMap triggered");
@@ -117,10 +145,10 @@ if (addBtn && list) {
     layerGroup.clearLayers();
     drawnItems.clearLayers();
 
-   // const data = (points || []).filter(p => p.coordinates && p.coordinates.length === 2);
-   // if (!data.length) return;
+     const categories = (window.CATEGORIES || []).map(c => c.name);   // if (!data.length) return;
     // Filtra i punti in base alla categoria selezionata
   const data = (points || []).filter(p => p.coordinates && p.coordinates.length === 2)
+                             .filter(p => categories.includes(p.category))
                              .filter(p => !filterCategory || p.category === filterCategory)
                              .filter(p => {
                               if (!filterDate) return true;
@@ -132,12 +160,12 @@ if (addBtn && list) {
 
     data.forEach((point) => {
       const category = point.category;
-      const iconEmoji = getIconEmoji(category);
+      const iconEmoji = getIconEmoji(point);
 
       const geoJson = {
         type: "Feature",
         geometry: { type: "Point", coordinates: point.coordinates },
-        properties: { name: point.name || "Senza nome", category, icon: iconEmoji },
+        properties: { name: point.name || "Senza nome", category, icon: iconEmoji , description: point.description},
       };
 
       const geoLayer = L.geoJSON(geoJson, {
@@ -151,7 +179,8 @@ if (addBtn && list) {
       }).bindPopup(`
         <div style="min-width:180px">
           <strong>${geoJson.properties.name}</strong><br>
-          Categoria: ${geoJson.properties.category || "Senza categoria"}<br>
+          Categoria: ${geoJson.properties.category || "Sans categoria"}<br>
+          Description: ${geoJson.properties.description || "Sans description"}<br>
           Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}
         </div>
       `).addTo(drawnItems);
@@ -182,7 +211,7 @@ if (addBtn && list) {
   const form = document.getElementById("categories-form");
   if (form) {
     form.addEventListener("submit", async (e) => {
-     // e.preventDefault();
+      e.preventDefault();
       const formData = new FormData(form);
       const entries = Array.from(formData.entries());
       const categories = [];
@@ -216,6 +245,7 @@ if (addBtn && list) {
         const response = await fetch("/update-categories", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: 'include', // ← QUESTA riga è la chiave 🔑
           body: JSON.stringify({ categories: payload }), // invia payload, non categories grezzo
         });
         const result = await response.json();
@@ -223,7 +253,8 @@ if (addBtn && list) {
             // 1️⃣ aggiorna la variabile globale
           window.CATEGORIES = result.categories;
           console.log("🆕 CATEGORIES aggiornate:", window.CATEGORIES);
-          
+              // Redirect corretto
+   
   // 2️⃣ aggiorna il form nel DOM
   const listDiv = document.getElementById('category-list');
   listDiv.innerHTML = ''; // reset
@@ -267,6 +298,7 @@ if (addBtn && list) {
       // ========================
 // 🧩 Emoji Picker Element
 // ========================
+/*
 document.querySelectorAll('.emoji-picker-btn').forEach(btn => {
   const input = btn.previousElementSibling; // campo customEmoji
   const picker = document.createElement('emoji-picker');
@@ -297,6 +329,7 @@ document.querySelectorAll('.emoji-picker-btn').forEach(btn => {
     }
   });
 });
+*/
 
   // ========================
   // DataTables e filtri
@@ -306,7 +339,7 @@ document.querySelectorAll('.emoji-picker-btn').forEach(btn => {
     category: p.category,
     createdAtFormatted: p.createdAtFormatted,
     createdAtISO: p.createdAtISO,
-    userEmail: p.userEmail || "❓utente sconosciuto",
+    userEmail: p.userEmail,
     userId: p.userId || null,
     _id: p._id,
   }));
@@ -318,12 +351,36 @@ document.querySelectorAll('.emoji-picker-btn').forEach(btn => {
       { data: 'category', title: 'Categorie' },
       { data: 'createdAtFormatted', title: 'Date' },
       { data: 'createdAtISO', visible: false },
+      { data: "userEmail", visible: false } // 👈 colonna tecnica
     ],
-    order: [[1, 'asc']],
+    rowGroup: {
+    dataSrc: "userEmail",
+    startRender: function (rows, group) {
+      return `${group} (${rows.count()} punti)`;
+    }
+  },
+
+  order: [[4, "asc"], [1, "asc"]]
   });
+// ========================
+// Filtro combinato categoria + data (solo filtro custom)
+// ========================
+$.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+  const filterCategory = $('#filter-category').val();
+  const filterDate = $('#filter-date').val();
 
+  const category = data[1];        // colonna Categorie
+  const createdAtISO = data[3];    // colonna invisibile createdAtISO
 
-// 🔹 Popola il filtro con le categorie effettivamente usate nei punti
+  const categoryMatch = !filterCategory || category === filterCategory;
+  const dateMatch = !filterDate || (createdAtISO && createdAtISO.startsWith(filterDate));
+
+  return categoryMatch && dateMatch;
+});
+
+// ========================
+// Popola il filtro categoria con le categorie effettivamente usate
+// ========================
 const usedCategories = [...new Set(points.map(p => p.category).filter(c => c))];
 
 const filterSelect = $("#filter-category");
@@ -334,10 +391,28 @@ usedCategories.forEach(catName => {
   filterSelect.append(`<option value="${catName}">${catName}</option>`);
 });
 
+// ========================
+// Trigger draw quando cambia search globale
+// ========================
+$('#main-table_filter input').on('input', function() {
+  table.draw(); // aggiorna anche filtro custom
+});
+
+// ========================
+// Trigger draw quando cambiano categoria o data
+// ========================
 $("#filter-category, #filter-date").on("change", function () {
+  
+  // svuota la ricerca globale SENZA triggerare input
+  table.search('');
+
   const filterCategory = $("#filter-category").val();
   const filterDate = $("#filter-date").val();
-  updateMap(filterCategory, filterDate);
+  
+   table.draw(); // trigger filtro custom
+  updateMap(filterCategory, filterDate); // aggiorna la mappa
+ 
 });
+
 
 });

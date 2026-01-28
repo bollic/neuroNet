@@ -1,0 +1,14 @@
+<!-- views/point-show.ejs -->
+<%- include('layout/header') %>
+
+<h2>Description du point</h2>
+
+<% if (point.description) { %>
+  <div class="mt-4 p-3 bg-base-100 rounded">
+    <p><%= point.description %></p>
+  </div>
+<% } else { %>
+  <p>Aucune description.</p>
+<% } %>
+
+<%- include('layout/footer') %>

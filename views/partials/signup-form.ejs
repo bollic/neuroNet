@@ -1,7 +1,16 @@
 <!-- partials/signup-form.ejs -->
 <% if (role === "field") { %>
+    <!-- Messaggio di errore -->
+  <% if (error) { %>
+    <div class="bg-red-100 text-red-800 p-2 rounded mb-4">
+      ⚠️ <%= error %>
+    </div>
+  <% } %>
+
   <!-- 🧭 Membre / Field : form d'inscription dans un groupe existant -->
-  <form action="/signup" method="POST" class="space-y-4">
+  
+<form id="signup-form" action="/signup" method="POST" class="space-y-4">
+
 
     <p class="text-sm text-gray-600 mb-2">
       En tant que <strong>membre (Field)</strong>, vous rejoignez un groupe existant.
@@ -61,7 +70,7 @@
   </form>
 <% } else if (role === "office") { %>
   <!-- 🏢 Office : form de création de groupe -->
-  <form action="/signup" method="POST" class="space-y-4">
+  <form id="signup-form" action="/signup" method="POST" class="space-y-4">
 
     <p class="text-sm text-gray-600 mb-2">
       En tant qu’<strong>Office</strong>, vous <u>créez</u> un nouveau groupe
@@ -73,7 +82,7 @@
       <label for="group" class="block text-sm font-medium text-gray-700">
         Nom du groupe / communauté
       </label>
-      <input type="text" id="group" name="group"
+      <input type="text" id="group" name="groupName"
         placeholder="Ex. 9369 ou TOUC"
         required
         class="input input-bordered w-full mt-1" />
@@ -109,3 +118,6 @@
   <!-- 🛠️ Autres rôles (admin ou inconnu) -->
   <p class="text-sm text-gray-500">Aucune inscription disponible pour ce rôle.</p>
 <% } %>
+
+
+

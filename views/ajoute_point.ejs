@@ -61,35 +61,42 @@
   });
 
 // Submit del form
+
+    // 1️⃣ Controllo che il punto esista
 const form = document.getElementById("add-point");
+
+    const submitBtn = form.querySelector('input[type="submit"]');
+
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
+ 
    // Controllo GeoJSON
   const pointValue = document.getElementById("point").value;
   if (!pointValue) {
     alert("Ajoute un point avant d'envoyer!");
+   
     return;
   }
+  //1️⃣ TRY #1 → validazione GeoJSON
   try {
     JSON.parse(pointValue);
   } catch (err) {
     alert("GeoJSON invalide.");
+ 
     return;
   }
    // Costruisco FormData dal form HTML
+       // 2️⃣ Preparo i dati del form
   const formData = new FormData(form);
 
   try {
-     const response = await fetch("<%= user ? '/addPoint' : '/addPointAnon' %>", {
+     const response = await fetch("/addPoint", {
     method: "POST",
     body: formData,
     credentials: "include"   
   });
-if (response.redirected) {
-  // 👈 se il server ha mandato un redirect lo seguiamo
-  window.location.href = response.url;
-  return;
-}
+
 
 let result;
 try {
@@ -98,22 +105,25 @@ try {
   console.warn("Risposta non JSON:", e);
 }
 // 👇 aggiungi qui il check
-if (result?.redirectTo) {
-  window.location.href = result.redirectTo;
-  return;
-}
-if (response.ok) {
-  alert("Point ajouté!");
 
+   // 4️⃣ LIMITE PIANO RAGGIUNTO
+  if (!response.ok && result?.code === "PLAN_LIMIT_REACHED") {
+    alert("🚫 Limite de points atteint pour votre plan.\nContactez votre office.");
+    return;
+  }
+    // 5️⃣ ALTRI ERRORI
+    if (!response.ok) {
+      alert(result?.message || "Erreur lors de l’ajout du point");
+      return;
+    }
+      // 6️⃣ SUCCESSO
+    alert("✅ Point ajouté avec succès !");
   // 👇 Mostra alert se il backend ha assegnato un nuovo badge
   if (result && result.newBadge) {
     alert(`🏆 Nouveau badge débloqué : ${result.newBadge} !`);
   }
-  // Poi reindirizza come prima
-  window.location.href = "<%= user ? '/indexZoneGeo' : '/indexZoneGeoAnon' %>";
-} else {
-  alert(`Errore: ${result?.message || "Qualcosa è andato storto"}`);
-}
+    // 7️⃣ Redirect finale
+window.location.href = "/indexZoneGeo";
 
 } catch (err) {
   console.error("Errore durante l'invio:", err);
@@ -233,22 +243,14 @@ manualButton.addEventListener("click", () => {
   <div class="row"> 
     <div class="col-lg-6 mx-auto mt-4">
 
-     <% if (message) { %> 
-        <div class="alert alert-dismissible fade show alert-<%= message.type %>" role="alert">
-          <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-          <i class="fas fa-exclamation-circle me-2"></i>   
-          <strong><%= message.message %></strong>     
-        </div>
-     <% } %>
+    
          <div class="card shadow">
             <div class="card-header bg-primary">
-             <h3 class="text-light">Add a point</h3>
+             <h3 class="text-light">Ajoute le point</h3>
             </div>       
             <div class="card-body p-4">
-              <form action="<%= user ? '/addPoint' : '/addPointAnon' %>" enctype="multipart/form-data" 
-                    method="POST" 
-                    id="add-point">
-
+              <form id="add-point" method="POST" enctype="multipart/form-data">
+                
                
                     <input type="hidden" id="point" name="point" />
                     <% if (user) { %>
@@ -299,9 +301,28 @@ manualButton.addEventListener("click", () => {
                                         </div>
                                     </div>
 
-                                               
-                    <div class="mb-3 d-grid">                      
-                        <input type="submit" name="submit" value="Ajoute un Point" class="btn btn-primary btn-lg"  />
+                  <p>
+                    Punti usati: <%= planUX.used %> / <%= planUX.limit %>
+                            <% if (!planUX.blocked) { %>
+                <span class="text-success">
+                  ⚠️ Ti restano <%= planUX.remaining %> punti
+                </span>
+              <% } else { %>
+                <span class="text-danger">🚫 Piano esaurito</span>
+              <% } %>
+            </p>    
+                     <div class="mb-3 d-grid">                      
+                        <input type="submit" name="submit" value="Ajoute un Point" class="btn btn-primary btn-lg"
+                      <%= planUX.blocked ? "disabled" : "" %>
+                     />
+
+                        <% if (planUX.blocked) { %>
+                            <div class="alert alert-warning mt-3">
+                              🚫 Limite de <strong><%= planUX.limit %></strong> points atteint pour votre plan.
+                              <br>
+                              Contactez votre office pour augmenter la limite.
+                            </div>
+                          <% } %>
                     </div>
              
                 </form>

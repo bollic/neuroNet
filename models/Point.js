@@ -27,7 +27,20 @@ const PointSchema = new mongoose.Schema({
   sessionId: { type: String },
 
   isAnon: { type: Boolean, default: false }, // 👈 aggiunto qui
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+
+  description: {
+       type: String, default: ""      
+    },
+
+   descriptionVisibleTo: [
+  {
+    fieldId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    until: { type: Date, default: null }
+  }
+]
+ 
+    
 });
 
 module.exports = mongoose.model('Point', PointSchema);

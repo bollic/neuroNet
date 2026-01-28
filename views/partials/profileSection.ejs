@@ -1,0 +1,60 @@
+<!-- partials/profileSection.ejs -->
+
+
+  <div id="profile-section" class="hidden bg-base-100 h-full overflow-y-auto p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+      👤 Mon profil
+    </h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <p><strong>Email:</strong> <%= user.email %></p>
+        <p><strong>Rôle:</strong> <%= user.role %></p>
+        <p><strong>Groupe:</strong> <%= user.groupId || '—' %></p>
+    <% if (typeof referenteOffice !== 'undefined' && referenteOffice) { %>
+     <p><strong>Référent:</strong> <%= referenteOffice.email %></p>
+    <% } %>
+      
+      </div>
+      <div>
+        <p>
+  <strong>Plan du groupe:</strong>
+  <span class="badge badge-info"><%= plan.toUpperCase() %></span>
+</p>
+
+<progress value="<%= planUX.used %>" max="<%= planUX.limit %>"></progress>
+<p><%= planUX.used %> / <%= planUX.limit %> XP</p>
+<p>Rimanenti: <%= planUX.remaining %> XP</p>
+<p>Percent: <%= planUX.percent %>%</p>
+
+
+        <p><strong>XP:</strong>
+          <span class="badge badge-primary"><%= user.xp || 0 %></span>
+        </p>
+        <p><strong>Badges:</strong><br>
+          <% if (user.badges && user.badges.length > 0) { %>
+            <% user.badges.forEach(b => { %>
+              <span class="badge badge-accent mr-1 mb-1"><%= b.name %></span>
+            <% }) %>
+          <% } else { %>
+            <span class="text-gray-500">—</span>
+          <% } %>
+        </p>
+      </div>
+    </div>
+    <div class="mt-6 flex flex-wrap gap-3">
+      <a href="/indexZoneGeo?view=points" class="btn btn-outline btn-sm">
+        <i class="fas fa-map-pin"></i> Mes points
+      </a>
+      <a href="/indexZoneParcelle" class="btn btn-outline btn-sm">
+        <i class="fas fa-draw-polygon"></i> Mes parcelles
+      </a>
+      <a href="/logout" class="btn btn-outline btn-sm">Log out</a>
+      <form method="POST" action="/delete_account"
+          onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');"
+          style="display: inline;">
+          <button class="btn btn-sm btn-outline-error" type="submit">
+            🗑️ Supprimer mon compte
+          </button>
+      </form>
+    </div>
+  </div>

@@ -42,12 +42,7 @@
         <div class="drawer-side">
         <label for="my-drawer" class="drawer-overlay"></label>
         <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
-          <% if (message) { %>
-            <div class="alert alert-<%= message.type || 'info' %> shadow-lg rounded-lg p-3">
-              <i class="fas fa-exclamation-circle mr-2"></i>
-              <strong><%= message.message %></strong>
-            </div>
-          <% } %>
+        
         <!-- Tabella parcelles -->    
   <% if (parcelles && parcelles.length > 0) { %>
     <div class="overflow-x-auto">
@@ -81,14 +76,11 @@
     </div>
   <% } else { %>
     <div class="text-center text-secondary mt-5">
-               Aucune parcelle trouvée dans la base de données!
+              Aucune parcelle trouvée pour vous ! Ajoutez votre première parcelle 🌱
             </div>
   <% } %>
       
-        <!-- Feed (come in indexZoneGeo, opzionale) -->
-        <div id="group-feed" class="mt-4 p-2 bg-base-100 rounded shadow-sm">
-          <div class="text-center text-muted">Caricamento feed...</div>
-        </div>
+  
       </aside>
     </div>
   </div>
@@ -96,29 +88,14 @@
 
 
 <script>
+
   // Variabile JS usata dal client
   const parcelles = <%- JSON.stringify(parcelles || []) %>;
-
-  // Caricamento dinamico del feed (come in indexZoneGeo)
-  async function loadGroupFeed() {
-    try {
-      const res = await fetch('/groupFeed');
-      if (!res.ok) throw new Error("Errore HTTP " + res.status);
-      const html = await res.text();
-      const feed = document.getElementById('group-feed');
-      const oldHeight = feed.scrollHeight;
-      feed.innerHTML = html;
-      if (feed.scrollHeight > oldHeight) {
-        feed.scrollTop = feed.scrollHeight;
-      }
-    } catch (err) {
-      console.error("❌ Errore caricamento feed:", err);
-    }
-  }
-  document.addEventListener('DOMContentLoaded', loadGroupFeed);
-  setInterval(loadGroupFeed, 30000);
+  console.log("📦 Parcelles dal server:", <%- JSON.stringify(parcelles) %>);
+  window.CATEGORIES = <%- JSON.stringify(categories || []) %>;     
+   console.log("🧪 CATEGORIES DAL SERVER:", window.CATEGORIES);
 </script>
 
+<script type="module" src="/js/dataAuthorParcelle.js" defer></script>
 <%- include('layout/footer') %>
 
-<script src="/js/dataAuthorParcelle.js" defer></script>

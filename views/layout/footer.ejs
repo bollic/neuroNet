@@ -1,78 +1,47 @@
 <!-- Link in basso visibili sempre -->
-<!-- Link in basso visibili sempre -->
 <footer class="fixed bottom-0 left-0 w-full bg-base-100 border-t border-gray-200 shadow-md z-50">
   <div class="flex justify-around items-center py-2 text-sm">
- 
+
     <% if (typeof user !== "undefined" && user) { %>
-   
 
-      <div class="flex items-center gap-2">
-        <!-- 🔘 Bottoni nel footer -->
+      <div class="flex items-center gap-4">
 
-<button id="open-profile" class="text-center flex flex-col items-center py-1">
-  <i class="fas fa-user text-lg"></i>
-  <span class="text-xs">Mon profil</span>
-</button>
+    <!-- Profilo: manda alla pagina Geo con hash per aprire il profilo -->
+    <a id="open-profile" href="/indexZoneGeo#profile" class="text-center flex flex-col items-center py-1">
+      <i class="fas fa-user text-lg"></i>
+      <span class="text-xs">Mon profil</span>
+    </a>
 
- <!-- Nav links -->
-     <a href="/indexZoneParcelle" class="text-center flex flex-col items-center py-1">
-    <i class="fas fa-draw-polygon text-lg text-green-600"></i>
-    <span class="text-xs">Parcelles</span>
-  </a>
+       <!-- 📐 Parcelles -->
+        <a href="/indexZoneParcelle" class="text-center flex flex-col items-center py-1">
+          <i class="fas fa-draw-polygon text-lg text-green-600"></i>
+          <span class="text-xs">Parcelles</span>
+        </a>
 
-
-  
-
-  <a href="/indexZoneGeo?view=points" class="text-center flex flex-col items-center py-1">
-    <i class="fas fa-map-pin text-lg text-indigo-600"></i>
-    <span class="text-xs">Mes Points</span>
-  </a>
+        <!-- 📍 Mes Points -->
+        <a href="/indexZoneGeo?view=points" class="text-center flex flex-col items-center py-1">
+          <i class="fas fa-map-pin text-lg text-indigo-600"></i>
+          <span class="text-xs">Mes Points</span>
+        </a>
 
 
-      <button id="go-plan" class="text-center flex flex-col items-center py-1">
-        <i class="fas fa-map text-lg"></i>
-        <span class="text-xs">Plan</span>
-      </button>
-        
-        
+        <!-- Torna al plan: manda alla pagina Geo (senza hash o con ?view=map se preferisci) -->
+        <a id="go-plan" href="/indexZoneGeo?view=plan" class="text-center flex flex-col items-center py-1">
+          <i class="fas fa-map text-lg"></i>
+          <span class="text-xs">Plan</span>
+        </a>
       </div>
+
     <% } else { %>
+
       <a class="btn btn-primary btn-sm" href="/login">
         <i class="fas fa-sign-in-alt me-1"></i> Log in
       </a>
+ 
     <% } %>
 
-   
-
+  </div>
 </footer>
-<!-- SEZIONI PRINCIPALI -->
-
-
-</div>
-
-<script>
-   const showMapBtn = document.getElementById("show-map");
-  const showProfileBtn = document.getElementById("show-profile");
-
-  function showMap() {
-    mapSection.classList.remove("hidden");
-    profileSection.classList.add("hidden");
-    if (window.map && typeof window.map.invalidateSize === "function") {
-      setTimeout(() => window.map.invalidateSize(), 300);
-    }
-  }
-
-  function showProfile() {
-    mapSection.classList.add("hidden");
-    profileSection.classList.remove("hidden");
-  }
-
-  if (showMapBtn) showMapBtn.addEventListener("click", showMap);
-  if (showProfileBtn) showProfileBtn.addEventListener("click", showProfile);
-</script>
-
-
-
 
 <!-- I tuoi script personalizzati -->
 <script src="/js/popupMod.js"></script>
@@ -99,5 +68,8 @@ async function updateGroupId(userId) {
   }
 }
 </script>
+
+<script src="/js/zone.js"></script>
+
 </body>
 </html>

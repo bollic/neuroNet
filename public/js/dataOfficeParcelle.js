@@ -1,3 +1,4 @@
+// dataOfficeParcelle.js
 document.addEventListener("DOMContentLoaded", function() { 
     let map; 
     let layerGroup;  
@@ -52,7 +53,27 @@ function initializeMap() {
         draw: false
     });
     map.addControl(drawControl);
-  } // Fine della funzione initializeMap() 
+  } 
+  
+function getParcelleEmoji(parcelle) {
+  console.log("🎯 getParcelleEmoji:", parcelle);
+  // 1️⃣ emoji salvata direttamente sulla parcella
+  if (parcelle.icon && parcelle.icon.trim() !== "") {
+    return parcelle.icon;
+  }
+
+  // 2️⃣ fallback categoria
+  const cat = (window.CATEGORIES || []).find(
+    c => c.name.toUpperCase() === (parcelle.category || "").toUpperCase()
+  );
+
+  if (cat && cat.icon) {
+    return cat.icon;
+  }
+
+  // 3️⃣ fallback finale
+  return "🔴";
+}
 
   // ========================
   // Funzione colore categorie
@@ -69,7 +90,7 @@ function initializeMap() {
   // ========================
   // Disegna i punti sulla mappa
   // ========================
-async function updateMap(data = parcelles) {
+async function updateMap(data) {
   console.log("updateMap triggered");
   layerGroup.clearLayers();
   drawnItems.clearLayers();
@@ -149,25 +170,23 @@ if (!Array.isArray(data) || data.length === 0) return;
     });
 
 // Aggiungi marker ai vertici della parcella
+const emoji = getParcelleEmoji(parcelle);
+
 parcelle.coordinates.forEach(ring => {
   ring.forEach(coord => {
     const [lng, lat] = coord;
-    const category = parcelle.category || "";
-    const color = colorMap[category] || "blue"; // prendi il colore assegnato alla categoria
 
-    const icon = new L.Icon({
-      iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
-      shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.4/images/marker-shadow.png",
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41],
-    });
-
-    const marker = L.marker([lat, lng], { icon }).addTo(layerGroup);
-    marker.bindPopup(`<strong>${parcelle.name}</strong><br>Catégorie: ${parcelle.category}`);
+    L.marker([lat, lng], {
+      icon: L.divIcon({
+        html: `<div style="font-size:22px;">${emoji}</div>`,
+        className: 'emoji-marker',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      })
+    }).addTo(layerGroup);
   });
 });
+
 
 
 
@@ -187,7 +206,7 @@ parcelle.coordinates.forEach(ring => {
   if (!map) initializeMap();
   setTimeout(() => {
     map.invalidateSize();
-    updateMap();
+    updateMap(dtParcelles);
   }, 200);
 
   // ========================
@@ -202,6 +221,7 @@ parcelle.coordinates.forEach(ring => {
   const dtParcelles = parcelles.map((p) => ({
     name: p.name,
     category: p.category || '',   // <-- fallback se undefined
+     icon: p.icon || null,   // ✅ QUESTA È LA CHIAVE
     createdAtFormatted: p.createdAtFormatted,   // visibile in tabella
     createdAtISO: p.createdAtISO,      // nascosto per i filtri
     userEmail: p.userEmail || "❓utente sconosciuto",

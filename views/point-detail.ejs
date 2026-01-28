@@ -1,0 +1,17 @@
+<!-- point-detail.ejs-->
+<%- include('layout/header') %>
+<h2>Modifier le point</h2>
+
+<% if (canEdit) { %>
+<form action="/points/<%= point._id %>/update" method="POST">
+  <label>Description</label>
+ <textarea name="description"><%= point.description || '' %>
+</textarea>
+
+  <button class="btn btn-primary">💾 Sauvegarder</button>
+</form>
+<% } else { %>
+<p>🔒 Vous ne pouvez pas modifier ce point</p>
+<% } %>
+
+<%- include('layout/footer') %>

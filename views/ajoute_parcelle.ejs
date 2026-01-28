@@ -4,34 +4,91 @@
   🔹 Vous pouvez supprimer un marqueur en double-cliquant dessus.</p>
 
 <div id="map" style="position: relative; width: 100%; height: 400px;"></div>
+<div class="max-w-lg mx-auto mt-4 p-4 bg-white rounded-lg shadow">
+  <form id="add-parcelle" method="POST">
+    <div class="mb-3"><!-- Link in basso visibili sempre -->
+ <footer class="fixed bottom-0 w-full bg-white/70 backdrop-blur-sm py-4 shadow-inner z-40">
+  <div class="flex flex-wrap justify-center items-center gap-3 text-center text-sm text-gray-700">
 
-<div class="container mt-4">
-  <div class="row">
-    <div class="col-lg-6 mx-auto">
-      <form id="add-parcelle" method="POST">
-     
-
-                <div class="mb-3">                                         
-                        <label for="name">Name</label>
-                        <input type="text" name="name" class="form-control form-control-lg" 
-                        placeholder="Enter name" value="Default Name"  required />
-                
-                     <!-- Categoria -->                  
-                    <select name="category" id="category" class="form-control" required>
-                      <% categories.forEach(function(cat) { %>
-                        <option value="<%= cat.name %>"><%= cat.icon %> - <%= cat.name %></option>
-                      <% }); %>
-                    </select>
-       </div>  
-        <input type="hidden" id="polygon" name="polygon">
-
-        <div class="mb-3 d-grid">
-          <button type="submit" class="btn btn-primary btn-lg">Salva parcella</button>
-        </div>
+    <% if (typeof user !== "undefined" && user) { %>
+      <span>
+        Wellcome, <strong><%= user.email %></strong> 
+        (<%= user.role %> | Group: <%= user.groupId || 'N/A'  %> )
+      </span>
+        <% if (typeof referenteOffice !== "undefined" && referenteOffice) { %>
+          <span class="text-gray-500 text-xs">
+            Référent : <strong><%= referenteOffice.email %></strong>
+          </span>
+        <% } %>
+    
+      
+      <a class="btn btn-sm btn-outline" href="/logout">Log out</a>
+      <form method="POST" action="/delete_account"
+            onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');"
+            style="display: inline;">
+        <button class="btn btn-sm btn-error" type="submit">
+          Delete account
+        </button>
       </form>
-    </div>
+    <% } %>
+
+    <!-- 🔹 Link utile per la home
+    <a href="/pricing" class="btn btn-sm btn-primary rounded-full shadow-sm">
+      💎 Voir les plans tarifaires
+    </a> -->
   </div>
+</footer>
+
+
+<!-- I tuoi script personalizzati -->
+<script src="/js/popupMod.js"></script>
+
+<script>
+async function updateGroupId(userId) {
+  const newGroupId = document.getElementById(`groupId-${userId}`).value;
+
+  try {
+    const res = await fetch(`/users/${userId}/groupId`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupId: newGroupId })
+    });
+
+    if (res.ok) {
+      alert('Group ID aggiornato con successo!');
+    } else {
+      alert('Errore durante aggiornamento');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Errore di rete');
+  }
+}
+</script>
+</body>
+</html>
+
+      <label for="name" class="block mb-1 font-medium">Name</label>
+      <input type="text" name="name" class="input input-bordered w-full" placeholder="Enter name" value="Default Name" required />
+    </div>
+
+    <div class="mb-3">
+      <label for="category" class="block mb-1 font-medium">Categoria</label>
+      <select name="category" id="category" class="select select-bordered w-full" required>
+        <% categories.forEach(function(cat) { %>
+          <option value="<%= cat.name %>"><%= cat.icon %> - <%= cat.name %></option>
+        <% }); %>
+      </select>
+    </div>
+
+    <input type="hidden" id="polygon" name="polygon">
+
+    <div class="mb-3">
+      <button type="submit" class="btn btn-primary btn-lg">Salva parcella</button>
+    </div>
+  </form>
 </div>
+
 
 <script defer>
 document.addEventListener("DOMContentLoaded", function() {
