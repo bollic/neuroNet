@@ -86,7 +86,7 @@ app.use(express.static("public"))
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // 🔒 Indispensabile per cookie "secure" dietro proxy come Render
-// app.set('trust proxy', 1);
+app.set('trust proxy', 1);
 // SESSIONE OK
 app.use(session({
   name: 'sid',          // 👈 opzionale ma consigliato
@@ -96,7 +96,7 @@ app.use(session({
  
   cookie: {
     secure: process.env.NODE_ENV === 'production', // true solo se in prod con HTTPS
-     secure: true, 
+    // secure: true, 
     //secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax',
