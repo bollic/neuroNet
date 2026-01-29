@@ -96,7 +96,7 @@ app.use(session({
  
   cookie: {
     secure: process.env.NODE_ENV === 'production', // true solo se in prod con HTTPS
-    // secure: true, 
+     secure: true, 
     //secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax',
