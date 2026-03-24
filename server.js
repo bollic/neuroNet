@@ -96,9 +96,9 @@ app.use(session({
   saveUninitialized: false,
  
   cookie: {
-    //secure: process.env.NODE_ENV === 'production', // mettilo su render
-     secure: false, // toglilo su render
-    secure: process.env.NODE_ENV === 'production', // mettilo in localhost
+    secure: process.env.NODE_ENV === 'production', // mettilo su render
+    // secure: false, // toglilo su render
+    //secure: process.env.NODE_ENV === 'production', // mettilo in localhost
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000
