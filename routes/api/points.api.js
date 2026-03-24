@@ -1,4 +1,4 @@
-// points.api.js
+// /api/points.api.js
 const express = require('express');
 const router = express.Router();
 
@@ -7,10 +7,12 @@ const PointModel = require('../../models/Point');
 const { isAuthenticated } = require('../../middleware/auth');
 // oppure importa la tua funzione dove sta
 function canSeeDescription(point, user) {
+   if (!point || !user) return false;   // ⬅️ FIX CRITICO
   // proprietario
   //if (String(point.user) === String(user._id)) return true;
   // proprietario
-  const pointUserId = point.user._id ? point.user._id : point.user; 
+    const pointUserId = point.user?._id ?? point.user;
+  // const pointUserId = point.user._id ? point.user._id : point.user; 
   if (String(pointUserId) === String(user._id)) return true;
 
   // office vede tutto
@@ -54,7 +56,15 @@ const validCategoryNames = office.categories.map(c => c.name);
       groupId: user.groupId,
   category: { $in: validCategoryNames }
     }).populate('user', 'email role');
-    console.log("canSeeDescription for first point:", canSeeDescription(points[0], user));
+   // console.log("canSeeDescription for first point:", canSeeDescription(points[0], user));
+if (points.length > 0) {
+  console.log(
+    "canSeeDescription for first point:",
+    canSeeDescription(points[0], user)
+  );
+} else {
+  console.log("📍 Nessun punto presente per questo utente");
+}
 
 console.log(
   `📍 Points validi inviati: ${points.length} / categorie:`,

@@ -1,36 +1,47 @@
 <%- include('layout/header') %>
 
-<div class="flex flex-col items-center justify-center text-center min-h-screen px-4 pb-24 space-y-6">
+<div class="min-h-screen flex flex-col items-center justify-center text-center px-6 pb-32">
 
-  <h1 class="text-4xl font-extrabold text-purple-700">
-    🗺️ Terria
+  <!-- Hero -->
+  <h1 class="text-5xl sm:text-6xl font-extrabold text-purple-700 mb-4">
+    Terria
   </h1>
 
-  <p class="text-lg text-gray-700 max-w-xl">
-     La carte opérationnelle pour organiser équipes et territoires.
+  <p class="text-xl text-gray-700 max-w-2xl mb-2">
+    Cartographiez, partagez et organisez des signalements.
   </p>
 
-  <ul class="text-gray-600 space-y-1">
-    <li>• Points terrain partagés</li>
-    <li>• Zones et parcelles sur carte</li>
-    <li>• Organisation par groupe</li>
+  <p class="text-sm text-gray-500 max-w-xl mb-10">
+   Un outil collaboratif pour centraliser et partager des signalements.
 
-  </ul>
+  </p>
 
-  <div class="flex gap-4 mt-6">
-        <a href="/login?role=field" class="btn btn-primary btn-lg">
-        👤 Accès terrain
-      </a>
+  <!-- Actions principales -->
+  <div class="flex flex-col sm:flex-row gap-4 mb-6">
 
-      <a href="/login?role=office" class="btn btn-outline btn-lg">
-        🏢 Accès superviseur
-      </a>
+    <a href="/login?role=field"
+       class="btn btn-primary btn-lg rounded-full px-8 shadow-lg">
+      👤 Je fais des signalements
+    </a>
 
-      <a href="/groups" class="btn btn-ghost btn-lg">
-        🌍 Découvrir / rejoindre un groupe
-      </a>
+    <a href="/login?role=office"
+       class="btn btn-outline btn-lg rounded-full px-8">
+      🏢 Je gère un groupe
+    </a>
 
   </div>
+
+  <!-- Action secondaire -->
+  <a href="/groups"
+     class="text-sm text-purple-600 hover:underline">
+    Rejoindre un groupe existant
+  </a>
+
+  <!-- Micro-explication (discrète) -->
+  <p class="text-xs text-gray-400 max-w-md mt-8">
+    Les responsables créent les groupes et définissent les catégories.  
+    Les déclarants ajoutent des signalements sur la carte.
+  </p>
 
 </div>
 

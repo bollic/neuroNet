@@ -1,0 +1,55 @@
+
+
+   <!-- views/partials/addPointForm.ejs -->
+  <form id="add-point" method="POST" enctype="multipart/form-data">
+  <input type="hidden" id="point" name="point" />
+  <input type="hidden" id="pointId" name="pointId" />
+  <input type="hidden" id="form-lat" name="lat" />
+  <input type="hidden" id="form-lng" name="lng" />
+
+  <div class="mb-2">
+    <input 
+      type="text"
+      id="form-name"
+      name="name"
+      class="input input-bordered w-full"
+      placeholder="Nom"
+      required
+    />
+  </div>
+
+  <div class="mb-2">
+    <select
+      id="form-category"
+      name="category"
+      class="select select-bordered w-full"
+      required>
+      <% categories.forEach(function(cat) { %>
+        <option value="<%= cat.name %>">
+          <%= cat.icon %> - <%= cat.name %>
+        </option>
+      <% }); %>
+    </select>
+  </div>
+
+  <div class="mb-2">
+    <textarea
+      id="form-description"
+      name="description"
+      class="textarea textarea-bordered w-full"
+      placeholder="Description">
+    </textarea>
+  </div>
+
+  <div class="mb-2">
+    <input
+      type="file"
+      name="image"
+      class="file-input file-input-bordered w-full"
+    />
+  </div>
+
+  <button type="submit" class="btn btn-primary w-full mt-2">
+    Ajouter
+  </button>
+</form>

@@ -91,7 +91,9 @@ map.addControl(drawControl);
 
     // 5️⃣ Invalida dimensioni mappa dopo render
     setTimeout(() => map.invalidateSize(), 500);
-
+    // 6️⃣ ⚡ Dispatch evento mapReady
+    document.dispatchEvent(new Event("mapReady"));
+    console.log("🔥 initializeMap: mapReady dispatchato");
     // 6️⃣ Ritorna i layer e la mappa
     return { map, layerGroup, drawnItems, pointsLayer, parcellesLayer };
 }

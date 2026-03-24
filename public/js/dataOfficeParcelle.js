@@ -86,16 +86,43 @@ function getParcelleEmoji(parcelle) {
     }
     return colorMap[cat];
   }
+const parcelLayers = {};
+function updateInsightPanel(parcelles) {
+  const total = parcelles.length;
+  const users = [...new Set(parcelles.map(p => p.userId))].length;
+  const totalHa = parcelles.reduce((sum, p) => sum + (p.area || 0), 0);
 
-  // ========================
+  // Conteggio dinamico per ogni categoria presente
+  const categoriesCount = {};
+  parcelles.forEach(p => {
+    const cat = p.category || 'Non défini';
+    const emoji = getParcelleEmoji(p); // 🔹 prendi l'emoji della parcella
+ if (!categoriesCount[cat]) {
+      categoriesCount[cat] = { count: 1, emoji: emoji };
+    } else {
+      categoriesCount[cat].count++;
+    } 
+  });
+
+  const ul = document.getElementById('insight-list');
+  ul.innerHTML = `
+    ${Object.entries(categoriesCount)
+         .map(([cat, info]) => `<li>${info.emoji} ${cat} : ${info.count} parcelle${info.count > 1 ? 's' : ''}</li>`)
+       .join('')}
+    <li>🟩 Superficie totale : ${totalHa} ha</li>
+    <li>👤 Utilisateurs actifs : ${users}</li>
+    <li>🔹 Total parcelles : ${total}</li>
+  `;
+}
+// ========================
   // Disegna i punti sulla mappa
   // ========================
-async function updateMap(data) {
+async function updateMap(parcelles) {
   console.log("updateMap triggered");
   layerGroup.clearLayers();
   drawnItems.clearLayers();
   // Controllo array globale
-if (!Array.isArray(data) || data.length === 0) return;
+if (!Array.isArray(parcelles) || parcelles.length === 0) return;
 
   
     const polygons = [];
@@ -120,7 +147,7 @@ if (!Array.isArray(data) || data.length === 0) return;
     console.log("🖌️ Mappa colori categorie:", colorMap);
     
   // disegna parcelle (poligoni)
-  data.forEach((parcelle) => {
+  parcelles.forEach((parcelle) => {
     if (
       !Array.isArray(parcelle.coordinates) ||
       parcelle.coordinates.length === 0
@@ -145,7 +172,8 @@ if (!Array.isArray(data) || data.length === 0) return;
 
     const geoLayer = L.geoJSON(geoJson, {
       style: {
-        color: "#3388ff",
+        color: color,
+        fillColor: color,
         weight: 2,
         opacity: 0.7,
         fillOpacity: 0.2
@@ -162,15 +190,49 @@ if (!Array.isArray(data) || data.length === 0) return;
         layer.bindPopup(popupContent);
       }
     }).addTo(drawnItems);
-
+    parcelLayers[parcelle._id] = geoLayer;
     geoLayer.eachLayer(layer => {
       if (layer.getBounds) {
         polygons.push(layer.getBounds());
       }
     });
+// Aggiungi marker (robusto)
+const coords = parcelle.coordinates;
 
+// sicurezza
+if (!Array.isArray(coords) || coords.length === 0) return;
+
+// funzione helper interna (puoi anche metterla fuori)
+function addMarker(lat, lng) {
+  const emoji = getParcelleEmoji(parcelle);
+
+  L.marker([lat, lng], {
+    icon: L.divIcon({
+      html: `<div style="font-size:22px;">${emoji}</div>`,
+      className: 'emoji-marker',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    })
+  }).addTo(layerGroup);
+}
+
+// 🟩 Caso POLYGON (normale)
+if (Array.isArray(coords[0][0])) {
+  coords.forEach(ring => {
+    ring.forEach(coord => {
+      const [lng, lat] = coord;
+      addMarker(lat, lng);
+    });
+  });
+}
+
+// 🟨 Caso POINT (fallback sicurezza)
+else if (coords.length === 2) {
+  const [lng, lat] = coords;
+  addMarker(lat, lng);
+}
 // Aggiungi marker ai vertici della parcella
-const emoji = getParcelleEmoji(parcelle);
+/*const emoji = getParcelleEmoji(parcelle);
 
 parcelle.coordinates.forEach(ring => {
   ring.forEach(coord => {
@@ -188,7 +250,7 @@ parcelle.coordinates.forEach(ring => {
 });
 
 
-
+*/
 
   });
 
@@ -204,10 +266,7 @@ parcelle.coordinates.forEach(ring => {
   // Avvio mappa
   // ========================
   if (!map) initializeMap();
-  setTimeout(() => {
-    map.invalidateSize();
-    updateMap(dtParcelles);
-  }, 200);
+
 
   // ========================
   // User map
@@ -229,7 +288,10 @@ parcelle.coordinates.forEach(ring => {
     _id: p._id,
     coordinates: p.coordinates || p.geometry?.coordinates || []
   }));
-
+    setTimeout(() => {
+    map.invalidateSize();
+    updateMap(dtParcelles);
+  }, 200);
   console.log("💠 dtPoints per DataTables:", dtParcelles);
 const table = $("#main-table").DataTable({
   data: dtParcelles,
@@ -261,7 +323,37 @@ const table = $("#main-table").DataTable({
     `);
    }
   },
+
+   // <<< QUI AGGIUNGI LE NUOVE OPZIONI >>>
+  autoWidth: false,   // NON calcola larghezza colonne
+  scrollX: false,     // disabilita overflow orizzontale automatico
+  responsive: true    // mantiene reattività
+
 });
+
+
+  $('#main-table').on('click', 'tbody tr', function () {
+    const data = table.row(this).data();
+     const layer = parcelLayers[data._id];
+  if (!layer) return;
+ //   layer.setStyle({ weight: 4, fillOpacity: 0.6 });
+if (layer.getBounds) map.fitBounds(layer.getBounds(), { padding: [30,30] });
+        // Salva stile originale
+  const originalStyle = {
+    weight: layer.options.style?.weight || 2,
+    fillOpacity: layer.options.style?.fillOpacity || 0.2
+  };
+
+  // Evidenzia temporaneamente
+  layer.setStyle({ weight: 4, fillOpacity: 0.6 });
+
+  // Torna allo stile originale dopo 2 secondi
+  setTimeout(() => {
+    layer.setStyle(originalStyle);
+  }, 4000);
+console.log("DATI RIGA:", data);
+  });
+
 /*
   // Popoliamo il select categorie dinamicamente
 const categories = [...new Set(dtParcelles.map(p => p.category))];
@@ -269,6 +361,73 @@ categories.forEach(cat => {
   $("#filter-category").append(`<option value="${cat}">${cat}</option>`);
 });
 */
+
+
+// ==========================
+// Hover sulla tabella → evidenzia sulla mappa
+// ==========================
+let lastHighlighted = null;
+let clickHighlightTimeout = null;
+
+// Hover sulla tabella → evidenzia
+$('#main-table').on('mouseenter', 'tbody tr', function () {
+  if (clickHighlightTimeout) return; // ignoriamo hover durante highlight click
+
+  const data = table.row(this).data();
+  if (!data) return;
+  const layer = parcelLayers[data._id];
+  if (!layer) return;
+
+  if (lastHighlighted && lastHighlighted !== layer) {
+    lastHighlighted.setStyle({ weight: 2, fillOpacity: 0.2 });
+  }
+
+  layer.setStyle({ weight: 4, fillOpacity: 0.6 });
+  lastHighlighted = layer;
+});
+
+$('#main-table').on('mouseleave', 'tbody tr', function () {
+  if (clickHighlightTimeout) return; // ignoriamo hover durante highlight click
+
+  const data = table.row(this).data();
+  if (!data) return;
+  const layer = parcelLayers[data._id];
+  if (!layer) return;
+
+  layer.setStyle({ weight: 2, fillOpacity: 0.2 });
+  lastHighlighted = null;
+});
+// ==========================
+// Click sulla tabella → zoom sulla parcella
+// ==========================
+
+// Click sulla tabella → zoom + highlight temporaneo 4 secondi
+$('#main-table').on('click', 'tbody tr', function () {
+  const data = table.row(this).data();
+  const layer = parcelLayers[data._id];
+  if (!layer) return;
+
+  if (layer.getBounds) map.fitBounds(layer.getBounds(), { padding: [30,30] });
+
+  // Disabilita hover durante highlight click
+  if (clickHighlightTimeout) clearTimeout(clickHighlightTimeout);
+
+  const originalStyle = { weight: layer.options.style?.weight || 2, fillOpacity: layer.options.style?.fillOpacity || 0.2 };
+
+  layer.setStyle({ weight: 4, fillOpacity: 0.6 });
+  clickHighlightTimeout = setTimeout(() => {
+    layer.setStyle(originalStyle);
+    clickHighlightTimeout = null;
+  }, 4000);
+
+  console.log("DATI RIGA:", data);
+});
+
+setTimeout(() => {
+  map.invalidateSize();
+  updateMap(dtParcelles);          // aggiorna mappa con tutte le parcelle
+  updateInsightPanel(dtParcelles); // aggiorna panel con le statistiche
+}, 200);
 // Dopo aver creato la DataTable
 const uniqueCategories = [...new Set(dtParcelles.map(p => p.category).filter(Boolean))];
 uniqueCategories.forEach(cat => {
@@ -289,6 +448,7 @@ $("#filter-date").on("change", function () {
 
       // Aggiorna mappa con soli dati filtrati
   const filteredData = table.rows({ filter: 'applied' }).data().toArray();
+   updateInsightPanel(filteredData); // ✅ aggiorna panel statistico
   updateMap(filteredData);
   });
 

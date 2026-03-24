@@ -1,35 +1,55 @@
 <!-- partials/profileSection.ejs -->
 
 
-  <div id="profile-section" class="hidden bg-base-100 h-full overflow-y-auto p-6 rounded-lg shadow-md">
-    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
-      👤 Mon profil
-    </h2>
+ <div id="profile-section" class="hidden h-full overflow-y-auto p-6">
+
+  <div class="max-w-5xl mx-auto bg-base-100 rounded-xl shadow-md p-6">
+
+ <div class="mb-6">
+  <h2 class="text-3xl font-extrabold text-gray-800">
+    👤 Mon profil
+  </h2>
+  <p class="text-sm text-gray-500">
+    Informations personnelles et utilisation du groupe
+  </p>
+</div>
+
+<div class="bg-base-200 rounded-xl p-4 shadow-sm">
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
         <p><strong>Email:</strong> <%= user.email %></p>
         <p><strong>Rôle:</strong> <%= user.role %></p>
         <p><strong>Groupe:</strong> <%= user.groupId || '—' %></p>
     <% if (typeof referenteOffice !== 'undefined' && referenteOffice) { %>
-     <p><strong>Référent:</strong> <%= referenteOffice.email %></p>
+     <p><strong>Responsable :</strong> <%= referenteOffice.email %></p>
     <% } %>
-      
       </div>
-      <div>
+
+  <div>
         <p>
-  <strong>Plan du groupe:</strong>
-  <span class="badge badge-info"><%= plan.toUpperCase() %></span>
+          <strong>Plan du groupe:</strong>
+          <span class="badge badge-info"><%= plan.toUpperCase() %></span>
+        </p>
+<p class="mt-3">
+  <strong>Utilisation du plan :</strong>
 </p>
 
-<progress value="<%= planUX.used %>" max="<%= planUX.limit %>"></progress>
-<p><%= planUX.used %> / <%= planUX.limit %> XP</p>
-<p>Rimanenti: <%= planUX.remaining %> XP</p>
-<p>Percent: <%= planUX.percent %>%</p>
+<progress
+  class="progress progress-primary w-full"
+  value="<%= planUX.used %>"
+  max="<%= planUX.limit %>">
+</progress>
 
+<p class="text-sm text-gray-600 mt-1">
+  <%= planUX.used %> / <%= planUX.limit %> utilisés
+</p>
 
-        <p><strong>XP:</strong>
+<p class="text-xs text-gray-500">
+  Restants : <%= planUX.remaining %>
+</p>
+
           <span class="badge badge-primary"><%= user.xp || 0 %></span>
-        </p>
+       
         <p><strong>Badges:</strong><br>
           <% if (user.badges && user.badges.length > 0) { %>
             <% user.badges.forEach(b => { %>
@@ -41,14 +61,21 @@
         </p>
       </div>
     </div>
-    <div class="mt-6 flex flex-wrap gap-3">
+</div>
+<div class="mt-6 p-4 bg-base-200 rounded-xl shadow-sm">
+  <p class="text-sm font-semibold mb-3">
+    Actions rapides
+  </p>
+
+  <div class="flex flex-wrap gap-3">
+
       <a href="/indexZoneGeo?view=points" class="btn btn-outline btn-sm">
-        <i class="fas fa-map-pin"></i> Mes points
+        <i class="fas fa-map-pin"></i> Mes signalements
       </a>
       <a href="/indexZoneParcelle" class="btn btn-outline btn-sm">
-        <i class="fas fa-draw-polygon"></i> Mes parcelles
+        <i class="fas fa-draw-polygon"></i> Mes zones
       </a>
-      <a href="/logout" class="btn btn-outline btn-sm">Log out</a>
+      <a href="/logout" class="btn btn-outline btn-sm">Déconnexion</a>
       <form method="POST" action="/delete_account"
           onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');"
           style="display: inline;">
@@ -58,3 +85,5 @@
       </form>
     </div>
   </div>
+   </div>
+    </div>

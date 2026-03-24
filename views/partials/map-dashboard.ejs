@@ -34,49 +34,5 @@
   SCRIPTS MAPPE (Leaflet + Init)
 ================================== -->
 <script>
-  document.addEventListener("DOMContentLoaded", async () => {
-    // 📍 Init mappa
-    const map = L.map('map', {
-      center: [48.8566, 2.3522], // Paris par défaut
-      zoom: 11,
-      zoomControl: true
-    });
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    // 📦 Carica punti dal server
-    try {
-      const res = await fetch('/points/json');
-      const points = await res.json();
-      points.forEach(p => {
-        const marker = L.marker([p.lat, p.lng]).addTo(map);
-        marker.bindPopup(`<strong>${p.title || 'Point'}</strong><br>${p.description || ''}`);
-      });
-    } catch (err) {
-      console.error('Erreur chargement points:', err);
-    }
-
-    // 🟣 Aggiunta di punti con click
-    map.on('click', async (e) => {
-      const { lat, lng } = e.latlng;
-      const title = prompt("Nom du point ?");
-      if (!title) return;
-      try {
-        const res = await fetch('/points', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lng, title })
-        });
-        if (res.ok) {
-          L.marker([lat, lng]).addTo(map).bindPopup(`<strong>${title}</strong>`);
-        } else {
-          alert("Erreur lors de l'ajout du point.");
-        }
-      } catch (err) {
-        console.error('Erreur ajout point:', err);
-      }
-    });
-  });
+ 
 </script>

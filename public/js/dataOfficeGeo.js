@@ -8,6 +8,13 @@ document.addEventListener("DOMContentLoaded", function () {
   const fieldUsers = window.FIELD_USERS || [];
     const list = document.getElementById("category-list");
     const addBtn = document.getElementById("add-category");
+// Popola le categorie esistenti
+if (window.CATEGORIES && list) {
+  window.CATEGORIES.forEach((c, i) => {
+    const row = createCategoryRow(c, i);
+    list.appendChild(row);
+  });
+}
 
   // ========================
   // Colori categorie GLOBALI
@@ -16,49 +23,58 @@ document.addEventListener("DOMContentLoaded", function () {
   const colorMap = {};
   const colorIndexRef = { index: 0 };
 
+function createCategoryRow(category, index) {
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-2 category-row w-full';
+  row.innerHTML = `
+  
+    <input type="text" name="categories[${index}][name]" value="${category?.name || ''}" 
+           class="input input-bordered flex-1 min-w-0" placeholder="Nome categoria">
+    <input type="text" name="categories[${index}][customEmoji]" value="${category?.icon || ''}" 
+           placeholder="😊 Emoji" class="input input-bordered w-14 text-center emoji-input">
+    
+    <button type="button" class="btn btn-error btn-sm remove-category">✖</button>
+  `;
+  return row;
+}
+
   // ========================
   // Gestione form categorie dinamiche
   // ========================
   // Aggiungi listener delegato sul container
 if (list) {
-  list.addEventListener("click", function(e) {
-    if (e.target && e.target.classList.contains("remove-category")) {
-      const row = e.target.closest(".category-row");
-      if (row) row.remove();
-    }
-  });
+      list.addEventListener('click', (e) => {
+
+        const input = e.target.closest('.emoji-input');
+        if (!input) return;
+
+        e.stopPropagation();
+        activeEmojiInput = input;
+
+      const rect = input.getBoundingClientRect();
+
+        quickPicker.style.top = `${rect.bottom + window.scrollY}px`;
+        quickPicker.style.left = `${rect.left + window.scrollX}px`;
+        quickPicker.style.display = 'block';
+         });
 }
 
 if (addBtn && list) {
-  addBtn.addEventListener("click", () => {
-    const index = list.children.length;
-    const row = document.createElement("div");
-    row.className = "flex items-center gap-2 category-row";
-    row.innerHTML = `
-      <input type="text" name="categories[${index}][name]" class="input input-bordered w-1/2" placeholder="Nome categoria">
-      <select name="categories[${index}][icon]" class="select select-bordered w-1/4">
-        <option value="red">🔴 Rosso</option>
-        <option value="truck">🚚 Camion</option>
-        <option value="home">🏠 Casa</option>
-         <option value="custom">✨ Emoji libera</option>
-      </select>
-       <input 
-    type="text" 
-    name="categories[${index}][customEmoji]" 
-    placeholder="😊 Emoji" 
-    class="input input-bordered w-1/4 text-center"
-  />
-      <button type="button" class="btn btn-error btn-sm remove-category">✖</button>
-    `;
-    list.appendChild(row);
-  });
+ addBtn.addEventListener("click", () => {
+  const index = list.children.length;
+  const row = createCategoryRow(null, index);
+  list.appendChild(row);
+});
+
 }
 // ========================
 // 🧩 Emoji Picker (delegato, globale)
 // ========================
 let emojiPicker = null;
+let quickPicker = null;
 let activeEmojiInput = null;
-
+// 👇 AGGIUNGI QUI
+const quickEmojis = ["📍","🔥","💡","🗑️","⚠️","🚧","🌳","🐕","🏠","💧","⏰"];
 if (list) {
   // crea UNA SOLA volta il picker
   emojiPicker = document.createElement('emoji-picker');
@@ -66,6 +82,33 @@ if (list) {
   emojiPicker.style.zIndex = '1000';
   emojiPicker.style.display = 'none';
   document.body.appendChild(emojiPicker);
+  // ========================
+// Mini quick emoji picker
+// ========================
+quickPicker = document.createElement("div");
+quickPicker.style.position = "absolute";
+quickPicker.style.background = "white";
+quickPicker.style.border = "1px solid #ddd";
+quickPicker.style.padding = "6px";
+quickPicker.style.display = "none";
+quickPicker.style.zIndex = "1001";
+
+quickEmojis.forEach(e => {
+  const span = document.createElement("span");
+  span.textContent = e;
+  span.style.fontSize = "22px";
+  span.style.cursor = "pointer";
+  span.style.margin = "4px";
+
+  span.addEventListener("click", () => {
+    if (activeEmojiInput) activeEmojiInput.value = e;
+    quickPicker.style.display = "none";
+  });
+
+  quickPicker.appendChild(span);
+});
+
+document.body.appendChild(quickPicker);
 
   // click su bottone 😄 (delegato)
   list.addEventListener('click', (e) => {
@@ -230,15 +273,19 @@ if (list) {
       console.log("📤 Invio categorie al server:", JSON.stringify(categories, null, 2));
        // 🔹 Punto A: prepara i dati finali da inviare
   const payload = categories.map(c => {
-    let finalIcon = c.icon;
-    if (c.icon === 'custom' && c.customEmoji && c.customEmoji.trim() !== '') {
-      finalIcon = c.customEmoji.trim();
-    }
-    return {
-      name: c.name.trim(),
-      icon: finalIcon
-    };
+        let finalIcon = c.icon;
+  if (c.icon === 'custom' && c.customEmoji && c.customEmoji.trim() !== '') {
+    finalIcon = c.customEmoji.trim();
+  }
+ return {
+    name: (c.name || '').trim(),
+   icon: (c.customEmoji  && c.customEmoji.trim() !== '') ? c.customEmoji.trim() : '⚠️'
+  };
+
   });
+  console.log("📤 Payload da inviare al server:");
+payload.forEach((c, i) => console.log(`- ${i+1}: ${c.name} → ${c.icon}`));
+
   window.CATEGORIES = payload; // ✅ aggiorni la variabile globale
   console.log("📤 Invio categorie al server:", payload);
       try {
@@ -254,37 +301,29 @@ if (list) {
           window.CATEGORIES = result.categories;
           console.log("🆕 CATEGORIES aggiornate:", window.CATEGORIES);
               // Redirect corretto
-   
-  // 2️⃣ aggiorna il form nel DOM
-  const listDiv = document.getElementById('category-list');
-  listDiv.innerHTML = ''; // reset
-  window.CATEGORIES.forEach((c, i) => {
-    const row = document.createElement('div');
-    row.className = 'flex items-center gap-2 category-row';
+          // Mostra conferma al responsabile
+        let msg = "✅ Catégorie mises à jour!:\n";
+        result.categories.forEach((c, i) => {
+          msg += `${i+1}: ${c.name} → ${c.icon}\n`;
+        });
+        alert(msg);
 
-    // determina l'icona effettiva
-  let selectedRed = c.icon === 'red' ? 'selected' : '';
-  let selectedTruck = c.icon === 'truck' ? 'selected' : '';
-  let selectedHome = c.icon === 'home' ? 'selected' : '';
-  let selectedCustom = !['red','truck','home'].includes(c.icon) ? 'selected' : '';
-    
-  row.innerHTML = `
-    <input type="text" name="categories[${i}][name]" value="${c.name}" class="input input-bordered w-1/2" placeholder="Nome categoria">
-    <select name="categories[${i}][icon]" class="select select-bordered w-1/3">
-      <option value="red" ${selectedRed}>🔴 Rosso</option>
-      <option value="truck" ${selectedTruck}>🚚 Camion</option>
-      <option value="home" ${selectedHome}>🏠 Casa</option>
-      <option value="custom" ${selectedCustom}>✨ Emoji libera</option>
-    </select>
-    <input type="text" name="categories[${i}][customEmoji]" value="${!['red','truck','home'].includes(c.icon) ? c.icon : ''}" placeholder="😊 incolla qui emoji" class="input input-bordered w-1/4 text-center custom-emoji-input">
-    <button type="button" class="btn btn-error btn-sm remove-category">✖</button>
-  `;
+  // 2️⃣ aggiorna il form nel DOM
+ const listDiv = document.getElementById('category-list');
+listDiv.innerHTML = ''; // reset
+window.CATEGORIES.forEach((c, i) => {
+  const row = createCategoryRow(c, i); // ✅ usa la funzione
   listDiv.appendChild(row);
 });
           updateMap();
          // alert("Categorie aggiornate con successo!");
           console.log("📥 Risposta server:", result);
-
+          
+  // 📝 LOG chiaro delle categorie registrate
+  console.log("🎉 Categorie registrate con successo:");
+           window.CATEGORIES.forEach((c, i) => {
+    console.log(`- ${i + 1}: ${c.name} → Emoji: ${c.icon}`);
+  });
         } else {
           //alert("Errore aggiornamento categorie.");
         }

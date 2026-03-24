@@ -1,3 +1,4 @@
+<!-- layoy/footer.ejs -->
 <!-- Link in basso visibili sempre -->
 <footer class="fixed bottom-0 left-0 w-full bg-base-100 border-t border-gray-200 shadow-md z-50">
   <div class="flex justify-around items-center py-2 text-sm">
@@ -7,21 +8,26 @@
       <div class="flex items-center gap-4">
 
     <!-- Profilo: manda alla pagina Geo con hash per aprire il profilo -->
-    <a id="open-profile" href="/indexZoneGeo#profile" class="text-center flex flex-col items-center py-1">
+   <!-- <a id="open-profile" href="/indexZoneGeo#profile" class="text-center flex flex-col items-center py-1">
       <i class="fas fa-user text-lg"></i>
       <span class="text-xs">Mon profil</span>
-    </a>
+    </a> -->
 
        <!-- 📐 Parcelles -->
         <a href="/indexZoneParcelle" class="text-center flex flex-col items-center py-1">
           <i class="fas fa-draw-polygon text-lg text-green-600"></i>
-          <span class="text-xs">Parcelles</span>
+          <span class="text-xs">Zones</span>
         </a>
 
         <!-- 📍 Mes Points -->
         <a href="/indexZoneGeo?view=points" class="text-center flex flex-col items-center py-1">
           <i class="fas fa-map-pin text-lg text-indigo-600"></i>
-          <span class="text-xs">Mes Points</span>
+          <span class="text-xs">Mes Signalements</span>
+        </a>
+                  <!-- 📐 COMBINED  -->
+        <a href="/indexZoneCombined" class="text-center flex flex-col items-center py-1">
+          <i class="fas fa-draw-polygon text-lg text-green-600"></i>
+          <span class="text-xs">Vue d'ensemble</span>
         </a>
 
 
@@ -32,12 +38,6 @@
         </a>
       </div>
 
-    <% } else { %>
-
-      <a class="btn btn-primary btn-sm" href="/login">
-        <i class="fas fa-sign-in-alt me-1"></i> Log in
-      </a>
- 
     <% } %>
 
   </div>

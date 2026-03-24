@@ -44,17 +44,26 @@ export function updateMap() {
     pointsLayer.clearLayers();
     drawnItems?.clearLayers();
     layerGroup?.clearLayers();
-
+    console.log("Punto appena aggiunto:", points[points.length - 1])
     // -------------------
     // 2️⃣ Determina quali punti mostrare
     // -------------------
     const showGroupPoints = document.getElementById("toggleGroupPoints")?.checked ?? true;
-    const pointsToShow = points.filter(point => {
-        if (!point.coordinates || point.coordinates.length !== 2) return false;
-        if (!point.user || !point.user._id) return false;
-        if (!showGroupPoints && String(point.user._id) !== String(currentUserId)) return false;
-        return true;
-    });
+const pointsToShow = points.filter(point => {
+    if (!point.coordinates || point.coordinates.length !== 2) return false;
+
+    const userId =
+        typeof point.user === "object"
+            ? point.user?._id
+            : point.user;
+
+    if (!userId) return false;
+
+    if (!showGroupPoints && String(userId) !== String(currentUserId))
+        return false;
+
+    return true;
+});
 
     console.log("🔄 Punti filtrati:", pointsToShow);
 
@@ -64,7 +73,7 @@ export function updateMap() {
     const markers = pointsToShow.map(point => {
         const isMyPoint = String(point.user._id) === String(currentUserId);
         const iconEmoji = getIconEmoji(point);
-        const userLabel = isMyPoint ? '(Tu)' : (point.user?.email || '');
+       const userLabel = isMyPoint ? 'Toi' : (point.user?.email || 'Inconnu');
 
         const marker = L.marker([point.coordinates[1], point.coordinates[0]], {
             icon: new L.divIcon({
@@ -75,9 +84,18 @@ export function updateMap() {
             }),
             className: ''
         }).bindPopup(`
-            <div style="min-width:180px;">
-                Nom: <strong>${point.name || 'Senza nome'}</strong><br>
-                Categorie: ${point.category || 'Senza categoria'}<br>
+            <div style="min-width:120px;">
+       <strong>📍 ${point.name || 'Senza nome'}</strong><br>
+
+        👤 Declarant: 
+        <strong>
+            ${userLabel 
+                ? 'Toi'
+                : (point.user?.email || 'Inconnu')}
+        </strong>
+        <br>
+        
+        🏷️ Categorie: ${point.category || 'Senza categoria'}<br>
                 Description: ${point.description
                     ? `<div style="margin-top:6px; font-style:italic;">
                         📝 ${point.description}
@@ -86,11 +104,16 @@ export function updateMap() {
                     }
 
                 ${point.image ? `<br><img src="${point.image}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">` : ''}
-            </div>
+           <button onclick="sharePointById('${point._id}')">
+            📤 Partager
+            </button>
+                </div>
         `).addTo(pointsLayer);
 
-        marker.on('click', () => highlightTableRow(point._id));
-
+       marker.on('click', () => {
+            highlightTableRow(point._id);
+            window.openOverlayView(point);
+        });
         markersMap[point._id] = marker;
         return marker;
     });

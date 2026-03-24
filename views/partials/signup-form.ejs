@@ -1,36 +1,31 @@
 <!-- partials/signup-form.ejs -->
 <% if (role === "field") { %>
     <!-- Messaggio di errore -->
-  <% if (error) { %>
+<% if (typeof error !== 'undefined' && error) { %>
+
     <div class="bg-red-100 text-red-800 p-2 rounded mb-4">
       ⚠️ <%= error %>
     </div>
   <% } %>
 
-  <!-- 🧭 Membre / Field : form d'inscription dans un groupe existant -->
+  <!-- 🧭 Membre / Déclarant : form d'inscription dans un groupe existant -->
   
 <form id="signup-form" action="/signup" method="POST" class="space-y-4">
 
 
-    <p class="text-sm text-gray-600 mb-2">
-      En tant que <strong>membre (Field)</strong>, vous rejoignez un groupe existant.
-    </p>
+<p class="text-sm text-gray-600 mb-2">
+En tant que <strong>membre (Déclarant)</strong>, vous rejoignez le groupe :
+</p>
 
-    <!-- Groupe (pré-rempli depuis l’URL) -->
-    <div>
-      <label for="group" class="block text-sm font-medium text-gray-700">
-        Code du groupe
-      </label>
-      <input
-        type="text"
-        id="group"
-        name="group"
-        value="<%= group || '' %>"
-        readonly
-        required
-        class="input input-bordered w-full mt-1"
-      />
-    </div>
+<p class="font-semibold text-lg">
+🏘️ <%= groupName %>
+</p>
+
+<p class="text-xs text-gray-500 mb-3">
+Vous pourrez ajouter des signalements sur la carte.
+</p>
+<input type="hidden" name="group" value="<%= group %>">
+  
 
     <!-- Email -->
     <div>
@@ -65,15 +60,15 @@
 
     <!-- Bouton -->
     <button type="submit" class="btn btn-primary w-full mt-2">
-      🚀 Rejoindre le groupe
+     🚀 Rejoindre et signaler
     </button>
   </form>
 <% } else if (role === "office") { %>
-  <!-- 🏢 Office : form de création de groupe -->
+  <!-- 🏢 Responsable : form de création de groupe -->
   <form id="signup-form" action="/signup" method="POST" class="space-y-4">
 
     <p class="text-sm text-gray-600 mb-2">
-      En tant qu’<strong>Office</strong>, vous <u>créez</u> un nouveau groupe
+      En tant qu’<strong>Responsable</strong>, vous <u>créez</u> un nouveau groupe
       et en devenez le référent principal.
     </p>
 

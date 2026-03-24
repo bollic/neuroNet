@@ -1,3 +1,5 @@
+
+<!--layout/header.ejs-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,21 +40,55 @@
       <a href="/" class="btn btn-sm btn-ghost text-gray-700 hover:text-purple-700">
         <i class="fas fa-home"></i>
       </a>
+<div class="dropdown dropdown-end">
+  <label tabindex="0" class="btn btn-sm btn-ghost text-sm text-gray-700">
+    Accès
+  </label>
+  <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-white rounded-box w-60">
 
-      <div class="dropdown dropdown-end">
-        <label tabindex="0" class="btn btn-sm btn-ghost text-sm text-gray-700">Accès</label>
-        <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-white rounded-box w-44">
-          <li><a href="/login?role=field">👤 Membre</a></li>
-          <li><a href="/login?role=office">👥 Superviseur</a></li>
-          <li><a href="/signup?role=office">🏢 Créer un groupe</a></li>
-          <li><a href="/login?role=admin">🔑 Admin</a></li>
-        </ul>
-      </div>
+    <li class="menu-title">
+      <span>Se connecter</span>
+    </li>
 
-      <a href="https://ko-fi.com/piknephis" target="_blank" 
-         class="btn btn-sm bg-pink-500 hover:bg-pink-600 text-white rounded-full shadow">
-        ☕ Ko-fi
+    <li>
+      <a href="/login?role=field">
+        👤 Déclarant
       </a>
+    </li>
+
+    <li>
+      <a href="/login?role=office">
+        👥 Responsable
+      </a>
+    </li>
+
+    <li class="menu-title mt-2">
+      <span>Créer</span>
+    </li>
+
+    <li>
+      <a href="/signup?role=office">
+        🏢 Créer un groupe
+        <span class="text-xs text-gray-400 block">
+          (en tant que responsable)
+        </span>
+      </a>
+    </li>
+
+    <li class="menu-title mt-2">
+      <span>Administration</span>
+    </li>
+
+    <li>
+      <a href="/login?role=admin">
+        🔑 Admin
+      </a>
+    </li>
+
+  </ul>
+</div>
+
+
     </div>
   </div>
 </nav>

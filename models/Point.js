@@ -25,8 +25,6 @@ const PointSchema = new mongoose.Schema({
   },
   icon: { type: String, default: null },  // es: 'truck', 'home', 'factory', ecc.
   sessionId: { type: String },
-
-  isAnon: { type: Boolean, default: false }, // 👈 aggiunto qui
   createdAt: { type: Date, default: Date.now },
 
   description: {

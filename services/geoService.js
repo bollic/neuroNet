@@ -58,6 +58,7 @@ function parsePolygonGeoJSON(polygonInput) {
     verticesCount: closedRing.length - 1
   };
 }
+
 function parsePointGeoJSON(pointInput) {
   let geo;
 
@@ -69,6 +70,15 @@ function parsePointGeoJSON(pointInput) {
     }
   } else {
     geo = pointInput;
+  }
+
+  // ✅ Se arriva solo la geometry, la trasformiamo in Feature
+  if (geo?.type === "Point" && Array.isArray(geo.coordinates)) {
+    geo = {
+      type: "Feature",
+      geometry: geo,
+      properties: {}
+    };
   }
 
   if (

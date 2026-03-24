@@ -1,15 +1,35 @@
 # 🕸️ Terria
 
-**Terria** est une plateforme simple pour organiser le travail sur le terrain via une carte partagée.  
-Un *Office* crée et gère un groupe (entreprise, équipe, communauté).  
-Les *Field* rejoignent le groupe et ajoutent des points, informations et observations depuis le terrain.  
-Chaque point est localisé, traçable dans le temps et lié à un groupe.  
-L'objectif est d'avoir une vision claire et à jour de ce qui se passe sur le terrain.  
-Terria n'est pas un réseau social, mais un outil opérationnel.  
-Il est pensé pour les petites équipes, activités locales et organisations légères.  
-La structure est simple : groupes, rôles clairs, carte, données utiles.  
-Pas de complexité inutile, seulement ce qui est vraiment nécessaire.  
-Terria évolue à partir de l'usage réel, pas de promesses.
+Terria est une plateforme légère pour organiser et suivre le travail opérationnel sur le terrain à l’aide d’une carte partagée.
+
+Un **Responsable** crée et gère un groupe (entreprise, équipe, organisation locale).
+Les **Déclarant** (opérateurs sur le terrain) rejoignent le groupe et ajoutent des points, informations et observations directement depuis le terrain.
+
+Responsable = utilisateur qui administre un groupe
+Déclarant = utilisateur qui ajoute des signalements
+Signalement = point géographique (ou zone) avec catégorie
+Groupe = espace collaboratif
+Catégories = vocabulaire défini par le responsable
+
+Chaque point est :
+- localisé sur la carte
+- traçable dans le temps
+- rattaché à un groupe et à un responsable
+
+L’objectif est d’avoir une vision claire, fiable et à jour de l’activité sur le terrain.
+
+Terria **n’est pas un réseau social**.
+C’est un **outil opérationnel**, conçu pour les petites équipes, les activités locales et les organisations légères.
+
+La structure est volontairement simple :
+- groupes
+- rôles clairs
+- carte
+- données utiles
+
+Pas de complexité inutile.
+Terria évolue à partir de l’usage réel, pas de promesses.
+
 
 ## 🔐 Statut
 🔧 En développement. Le code est privé et non réutilisable sans permission.

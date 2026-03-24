@@ -1,5 +1,4 @@
 // parcelleUtils.js
-// parcelleUtils.js
 import { getIconEmoji, createEmojiMarker } from "./mapCommon.js";
 
 // Variabili locali al modulo (come in pointUtils.js)

@@ -1,18 +1,10 @@
- <!-- indexZoneGeo.ejs -->
+ <!-- views/indexZoneGeo.ejs -->
 <%- include('layout/headerZoneGeo') %>
-  <style>
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fadeIn {
-      animation: fadeIn 0.3s ease-out;
-    }
-  </style>
  
+
 <style>
   html, body { height: 100%; }
-  #map {   height: calc(100vh - 60px);  /* 60px = altezza del footer */
+  #map {   height: calc(100vh - 100px);  /* 60px = altezza del footer */
   width: 100%; }
   .leaflet-container {
   z-index: 0 !important;
@@ -23,17 +15,61 @@
   left: 1rem;
   z-index: 3000;
 }
-#welcome-flash, .fade-in, #guide-toast {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
-}
 </style>
 <style>
 .drawer-side {
   z-index: 50 !important;
+}
+</style>
+<style>
+  .fab {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  font-size: 24px;
+  background: #2c7be5;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.map-wrapper {
+  position: relative;
+  height: 100%;
+}
+
+
+
+.map-overlay {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 350px;
+  z-index: 1000;
+}
+
+.hidden {
+  display: none;
+}
+
+.overlay-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
 }
 </style>
 <style>
@@ -107,6 +143,7 @@
   padding: 0;
 }
 </style>
+
    <!-- 1: inizio flex -->
 <div class="flex flex-row h-screen">
 <!-- 2: drawer -->
@@ -115,20 +152,40 @@
       <!-- Contenuto principale (mappa) -->
       <div class="drawer-content relative">
     <!-- Pulsante toggle sempre visibile -->
-     
+      <!-- 👋 ONBOARDING -->
+<% if (showWelcomeAddPoint) { %>
+  <%- include('partials/onboardingAddAction', {
+    description: "Vous pouvez maintenant ajouter des signalements sur la carte.",
+    actionUrl: "/addPoint",
+    actionLabel: "Ajouter un signalement"
+  }) %>
+<% } %>
+
+
           <!-- unica mappa -->
      <div id="content-sections" class="relative w-full h-full">
   <!-- 🗺️ MAPPA -->
-  <div id="map-section" class="h-full">
+  <div id="map-section" class="p-4 h-[calc(100vh-64px)]">
     <div id="map" class="w-full h-full rounded-lg shadow-md"></div>
-      <!-- 🔴 Pulsante Add Point centrato sopra il footer -->
-      <a href="/addPoint"
-        class="fixed bottom-20 left-1/2 -translate-x-1/2 z-10">
-      <button
-          class="bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
-          <i class="fas fa-plus text-gray-700 text-xl"></i>
-        </button>
-      </a>
+    
+  <!-- Overlay Form -->
+  <div id="map-overlay" class="map-overlay hidden">
+    <div class="overlay-card">
+      <button type="button" class="close-btn" onclick="closeOverlay()">✕</button>
+
+      <h3 id="overlay-title">Nouveau Signalement</h3>
+       <!-- QUI DENTRO METTI IL FORM ESISTENTE -->
+    <%- include('partials/addPointForm.ejs') %>
+   
+    </div>
+  </div>
+    <!-- 🔴 Pulsante Add Point centrato sopra il footer -->
+    <button
+      id="open-add-point"
+      class="fixed bottom-20 left-1/2 -translate-x-1/2 z-10 bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
+      <i class="fas fa-plus text-gray-700 text-xl"></i>
+    </button>
+
   </div>
 <!-- 🕸️ Pulsante toggle drawer (resta sopra tutto) -->
 <a id="drawer-toggle-btn"
@@ -143,34 +200,40 @@
         class="fixed bottom-24 right-4 z-[3000] bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
   <i class="fas fa-crosshairs text-gray-700 text-xl"></i>
 </button>
+
+<!-- 👥 Toggle punti gruppo -->
+ <div class="fixed bottom-40 right-4 z-[3000] flex items-center gap-2 text-xs bg-white/90 backdrop-blur px-3 py-2 rounded-full shadow-lg">
+
+
+  <span>👥 Groupe</span>
+  <input type="checkbox" id="toggleGroupPoints" class="toggle toggle-primary toggle-sm" />
+</div>
       <!-- 👤 PROFILO (inizialmente nascosto) -->
-    <%- include('partials/profileSection', { user: user, referenteOffice: referenteOffice }) %>
+   <%# include('partials/profileSection', { user: user, referenteOffice: referenteOffice }) %>
 </div>
       </div>   
         <!-- Sidebar- a sinistra -->
         <div class="drawer-side">
         <label for="my-drawer" class="drawer-overlay"></label>
-        <aside class="w-80 bg-base-200 p-4 overflow-y-auto">   
-      
+         <aside class="w-80 bg-base-200 p-4 overflow-y-auto pb-20"
+       style="height: calc(100vh - 60px);">
+       <div id="point-card"
+     style="position:fixed; left:-9999px; top:0; width:350px; background:white; padding:20px; border-radius:12px;">
+  <h3 id="share-title"></h3>
+  <img id="share-image" src="" style="width:100%;border-radius:8px;margin:10px 0;">
+  <p id="share-description"></p>
+  <p id="share-date" style="font-size:12px;color:gray;"></p>
+  <p style="font-size:12px;color:gray;">via terria.app</p>
+</div>
 <!-- 👤 Info utente -->
    <%- include('partials/sidebarProfile.ejs') %>
 <!-- Aggiungi switch “Mostra punti del gruppo” -->
    <%- include('partials/sidebarToggleGroupPoints.ejs') %>
-<!-- Badge piano e limite punti -->
-<div class="my-3 p-3 bg-base-100 rounded-lg shadow-md">
-  <h3 class="font-bold text-lg mb-1">Votre plan</h3>
-  <% if (plan === "free") { %>
-    <span class="badge badge-warning">FREE</span>
-  <% } else if (plan === "pro") { %>
-    <span class="badge badge-success">PRO</span>
-  <% } else { %>
-    <span class="badge badge-primary">ENTERPRISE</span>
-  <% } %>
-  <p class="text-sm mt-1">Limite punti per field: <%= pointLimit %></p>
-</div>
-  <!-- 🔹 Tabella dei punti con DataTables -->
-  <%- include('partials/tablePoints') %>
-  <!-- Feed del gruppo -->
+
+    <hr class="my-2">
+    <!-- 🔹 Tabella dei punti con DataTables -->
+    <%- include('partials/tablePoints') %>
+    <!-- Feed del gruppo -->
 
           <button id="closeSidebar" class="close-btn d-md-none" data-bs-toggle="collapse" data-bs-target="#sidebar">&times;</button><br>   
         </aside>        
@@ -180,14 +243,14 @@
     </div>
     <!-- Fine .container-fluid -->
 
-<!-- ✨ Toast di benvenuto dinamico solo per utenti 'field' -->
+    <!-- ✨ Toast di benvenuto dinamico solo per utenti 'field' -->
 
-<!-- ✨ Fine toast -->
-<!-- 💫 FLASH MESSAGE SESSIONE (onboarding field) -->
+    <!-- ✨ Fine toast -->
+    <!-- 💫 FLASH MESSAGE SESSIONE (onboarding field) -->
 
     <script>
-      const points = <%- JSON.stringify(points || []) %>;
-       var currentUserId = "<%= user._id %>";  // 👈 aggiungi questa riga
+      window.points = <%- JSON.stringify(points || []) %>;
+      window.currentUserId = "<%= user._id %>";
       window.CATEGORIES = <%- JSON.stringify(categories || []) %>;
       console.log("🧪 categorie dell'utente field:", window.CATEGORIES);
       console.log("🧪 categorie dell'utente field:", <%- JSON.stringify(categories || []) %>);
@@ -226,3 +289,4 @@
 </script>
 
 <script type="module" src="/js/dataAuthorGeo.js" defer></script>
+<script type="module" src="/js/formMapIntegration.js"></script>

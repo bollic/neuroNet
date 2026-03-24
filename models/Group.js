@@ -17,7 +17,7 @@ const GroupSchema = new mongoose.Schema({
     type: Date
   },
 
-  planSource: {
+  flanSource: {
     type: String,
     enum: [
       'manual_simulation',

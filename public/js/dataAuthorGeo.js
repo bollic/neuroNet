@@ -1,9 +1,219 @@
-// dataAuthorGeo.js
+// public/js/dataAuthorGeo.js
 import { loadCategories } from "./mapCommon.js";
 import { initializeMap, map } from "./mapCore.js";
-import { updateMap, updateTable, setUpdateMapDeps } from "./pointUtils.js";
+import { updateMap, updateTable, setUpdateMapDeps, markersMap } from "./pointUtils.js";
 const points = window.points || [];
 const currentUserId = window.currentUserId;
+
+
+// 👇 AGGIUNGI QUI
+window.isSelectingPoint = false;
+/*
+function openOverlay(lat = null, lng = null, resetPoint = false) {
+  const overlay = document.getElementById("map-overlay");
+  if (overlay) overlay.classList.remove("hidden");
+
+  // resetta il campo point SOLO se richiesto
+  if (resetPoint) {
+    const pointInput = document.getElementById("point");
+    if (pointInput) pointInput.value = "";
+  }
+
+  const latInput = document.getElementById("form-lat");
+  const lngInput = document.getElementById("form-lat");
+
+  if (lat && lng) {
+    if (latInput) latInput.value = lat;
+    if (lngInput) lngInput.value = lng;
+  }
+
+  const title = document.getElementById("overlay-title");
+  if (title) title.innerText = "Nuovo Signalement";
+}
+*/
+
+function getPointIdFromURL() {
+  const path = window.location.pathname;
+  const match = path.match(/\/point\/([a-zA-Z0-9]+)/);
+  if(match){
+    return match[1];
+  }
+  return null;
+}
+
+
+function prepareShare(point){
+  const card = document.getElementById("point-card");
+ document.getElementById("share-title").innerText = point.name || "Signalement";
+  document.getElementById("share-description").innerText = point.description || "";
+ if(point.createdAt){
+  document.getElementById("share-date").innerText =
+   "📅 " + new Date(point.createdAt).toLocaleDateString();
+}
+
+ const img = document.getElementById("share-image");
+  if (point.image) {
+    img.src = point.image;
+  } else {
+    img.src = ""; // fallback se non c'è immagine
+  }
+
+  return card;
+}
+
+function sharePoint(point){
+
+  const text = `📍 ${point.name}
+  ${point.description || ""}
+  via terria`;
+  //const url = `https://localhost:3000/point/${point._id}`;
+  const url = `${window.location.origin}/point/${point._id}`;
+
+  // 📱 Se il browser supporta la condivisione
+  if (navigator.share) {
+
+    navigator.share({
+      title: point.name || "Signalement",
+      text: text,
+      url: url
+    }).catch(err => console.log("Share annulé", err));
+
+  } 
+  // 💻 fallback desktop → screenshot
+  else {
+        // copia il link del punto
+      navigator.clipboard.writeText(url);
+      console.log("Lien copié:", url);
+
+    prepareShare(point);
+
+    const card = document.querySelector("#point-card");
+
+    html2canvas(card, {
+      useCORS: true,
+      backgroundColor: null
+    }).then(canvas => {
+           canvas.style.position = "fixed";
+      canvas.style.top = "0";
+      canvas.style.left = "0";
+      canvas.style.zIndex = "9999";
+      canvas.style.border = "3px solid red";
+      console.log("canvas width:", canvas.width);
+      console.log(card);
+      document.body.appendChild(canvas);
+
+      const link = document.createElement("a");
+      link.download = "signalement-terria.png";
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+  }
+}
+
+window.sharePoint = sharePoint;
+
+function sharePointById(id){
+  const point = window.points.find(p => p._id === id);
+  if(!point) return;
+  sharePoint(point);
+}
+
+window.sharePointById = sharePointById;
+
+function openOverlay(lat = null, lng = null, resetPoint = false) {
+ 
+  console.log("OPEN OVERLAY lat/lng:", lat, lng);
+
+  const overlay = document.getElementById("map-overlay");
+  if (overlay) overlay.classList.remove("hidden");
+
+  const form = document.getElementById("add-point");
+  const submitBtn = form.querySelector("button[type='submit']");
+  const hiddenPoint = document.getElementById("point");
+
+  // 🟢 Modalità CREATE
+  form.dataset.mode = "create";
+  if (submitBtn) submitBtn.innerText = "AJOUTER";
+  if (hiddenPoint) hiddenPoint.value = "";
+    // ✅ SE abbiamo coordinate, crea il GeoJSON
+  if (lat !== null && lng !== null && hiddenPoint) {
+    hiddenPoint.value = JSON.stringify({
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "Point",
+        coordinates: [lng, lat]
+      }
+    });
+  }
+
+  const title = document.getElementById("overlay-title");
+  if (title) title.innerText = "Nouveau Signalement";
+}
+window.openOverlay = openOverlay;
+
+function openOverlayView(pointData) {
+  const overlay = document.getElementById("map-overlay");
+  overlay?.classList.remove("hidden");
+
+  const form = document.getElementById("add-point");
+  const hiddenPoint = document.getElementById("point");
+  const hiddenPointId = document.getElementById("pointId");
+
+  const nameInput = document.getElementById("form-name");
+  const descInput = document.getElementById("form-description");
+  const catInput  = document.getElementById("form-category");
+  const submitBtn = form.querySelector("button[type='submit']");
+
+  // 🟦 Modalità VIEW / EDIT
+  // ✅ QUI METTI L'ID
+  if (hiddenPointId) hiddenPointId.value = pointData._id;
+
+if (hiddenPoint) hiddenPoint.value = JSON.stringify({
+  type: "Feature",
+  properties: {},
+  geometry: {
+    type: "Point",
+    coordinates: [pointData.coordinates[0], pointData.coordinates[1]]
+  }
+});
+  if (nameInput) nameInput.value = pointData.name || "";
+  if (descInput) descInput.value = pointData.description || "";
+  if (catInput)  catInput.value  = pointData.category || "";
+
+  const title = document.getElementById("overlay-title");
+  if (title) title.innerText = "Détail du signalement";
+
+  // Cambia bottone
+  if (submitBtn) submitBtn.innerText = "MODIFIER";
+
+  // 🔥 Importantissimo
+  form.dataset.mode = "edit";
+}
+
+window.openOverlayView = openOverlayView;
+/*function openOverlay(lat = null, lng = null) {
+  const overlay = document.getElementById("map-overlay");
+  if (overlay) overlay.classList.remove("hidden");
+
+  const latInput = document.getElementById("form-lat");
+  const lngInput = document.getElementById("form-lng");
+  if (lat && lng) {
+    if (latInput) latInput.value = lat;
+    if (lngInput) lngInput.value = lng;
+  }
+
+  const title = document.getElementById("overlay-title");
+  if (title) title.innerText = "Nuovo Signalement";
+}
+window.openOverlay = openOverlay;
+
+*/
+function closeOverlay() {
+  document.getElementById("map-overlay").classList.add("hidden");
+}
+
+window.closeOverlay = closeOverlay;
 
 
 async function loadPointsFromApi() {
@@ -17,6 +227,9 @@ async function loadPointsFromApi() {
 
 // 🔥 LOG DI TEST
 console.log("🔥 FILE CARICATO");
+
+
+
 let table;
 document.addEventListener("DOMContentLoaded", async function() { 
       console.log("🤖 DOM CONTENT LOADED callback ESEGUITA");
@@ -57,8 +270,18 @@ document.addEventListener("DOMContentLoaded", async function() {
     let parcellesLayer = res.parcellesLayer;        
     let layerGroup = res.layerGroup;
     let drawnItems = res.drawnItems;
-    let markersMap = {};
+   // let markersMap = {};
     let userUsedGeolocation = false;
+  // ✅ QUI
+        map.on("click", function (e) {
+        openOverlay(e.latlng.lat, e.latlng.lng, false);
+        });
+
+        document.getElementById("open-add-point")
+        ?.addEventListener("click", () => {
+            openOverlay(null, null, true);
+             window.isSelectingPoint = true; // 👈 ATTIVA modalità selezione
+        });
 
     // -------------------
     // 3️⃣ Carica i punti dall’API
@@ -67,6 +290,7 @@ document.addEventListener("DOMContentLoaded", async function() {
     points.push(...apiPoints);
 
     console.log("🧪 points dopo API:", points);
+    
 
     // -------------------
     // 4️⃣ Passa le dipendenze a pointUtils
@@ -82,20 +306,45 @@ document.addEventListener("DOMContentLoaded", async function() {
         highlightTableRow,
         userUsedGeolocation
     });
-
+    
     // -------------------
     // 5️⃣ Aggiorna mappa e tabella
     updateMap();
     updateTable();
-    
 
+
+const sharedPointId = getPointIdFromURL();
+if(sharedPointId){
+  const sharedPoint = points.find(p => p._id === sharedPointId);
+  if(sharedPoint){
+    console.log("📍 Point partagé détecté:", sharedPoint);
+    map.setView(
+      [sharedPoint.coordinates[1], sharedPoint.coordinates[0]],
+      17
+    );
+
+    setTimeout(() => {
+      const marker = markersMap[sharedPoint._id];
+      if(marker){
+        marker.openPopup();
+            // 🔵 apri il drawer della tabella
+        const drawer = document.getElementById("my-drawer");
+        if(drawer){
+          drawer.checked = true;
+        }          
+      }
+
+    }, 300);
+  }
+}
+
+
+    
     // 🔄 Aggiorna le categorie all’avvio
     // 🔧 Funzione per ottenere l'icona associata a una categoria
     // Controlla se siamo arrivati da onboarding
     const params = new URLSearchParams(window.location.search);
-    if (params.get("welcome") === "true") {
-        showToast("🎉 Bienvenue ! Tu es maintenant membre et tes points ont été sauvegardés.");
-    }
+  
     // -------------------
     // FUNZIONE INIZIALIZZA MAPPA
  // <-- chiude if(locationButton)
@@ -159,6 +408,7 @@ document.getElementById('my-drawer')?.addEventListener('change', () => {
     console.log("Elementi nella tabella:", table.rows().count());
 
 });
+
     // -------------------
     // DAISYUI DRAWER RESIZE
     // -------------------

@@ -2,6 +2,8 @@
 const PointModel = require("../models/Point");
 const ParcelleModel = require("../models/Parcelle");
 const Group = require("../models/Group");
+//const User = require("../models/User");
+const User = require("../models/users");
 
 const PLANS = require("../config/plans");
 // services/planService.js
@@ -17,6 +19,34 @@ function buildPlanUX(planCheck) {
   };
 }
 
+async function checkFieldLimit(groupId, toAdd = 1) {
+  const group = await Group.findOne({ groupId });
+  if (!group) {
+    throw new Error("Groupe inexistant");
+  }
+
+  const planName = group.plan || "free";
+  const planConfig = PLANS[planName];
+
+  const maxFields = planConfig?.maxFields ?? Infinity;
+
+  const currentFields = await User.countDocuments({
+    groupId,
+    role: 'field'
+  });
+
+  const after = currentFields + toAdd;
+
+  return {
+    allowed: after <= maxFields,
+    plan: planName,
+    limit: maxFields,
+    used: currentFields,
+    remaining: maxFields - currentFields,
+    blocked: after > maxFields
+  };
+}
+
 async function checkPlanLimit(userId, groupId, toAdd = 1) {
   const group = await Group.findOne({ groupId });
   if (!group) {
@@ -25,7 +55,7 @@ async function checkPlanLimit(userId, groupId, toAdd = 1) {
   if (group.planExpiresAt && group.planExpiresAt < new Date()) {
   group.plan = 'free';
   group.planExpiresAt = null;
-  group.planSource = 'expired';
+  // group.planSource = 'expired';
   await group.save();
 }
 
@@ -83,5 +113,6 @@ module.exports = {
 
   checkPlanLimit,
   countUsedPointsByUser,
+  checkFieldLimit,
   buildPlanUX
 };

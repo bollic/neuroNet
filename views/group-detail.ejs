@@ -6,7 +6,7 @@
 
   <!-- 🔹 Titolo -->
   <h1 class="text-3xl font-extrabold text-primary text-center mb-6">
-    🌐 Gruppo <%= groupId %>
+    📋 Configuration du groupe
   </h1>
 
   <!-- ✏️ Form Admin -->
@@ -17,26 +17,27 @@
         type="text" 
         name="name" 
         value="<%= group.name %>"
-        placeholder="Nome del gruppo" 
+        placeholder="Ex : Signalements voirie • Inspections sécurité • Suivi terrain" 
         class="input input-bordered w-1/2" 
       />
 
       <textarea 
         name="description"
-        placeholder="Descrizione del gruppo"
-        class="textarea textarea-bordered w-1/2"
-      ><%= group.description %></textarea>
+        placeholder="Décrivez le type de signalements,
+         qui peut les créer et comment ils sont utilisés."
+          class="textarea textarea-bordered w-1/2">
+          <%= group.description %></textarea>
 
       <input 
         type="text" 
         name="keywords" 
         value="<%= group.keywords?.join(', ') %>"
-        placeholder="Parole chiave separate da virgola" 
+        placeholder="Ex : sécurité, terrain, inspection, incident" 
         class="input input-bordered w-1/2" 
       />
 
       <div>
-        <button type="submit" class="btn btn-primary">💾 Salva</button>
+        <button type="submit" class="btn btn-primary">💾 Sauvegarder</button>
       </div>
     </form>
   <% } %>
@@ -49,9 +50,9 @@
   >
     <button type="submit" class="btn btn-outline btn-warning">
       <% if (group.isPublic) { %>
-        🔒 Rendi gruppo privato
+        🔒 Limiter l’accès au groupe
       <% } else { %>
-        🔓 Rendi gruppo pubblico
+        🔓 Ouvrir le groupe au public
       <% } %>
     </button>
   </form>
@@ -70,7 +71,7 @@
 
     <% if (group.keywords && group.keywords.length > 0) { %>
       <p class="mt-2 text-sm text-gray-500">
-        <strong>Parole chiave:</strong> 
+        <strong>Mots clé:</strong> 
         <%= group.keywords.join(', ') %>
       </p>
     <% } %>

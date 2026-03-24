@@ -16,7 +16,7 @@
 <div class="drawer lg:drawer-open">
   <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
-   <div class="drawer-content flex flex-col">
+ 
 
     <% if (message) { %>
       <div class="alert alert-<%= message.type || 'info' %> shadow-lg rounded-lg p-3">
@@ -25,21 +25,32 @@
       </div>
     <% } %>
    <!-- Contenuto principale (mappa) -->
-    <div class="drawer-content relative"> 
+<div class="drawer-content flex flex-col relative"> 
      <!-- Pulsante toggle -->       
    <a class="absolute top-4 left-4 z-50">
           <label for="my-drawer" class="btn btn-primary btn-sm shadow-lg">
             ☰ Menu
           </label>
         </a>
+          
+      <!-- Insight panel overlay -->
+      <div id="insight-panel" class="absolute top-4 right-4 bg-base-100 p-3 rounded-lg shadow-md w-64 z-50">
+        <h3 class="font-bold text-lg mb-2">📊 Bilan des parcelles</h3>
+        <ul id="insight-list" class="space-y-1"></ul>
+      </div>
+          <!-- Qui va la mappa -->
+      <div id="map" class="w-full h-[85vh] rounded-lg shadow-md">
 
-     <!-- Qui va la mappa -->
-         <div id="map" class="w-full h-[85vh] rounded-lg shadow-md"></div>
-    </div>
-   </div>
+
+      </div>
+  
+  </div>
+  
  
     <!-- Sidebar- a sinistra -->
-  <div class="drawer-side">
+<div class="drawer-side p-4" style="width: 520px; flex: 0 0 520px;">
+  <label for="my-drawer" class="drawer-overlay"></label>
+
   <!-- Filtri category e date-->
 <div class="flex space-x-4 my-3">
   <!-- Filtro Category -->
@@ -53,10 +64,16 @@
  <!-- Fine Filtri category e date-->
   <!-- Sidebar -->
     <label for="my-drawer" class="drawer-overlay"></label>
-    <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
+    <aside class="w-full h-full bg-base-200 overflow-y-auto rounded-xl shadow-lg">
+
       
       <!-- Tabella delle parcelle -->
       <% if (parcelles && parcelles.length > 0) { %>
+        
+   <div class="mt-4 card bg-base-100 shadow-md">
+      <div class="card-body">
+        <!-- Contenitore lista con bordo visibile -->
+   <div class="border border-base-300 rounded-lg overflow-hidden max-w-full bg-base-100 p-2">
         <div class="overflow-x-auto">
           <table id="main-table" class="table table-zebra w-full">
             <thead>
@@ -74,6 +91,10 @@
             </tbody>
           </table>
         </div>
+        
+       </div>
+       </div>
+    </div>
       <% } else { %>
         <div class="text-center text-secondary mt-5">
           Aucune parcelle trouvée dans la base de données!

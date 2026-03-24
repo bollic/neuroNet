@@ -1,20 +1,27 @@
 <!-- partials/tablePoints.ejs -->
-<div class="mt-4 overflow-x-auto rounded-lg shadow-md bg-base-100">
-  <table id="main-table" class="display stripe hover compact w-full">
-    <thead>
-      <tr>
-        <th>Cat</th>
-        <th>Nom</th>
-        <th>Voir</th>
-        <th>Modifier</th>
-        <th>Effacer</th>
-      </tr>
-    </thead>
-   <tbody>
-  <!-- le righe vengono inserite da pointUtils.js via DataTables -->
-</tbody>
+ <!-- partials/tablePoints.ejs -->
+<div class="mt-4 rounded-lg shadow-md bg-base-100">
+  
+  <!-- Contenitore che limita l'altezza e abilita lo scroll verticale -->
+  <div class="max-h-[40vh] overflow-y-auto overflow-x-auto">
 
-  </table>
+    <table id="main-table" class="display stripe hover compact w-full">
+      <thead>
+        <tr>
+          <th>Cat</th>
+          <th>Nom</th>
+          <th>Voir</th>
+          <th>Modifier</th>
+          <th>Effacer</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- le righe vengono inserite da pointUtils.js via DataTables -->
+      </tbody>
+    </table>
+
+  </div>
 </div>
+
 
 

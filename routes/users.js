@@ -3,11 +3,14 @@ const router = express.Router();
 const fs = require('fs');
 const bcrypt = require('bcryptjs'); // Utilisé pour comparer les mots de passe hachés
 const mongoose = require('mongoose');
-
 const User = require('../models/users');
+
 const PointModel = require('../models/Point'); // aggiorna il path se necessario
+const ParcelleModel = require('../models/Parcelle'); 
 const Group = require('../models/Group');
 const PLANS = require('../config/plans');
+const { checkFieldLimit } = require("../services/planService");
+
 router.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   next();
@@ -84,8 +87,14 @@ router.post('/login', async (req, res) => {
     const userFromDb = await User.findOne({ email });
     if (!userFromDb) {
       console.log('Email non trovata nel DB');
-      return res.status(401).send('Login: Email o password non corretta.');
-    }
+      return res.status(401).render('login', {
+        title: 'Connexion',
+        error: "Adresse email ou mot de passe incorrect.",
+        success: null,
+        role: req.query.role || null
+      });   
+
+   }
 
     // debug password
     console.log('🔑 Password nel DB (userFromDb.password):', userFromDb.password);
@@ -202,13 +211,21 @@ router.post('/delete_account', async (req, res) => {
       console.log(`🔥 Office, gruppo "${groupId}" e tutti i field eliminati.`);
     } 
     else if (role === "field") {
-      // Elimina solo i punti personali
-      await PointModel.deleteMany({ userId });
+            // Elimina solo i punti personali
+      // 🧮 elimina punti
+        const pointsResult = await PointModel.deleteMany({ user: userId });
 
-      // Elimina l'utente field
-      await User.findByIdAndDelete(userId);
+        // 🧮 elimina parcelle
+        const parcellesResult = await ParcelleModel.deleteMany({ user: userId });
 
-      console.log(`🔥 Field eliminato: ${userId}`);
+        // 🧑 elimina utente
+        await User.findByIdAndDelete(userId);
+
+        console.log(
+          `🔥 Field eliminato: ${userId} | ` +
+          `Punti rimossi: ${pointsResult.deletedCount} | ` +
+          `Parcelle rimosse: ${parcellesResult.deletedCount}`
+        );
     } 
     else {
       // fallback per sessioni anonime
@@ -239,9 +256,10 @@ router.post('/delete_account', async (req, res) => {
 router.get("/signup", async (req, res) => {
   const role = req.query.role || "office";
   const group = req.query.group || null;
+  let groupExists = null; // 👈 dichiarata fuori
   // 🔐 Se field → il gruppo deve esistere
 if (role === "field" && group) {
-  const groupExists = await Group.findOne({ groupId: group });
+  groupExists = await Group.findOne({ groupId: group });
   if (!groupExists) {
     return res.status(400).send("Groupe inexistant");
   }
@@ -321,6 +339,7 @@ if (role === "field" && group) {
       error: null,
       role,
       group,
+      groupName: groupExists?.name || null,
       groups,
       user: req.session.user || null,
     });
@@ -333,6 +352,7 @@ if (role === "field" && group) {
       error: "Erreur serveur",
       role,
       group,
+      groupName: null,
       groups: [],
       user: req.session.user || null,
     });
@@ -346,7 +366,7 @@ router.post('/signup', async (req, res) => {
 
 
     // 🔹 Log del gruppo ricevuto
-  console.log('🔹 POST signup, gruppo scelto:', group);
+ // console.log('🔹 POST signup, gruppo scelto:', group);
   console.log('📨 [SIGNUP] Richiesta ricevuta');
   console.log('📨 [SIGNUP] Email:', email);
   console.log('📨 [SIGNUP] Password in chiaro dal form:', password);
@@ -363,27 +383,15 @@ if (role === 'field') {
     if (!groupId) {
     return res.status(400).send("Un groupe est requis pour les membres field");
   }
+const fieldCheck = await checkFieldLimit(groupId, 1);
 
-// Recupera il limite dal piano del gruppo
-const groupDoc = await Group.findOne({ groupId });
-if (!groupDoc) {
-  return res.status(400).send("Groupe inexistant");
-}
- const currentFields = await User.countDocuments({
-    groupId,
-    role: 'field'
-  });
-const planName = groupDoc.plan || "free";
-const maxFields = PLANS[planName]?.maxFields ?? Infinity;
-console.log('📌 Plan gruppo:', planName, '→ maxFields:', maxFields, '→ currentFields:', currentFields);
-
-if (currentFields >= maxFields) {
- return res.render('signup', {
-    error: `Le nombre maximum de membres pour le plan ${planName} a été atteint.`,
-    role: 'field',
-   group: req.body.group || req.query.group || '' // prende il gruppo dalla richiesta // così il campo gruppo rimane precompilato
-  });
-}
+    if (!fieldCheck.allowed) {
+      return res.render('signup', {
+        error: `Limite atteint (${fieldCheck.used}/${fieldCheck.limit}) pour le plan ${fieldCheck.plan}`,
+        role: 'field',
+        group: groupId
+      });
+    }
 
 }
     // Vérifier si l'user existe déjà
@@ -410,7 +418,9 @@ if (currentFields >= maxFields) {
     ];
      // Se è field, eredita le categorie dall'office dello stesso gruppo
 if (role === 'field') {
-  const officeUser = await User.findOne({ role: 'office', groupId: group });
+   const officeUser = await User.findOne({ role: 'office', groupId });
+
+ // const officeUser = await User.findOne({ role: 'office', groupId: group });
   if (officeUser && Array.isArray(officeUser.categories)) {
     inheritedCategories = officeUser.categories;
   }
@@ -435,15 +445,16 @@ console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);
 
 // 🔹 CREAZIONE/AGGIORNAMENTO AUTOMATICA DEL GROUP SE È OFFICE
     if (role === "office") {
-   await Group.findOneAndUpdate(
-     { groupId: generatedGroupId },
-     {
-        groupId: generatedGroupId,
-        name: groupName,
-        plan: "free"
-     },
-     { upsert: true }
-   );
+      
+        await Group.findOneAndUpdate(
+          { groupId: generatedGroupId },
+          {
+              groupId: generatedGroupId,
+              name: groupName,
+              plan: "free"
+          },
+          { upsert: true }
+        );
 }
 
 
@@ -463,11 +474,13 @@ console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);
     role: newUser.role,
     groupId: newUser.groupId,
     isAdmin: newUser.role === 'admin',
-     
    };
    console.log('Sessione al User:', req.session);
    console.log('📦 [SIGNUP] Sessione impostata:', req.session.user);
-   
+      // 🔥 SPOSTALO QUI
+      if (newUser.role === "office") {
+        req.session.justCreatedGroup = true;
+      }
       // 🔁 Redirezione in base al ruolo
       let redirectTo;
       switch (newUser.role) {

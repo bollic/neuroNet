@@ -1,3 +1,4 @@
+<!--indexZoneParcelle.ejs-->
 <%- include('layout/headerZoneParcelle') %>
 
 <style>
@@ -22,6 +23,15 @@
 
       <!-- Contenuto principale (mappa) -->
       <div class="drawer-content relative">
+              <!-- 👋 ONBOARDING -->
+      <% if (showWelcomeAddPoint) { %>
+        <%- include('partials/onboardingAddAction', {
+          description: "Vous pouvez maintenant dessiner votre première parcelle.",
+          actionUrl: "/addParcelle",
+          actionLabel: "Ajouter une parcelle"
+        }) %>
+      <% } %>
+
     <!-- Pulsante toggle sempre visibile -->
       <a class="absolute top-4 left-4 z-50">
         <label for="my-drawer" class="btn btn-primary btn-sm shadow-lg">

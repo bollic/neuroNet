@@ -1,3 +1,4 @@
+// server.js
 // npm run devStart
 require("dotenv").config();
 const express = require("express");
@@ -86,7 +87,7 @@ app.use(express.static("public"))
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 // 🔒 Indispensabile per cookie "secure" dietro proxy come Render
-app.set('trust proxy', 1);
+//app.set('trust proxy', 1);
 // SESSIONE OK
 app.use(session({
   name: 'sid',          // 👈 opzionale ma consigliato
@@ -95,9 +96,9 @@ app.use(session({
   saveUninitialized: false,
  
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // true solo se in prod con HTTPS
-    // secure: true, 
-    //secure: process.env.NODE_ENV === 'production',
+    //secure: process.env.NODE_ENV === 'production', // mettilo su render
+     secure: false, // toglilo su render
+    secure: process.env.NODE_ENV === 'production', // mettilo in localhost
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000

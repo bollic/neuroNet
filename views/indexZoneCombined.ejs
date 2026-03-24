@@ -1,0 +1,68 @@
+<%- include('layout/headerZoneParcelle') %>
+
+<style>
+  html, body { height: 100%; }
+  #map { height: 80vh; width: 100%; }
+  .leaflet-container { z-index: 0 !important; }
+</style>
+
+<div class="flex flex-row h-[80vh]">
+  <!-- Drawer -->
+  <div class="drawer drawer-start drawer-mobile md:drawer-open">
+    <input id="my-drawer" type="checkbox" class="drawer-toggle" />
+
+    <!-- Contenuto principale (mappa) -->
+    <div class="drawer-content relative">
+      <div id="map" class="w-full h-[80vh] rounded-lg shadow-md"></div>
+      
+      <!-- Pulsante Add Parcelle (solo esempio) -->
+      <a href="/addParcelle" class="absolute top-4 right-4 z-50">
+        <button class="btn btn-warning btn-sm shadow-lg">
+          <i class="fas fa-plus"></i> Ajouter une parcelle
+        </button>
+      </a>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="drawer-side">
+      <label for="my-drawer" class="drawer-overlay"></label>
+      <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
+        
+        <h3 class="font-semibold mb-3">Mes Zones</h3>
+        <% if (parcelles && parcelles.length > 0) { %>
+          <ul>
+            <% parcelles.forEach((p, idx) => { %>
+              <li><%= idx+1 %> - <%= p.name %></li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <div>Aucune parcelle trouvée</div>
+        <% } %>
+
+        <h3 class="font-semibold mt-6 mb-3">Mes Points (esempio)</h3>
+        <% if (points && points.length > 0) { %>
+          <ul>
+            <% points.slice(0,3).forEach((pt, idx) => { %>
+              <li><%= idx+1 %> - <%= pt.name || 'Point' %></li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <div>Aucun point trouvé</div>
+        <% } %>
+
+      </aside>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.parcelles = <%- JSON.stringify(parcelles || []) %>;
+  window.points = <%- JSON.stringify(points || []) %>;
+
+   console.log("Zones:", window.parcelles);
+  console.log("Points:", window.points);
+  //console.log("Zones:", parcelles);
+  //console.log("Points (limit 3):", points.slice(0,3));
+</script>
+<script type="module" src="/js/dataAuthorParcelle.js" defer></script>
+<%- include('layout/footer') %>
