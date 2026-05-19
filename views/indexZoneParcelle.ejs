@@ -1,13 +1,38 @@
 <!--indexZoneParcelle.ejs-->
+
 <%- include('layout/headerZoneParcelle') %>
 
 <style>
   html, body { height: 100%; }
-  #map { height: 100%; min-height: 80vh; }
+   #map {   
+     height: 70%;
+    width: 100%; 
+    position: relative;   /* 👈 AGGIUNGI QUESTO */
+    z-index: 10;          /* 👈 AGGIUNGI QUESTO */
+     
+  }
+
   .leaflet-container {
   z-index: 0 !important;
+  }
+</style>
+<style>
+.drawer-side {
+    pointer-events: none;
+    z-index: 1 !important;   /* 👈 BASSO */
+}
+
+.drawer-side aside {
+    pointer-events: auto;
+    z-index: 2;
 }
 </style>
+  <style>
+.highlight-row {
+  background-color: #ffe9a8 !important;
+}
+</style>
+
 <style>
   #group-feed {
     max-height: none !important;   /* niente limite altezza */
@@ -16,42 +41,44 @@
 </style>
 
    <!-- 1: inizio flex -->
-<div class="flex flex-row h-[80vh]">
-<!-- 2: drawer -->
-    <div class="drawer drawer-start">
-      <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
-      <!-- Contenuto principale (mappa) -->
-      <div class="drawer-content relative">
-              <!-- 👋 ONBOARDING -->
+<!-- 2: drawer -->
+
+    <!-- CONTENUTO -->
+      <!-- ✅ OBBLIGATORIO -->
+   <div class="drawer-content h-full px-6 py-4"> 
       <% if (showWelcomeAddPoint) { %>
+    <div class="flex items-start gap-4">
+      <div class="flex-shrink-0">
+        <label for="my-drawer" class="btn btn-primary btn-sm shadow">
+          ☰ Menu
+        </label>
+      </div>
+
+      <div class="flex-1">
         <%- include('partials/onboardingAddAction', {
           description: "Vous pouvez maintenant dessiner votre première parcelle.",
           actionUrl: "/addParcelle",
-          actionLabel: "Ajouter une parcelle"
+          actionLabel: "Ajouter"
         }) %>
-      <% } %>
-
-    <!-- Pulsante toggle sempre visibile -->
-      <a class="absolute top-4 left-4 z-50">
-        <label for="my-drawer" class="btn btn-primary btn-sm shadow-lg">
-          ☰ Menu
-        </label>
-      </a>
-          <!-- unica mappa -->
-        <div id="map" class="w-full h-[80vh] rounded-lg shadow-md"></div>
-            <!-- Pulsante flottante Add parcelle -->
-        <a href="/addParcelle" class="absolute top-4 right-4 z-50">
-          <button class="btn btn-warning btn-sm shadow-lg">
-            <i class="fas fa-plus"></i>  Ajouter une parcelle
-          </button>
-        </a>
       </div>
-      
-        <!-- Sidebar- a sinistra -->
-        <div class="drawer-side">
-        <label for="my-drawer" class="drawer-overlay"></label>
-        <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
+    </div>
+  <% } else { %>
+
+    <div>
+      <label for="my-drawer" class="btn btn-primary btn-sm shadow">
+        ☰ Menu
+      </label>
+    </div>
+
+  <% } %>
+    <div class="flex h-full gap-4">
+
+
+
+   <!-- MENU SOPRA -->
+
+      <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
         
         <!-- Tabella parcelles -->    
   <% if (parcelles && parcelles.length > 0) { %>
@@ -69,7 +96,7 @@
 <% parcelles.forEach((parcelle, index) => { %>
   <% const coordinates = parcelle.geometry.coordinates[0] || []; %>
   <% coordinates.forEach((coord, i) => { %>
-    <tr>
+    <tr class="parcelle-item" data-id="<%= parcelle._id %>" data-vertex="<%= i %>">
       <td><%= i + 1 %></td>
       <td><%= parcelle.name %></td>     
       <td> 
@@ -92,10 +119,37 @@
       
   
       </aside>
-    </div>
-  </div>
+  <!-- MAPPA -->
+     <div class="flex-1 relative">
+    <div id="map" class="w-full h-full rounded-lg shadow-md"></div>
+ 
+     <% if (!showWelcomeAddPoint) { %>
+      <a href="/addParcelle"
+         class="absolute bottom-14 right-8 z-50">
+        <button class="btn btn-warning btn-sm shadow-lg rounded-full px-4">
+          ➕ Ajouter
+        </button>
+      </a>
+    <% } %>
+    
+     </div>
+   </div> <!-- 👈 CHIUDE drawer-content -->
+       
 </div>
 
+        <!-- Sidebar- a sinistra -->
+  
+     <label for="my-drawer" class="drawer-overlay lg:hidden" style="display:none;"></label>    
+ 
+
+</div> <!-- fine flex -->
+
+
+</div>  <!-- 👈 QUESTA è la chiusura del drawer -->
+
+<!-- script sotto -->
+
+ <!-- chiusura container -->
 
 <script>
 
@@ -108,4 +162,3 @@
 
 <script type="module" src="/js/dataAuthorParcelle.js" defer></script>
 <%- include('layout/footer') %>
-

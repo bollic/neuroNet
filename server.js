@@ -10,6 +10,8 @@ const mongoose = require('mongoose')
 const path = require('path');
 const session = require('express-session');
 
+
+console.log("ENV:", process.env.NODE_ENV); // 👈 QUI
 //import connectDB from './connectDB/connectDB.js'
 //         mongodb+srv://soniaBoss:KLP59dnH8@cluster0.cvr9g5a.mongodb.net/?retryWrites=true&w=majority
 mongoose.connect(process.env.DATABASE_URL)
@@ -96,9 +98,9 @@ app.use(session({
   saveUninitialized: false,
  
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // mettilo su render
-    // secure: false, // toglilo su render
-    //secure: process.env.NODE_ENV === 'production', // mettilo in localhost
+   secure: process.env.NODE_ENV === 'production', // mettilo su render
+   //secure: false, // toglilo su render
+   // secure: process.env.NODE_ENV === 'production', // mettilo in localhost
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000

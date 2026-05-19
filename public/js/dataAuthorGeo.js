@@ -1,13 +1,128 @@
 // public/js/dataAuthorGeo.js
 import { loadCategories } from "./mapCommon.js";
 import { initializeMap, map } from "./mapCore.js";
-import { updateMap, updateTable, setUpdateMapDeps, markersMap } from "./pointUtils.js";
+import { updateMap, resetMarkersMap, setUpdateMapDeps } from "./pointUtils.js";
+import { getMarker } from "./pointUtils.js";
 const points = window.points || [];
 const currentUserId = window.currentUserId;
 
+let currentEditPoint = null;
 
+window.editPoint = function (id) {
+  const point = window.points.find(p => p._id === id);
+  if (!point) return;
+
+  currentEditPoint = point;
+
+  document.getElementById("edit-name").value = point.name || "";
+  document.getElementById("edit-description").value = point.description || "";
+
+  document.getElementById("edit-modal").checked = true;
+};
+
+let overlayLock = false;
 // 👇 AGGIUNGI QUI
 window.isSelectingPoint = false;
+window.deletePointById = async function (id) {
+  if (!confirm("Supprimer ce point ?")) return;
+
+  try {
+    const res = await fetch(`/points/${id}`, {
+      method: "DELETE"
+    });
+
+    if (!res.ok) {
+      console.log("❌ delete failed");
+      return;
+    }
+    
+    // 🔥 rimuovi dal frontend
+    const index = window.points.findIndex(p => p._id === id);
+    if (index !== -1) {
+      window.points.splice(index, 1);
+    }
+
+    // refresh mappa
+    updateMap();
+
+    console.log("✅ point supprimé");
+
+  } catch (err) {
+    console.error("❌ erreur delete:", err);
+  }
+};
+// ✅ QUI
+window.saveEdit = async function () {
+  if (!currentEditPoint) return;
+
+  const updatedData = {
+    name: document.getElementById("edit-name").value,
+    description: document.getElementById("edit-description").value,
+    category: currentEditPoint.category,
+
+      point: JSON.stringify({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: currentEditPoint.coordinates
+      }
+     })
+
+
+  };
+
+  const res = await fetch(`/points/${currentEditPoint._id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(updatedData)
+  });
+
+const data = await res.json();
+if (!data.success) {
+  console.log("❌ update failed:", data.message);
+  return;
+}
+
+const updatedPoint = data.point;
+
+  // aggiorna array locale
+  const index = points.findIndex(p => p._id === updatedPoint._id);
+  if (index !== -1) {
+    points[index] = updatedPoint;
+  }
+
+  // chiudi modal
+  document.getElementById("edit-modal").checked = false;
+// pulizia globale DaisyUI
+document.body.classList.remove("modal-open");
+document.querySelectorAll(".modal").forEach(m => {
+  m.classList.remove("modal-open");
+});
+
+
+// 🔥 QUESTO È QUELLO CHE TI MANCAVA
+// overlay vecchio sistema
+document.getElementById("map-overlay")?.classList.add("hidden");
+
+// panel nuovo sistema
+const panel = document.getElementById("form-panel");
+if (panel) {
+  panel.classList.add("hidden");
+  panel.classList.remove("active");
+}
+
+// sicurezza scroll / blocchi
+document.body.style.overflow = "auto";
+document.body.style.pointerEvents = "auto";
+
+  resetMarkersMap();
+  // refresh UI
+  updateMap();
+};
+
+
 /*
 function openOverlay(lat = null, lng = null, resetPoint = false) {
   const overlay = document.getElementById("map-overlay");
@@ -32,6 +147,16 @@ function openOverlay(lat = null, lng = null, resetPoint = false) {
 }
 */
 
+// 👇 FORZA globale (sicuro al 100%)
+window.closeForm = function () {
+  const panel = document.getElementById("form-panel");
+  if (!panel) return;
+
+  panel.classList.add("hidden");
+  panel.classList.remove("active");
+
+  console.log("CLOSE CLICK OK");
+};
 function getPointIdFromURL() {
   const path = window.location.pathname;
   const match = path.match(/\/point\/([a-zA-Z0-9]+)/);
@@ -41,84 +166,6 @@ function getPointIdFromURL() {
   return null;
 }
 
-
-function prepareShare(point){
-  const card = document.getElementById("point-card");
- document.getElementById("share-title").innerText = point.name || "Signalement";
-  document.getElementById("share-description").innerText = point.description || "";
- if(point.createdAt){
-  document.getElementById("share-date").innerText =
-   "📅 " + new Date(point.createdAt).toLocaleDateString();
-}
-
- const img = document.getElementById("share-image");
-  if (point.image) {
-    img.src = point.image;
-  } else {
-    img.src = ""; // fallback se non c'è immagine
-  }
-
-  return card;
-}
-
-function sharePoint(point){
-
-  const text = `📍 ${point.name}
-  ${point.description || ""}
-  via terria`;
-  //const url = `https://localhost:3000/point/${point._id}`;
-  const url = `${window.location.origin}/point/${point._id}`;
-
-  // 📱 Se il browser supporta la condivisione
-  if (navigator.share) {
-
-    navigator.share({
-      title: point.name || "Signalement",
-      text: text,
-      url: url
-    }).catch(err => console.log("Share annulé", err));
-
-  } 
-  // 💻 fallback desktop → screenshot
-  else {
-        // copia il link del punto
-      navigator.clipboard.writeText(url);
-      console.log("Lien copié:", url);
-
-    prepareShare(point);
-
-    const card = document.querySelector("#point-card");
-
-    html2canvas(card, {
-      useCORS: true,
-      backgroundColor: null
-    }).then(canvas => {
-           canvas.style.position = "fixed";
-      canvas.style.top = "0";
-      canvas.style.left = "0";
-      canvas.style.zIndex = "9999";
-      canvas.style.border = "3px solid red";
-      console.log("canvas width:", canvas.width);
-      console.log(card);
-      document.body.appendChild(canvas);
-
-      const link = document.createElement("a");
-      link.download = "signalement-terria.png";
-      link.href = canvas.toDataURL();
-      link.click();
-    });
-  }
-}
-
-window.sharePoint = sharePoint;
-
-function sharePointById(id){
-  const point = window.points.find(p => p._id === id);
-  if(!point) return;
-  sharePoint(point);
-}
-
-window.sharePointById = sharePointById;
 
 function openOverlay(lat = null, lng = null, resetPoint = false) {
  
@@ -147,14 +194,77 @@ function openOverlay(lat = null, lng = null, resetPoint = false) {
     });
   }
 
+    const nameInput = document.getElementById("form-name");
+    // 👇 SOLO se clic su mappa (lat/lng) + campo vuoto
+    if (lat !== null && lng !== null && nameInput && !nameInput.value) {
+      //nameInput.placeholder = "Signalement rapide";
+      nameInput.value = "Signalement rapide";
+      nameInput.focus();
+// ❌ niente select()
+    }
   const title = document.getElementById("overlay-title");
   if (title) title.innerText = "Nouveau Signalement";
-}
-window.openOverlay = openOverlay;
 
+        // 👇 AUTO-FOCUS sul campo nome
+    setTimeout(() => {
+        const nameInput = document.getElementById("form-name");
+
+        if (nameInput) {
+          nameInput.focus();
+         // nameInput.select();
+
+          // 🔥 QUESTA È LA DIFFERENZA VERA
+          nameInput.onkeydown = null;
+          nameInput.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              document.getElementById("add-point").requestSubmit();
+            }
+          }, { once: true });
+        }
+      }, 100);
+
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("open-add-point");
+
+  if (!btn) {
+    console.log("❌ bottone add non trovato");
+    return;
+  }
+
+  btn.addEventListener("click", () => {
+    console.log("🟢 CLICK ADD POINT");
+
+    window.isSelectingPoint = true;
+    document.body.style.cursor = "crosshair";
+
+    const panel = document.getElementById("form-panel");
+    if (panel) {
+      panel.classList.remove("hidden");
+    }
+  });
+
+    // 👇 AGGIUNGI QUI
+  const closeBtn = document.getElementById("close-form-btn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      window.closeForm();
+    });
+  }
+
+});
+//window.openOverlay = openOverlay;
 function openOverlayView(pointData) {
-  const overlay = document.getElementById("map-overlay");
-  overlay?.classList.remove("hidden");
+  console.log("🟢 OPEN EDIT VIEW");
+
+  // 👉 NUOVO CONTAINER (NON overlay)
+  const panel = document.getElementById("form-panel");
+  if (!panel) return;
+
+  panel.classList.remove("hidden");
+  panel.classList.add("active");
 
   const form = document.getElementById("add-point");
   const hiddenPoint = document.getElementById("point");
@@ -163,32 +273,36 @@ function openOverlayView(pointData) {
   const nameInput = document.getElementById("form-name");
   const descInput = document.getElementById("form-description");
   const catInput  = document.getElementById("form-category");
-  const submitBtn = form.querySelector("button[type='submit']");
+  const submitBtn = form?.querySelector("button[type='submit']");
 
-  // 🟦 Modalità VIEW / EDIT
-  // ✅ QUI METTI L'ID
+  // 🟦 MODE EDIT
+  form.dataset.mode = "edit";
+
   if (hiddenPointId) hiddenPointId.value = pointData._id;
 
-if (hiddenPoint) hiddenPoint.value = JSON.stringify({
-  type: "Feature",
-  properties: {},
-  geometry: {
-    type: "Point",
-    coordinates: [pointData.coordinates[0], pointData.coordinates[1]]
+  if (hiddenPoint) {
+    hiddenPoint.value = JSON.stringify({
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "Point",
+        coordinates: [
+          pointData.coordinates[0],
+          pointData.coordinates[1]
+        ]
+      }
+    });
   }
-});
+
   if (nameInput) nameInput.value = pointData.name || "";
   if (descInput) descInput.value = pointData.description || "";
   if (catInput)  catInput.value  = pointData.category || "";
 
+  // titolo (se lo hai nel panel)
   const title = document.getElementById("overlay-title");
-  if (title) title.innerText = "Détail du signalement";
+  if (title) title.innerText = "MODIFIER Signalement";
 
-  // Cambia bottone
   if (submitBtn) submitBtn.innerText = "MODIFIER";
-
-  // 🔥 Importantissimo
-  form.dataset.mode = "edit";
 }
 
 window.openOverlayView = openOverlayView;
@@ -203,17 +317,14 @@ window.openOverlayView = openOverlayView;
     if (lngInput) lngInput.value = lng;
   }
 
+
   const title = document.getElementById("overlay-title");
   if (title) title.innerText = "Nuovo Signalement";
 }
 window.openOverlay = openOverlay;
 
 */
-function closeOverlay() {
-  document.getElementById("map-overlay").classList.add("hidden");
-}
 
-window.closeOverlay = closeOverlay;
 
 
 async function loadPointsFromApi() {
@@ -221,14 +332,11 @@ async function loadPointsFromApi() {
   const data = await res.json();
 
   console.log("📡 Points caricati dalla API:", data.length, data);
-
   return data;
 }
 
 // 🔥 LOG DI TEST
 console.log("🔥 FILE CARICATO");
-
-
 
 let table;
 document.addEventListener("DOMContentLoaded", async function() { 
@@ -266,28 +374,69 @@ document.addEventListener("DOMContentLoaded", async function() {
     // 2️⃣ Inizializza la mappa
     const res = initializeMap();
     let map = res.map;
+
+  map.on('click', () => {
+  console.log("MAP CLICK OK");
+});
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 300);
+
     let pointsLayer = res.pointsLayer;
     let parcellesLayer = res.parcellesLayer;        
     let layerGroup = res.layerGroup;
     let drawnItems = res.drawnItems;
-   // let markersMap = {};
     let userUsedGeolocation = false;
-  // ✅ QUI
-        map.on("click", function (e) {
-        openOverlay(e.latlng.lat, e.latlng.lng, false);
-        });
 
+
+  // ✅ QUI
+   /*     map.on("click", function (e) {
+       // openOverlay(e.latlng.lat, e.latlng.lng, true);
+
+        // 👇 attiva modalità ultra-rapida
+          window.isSelectingPoint = true;
+        });
+        */
         document.getElementById("open-add-point")
         ?.addEventListener("click", () => {
-            openOverlay(null, null, true);
-             window.isSelectingPoint = true; // 👈 ATTIVA modalità selezione
-        });
+
+            const planLimit = window.PLAN_LIMIT;
+
+           const myPointsCount = points.filter(p => {
+                const userId = typeof p.user === "object" ? p.user._id : p.user;
+                return String(userId) === String(currentUserId);
+              }).length;
+           
+               // 🚫 BLOCCO REALE
+            if (myPointsCount  >= planLimit) {
+                alert("Limite de points atteint pour le plan free");
+                return; // 👈 QUESTO È IL FIX
+            }
+
+            window.isSelectingPoint = true;
+
+            console.log("🟡 Modalità selezione attiva");
+
+            // opzionale UX
+            document.body.style.cursor = "crosshair";
+        
+        // 👇 NUOVO (al posto di alert)
+        const hint = document.getElementById("map-hint");
+        if (hint) {
+          hint.classList.remove("hidden");
+
+          setTimeout(() => {
+            hint.classList.add("hidden");
+          }, 1500);
+        }
+         //  alert("📍 Clique sur la carte pour ajouter un point");
+   });
 
     // -------------------
     // 3️⃣ Carica i punti dall’API
-    const apiPoints = await loadPointsFromApi();
-    points.length = 0;
-    points.push(...apiPoints);
+ //   const apiPoints = await loadPointsFromApi();
+    // points.length = 0;
+  //  points.push(...apiPoints);
 
     console.log("🧪 points dopo API:", points);
     
@@ -302,15 +451,15 @@ document.addEventListener("DOMContentLoaded", async function() {
         parcellesLayer,
         layerGroup,
         drawnItems,
-        markersMap,
-        highlightTableRow,
+   
+       
         userUsedGeolocation
     });
     
     // -------------------
     // 5️⃣ Aggiorna mappa e tabella
     updateMap();
-    updateTable();
+   // updateTable();
 
 
 const sharedPointId = getPointIdFromURL();
@@ -328,10 +477,8 @@ if(sharedPointId){
       if(marker){
         marker.openPopup();
             // 🔵 apri il drawer della tabella
-        const drawer = document.getElementById("my-drawer");
-        if(drawer){
-          drawer.checked = true;
-        }          
+        
+            
       }
 
     }, 300);
@@ -355,17 +502,21 @@ if (toggleGroupPoints) {
     toggleGroupPoints.addEventListener("change", () => {
         console.log("🔄 toggle cambiato — showGroupPoints:", toggleGroupPoints.checked);
         updateMap();   // la funzione interna fa già il filtraggio
-        updateTable(); // idem per la tabella
+      //  updateTable(); // idem per la tabella
     });
 }
 
+function isMobile() {
+  return window.innerWidth < 768;
+}
 function highlightTableRow(pointId) {
      // 👉 Apri automaticamente il drawer se è chiuso
-    const drawerToggle = document.getElementById("my-drawer");
-    if (drawerToggle && !drawerToggle.checked) {
+
+
+   /* if (drawerToggle && !drawerToggle.checked) {
         drawerToggle.checked = true;
         setTimeout(() => map.invalidateSize(), 300);
-    }
+    }*/
     // Rimuove evidenziazione da tutte le righe
     $('#main-table tbody tr').removeClass('highlight-row');
     // Trova la riga corrispondente
@@ -382,6 +533,7 @@ function highlightTableRow(pointId) {
         }
     }
 }
+
     // -------------------
     // FUNZIONE AGGIORNA MAPPA
     // -------------------
@@ -389,15 +541,15 @@ function highlightTableRow(pointId) {
 // AGGIORNA LA TABELLA IN BASE AL TOGGLE
 // -------------------
   
-    setTimeout(() => map.invalidateSize(), 100);
+      document.addEventListener('click', (e) => {
+  console.log("⛈️ CLICK SU:", e.target);
+});
  // -------------------
     // DATATABLES
     // -------------------
 
 // 🔧 Riaggiusta colonne quando apri/chiudi il drawer
-document.getElementById('my-drawer')?.addEventListener('change', () => {
-  setTimeout(() => table.columns.adjust().draw(), 300);
-});
+
     $('#page-length').on('change', function() {
         table.page.len($(this).val()).draw();
     });
@@ -412,14 +564,5 @@ document.getElementById('my-drawer')?.addEventListener('change', () => {
     // -------------------
     // DAISYUI DRAWER RESIZE
     // -------------------
-    const drawerToggle = document.getElementById("my-drawer");
-    drawerToggle.addEventListener("change", function () {
-        if (drawerToggle.checked) {
-            document.body.classList.add("sidebar-open");
-            setTimeout(() => map.invalidateSize(), 300);
-        } else {
-            document.body.classList.remove("sidebar-open");
-            map.invalidateSize();
-        }
-    });
+  
  

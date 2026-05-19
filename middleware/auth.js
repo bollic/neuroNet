@@ -1,9 +1,11 @@
+
+// middleware/auth.js
 function isAuthenticated(req, res, next) {
   if (req.session && req.session.user) {
     return next();
   }
   req.session.redirectTo = req.originalUrl;
-  return res.redirect('/login');
+  return res.redirect('/');
 }
 
 function onlyField(req, res, next) {

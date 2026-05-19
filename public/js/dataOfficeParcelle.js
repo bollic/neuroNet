@@ -149,11 +149,12 @@ if (!Array.isArray(parcelles) || parcelles.length === 0) return;
   // disegna parcelle (poligoni)
   parcelles.forEach((parcelle) => {
     if (
-      !Array.isArray(parcelle.coordinates) ||
-      parcelle.coordinates.length === 0
-    ) {
-      console.warn("Geometria non valida:", parcelle);
-      return;
+       !parcelle.coordinates ||
+  !Array.isArray(parcelle.coordinates) ||
+  parcelle.coordinates.length === 0
+) {
+  console.warn("Geometria non valida:", parcelle);
+  return;
     }
 
   const geoJson = {
@@ -163,6 +164,7 @@ if (!Array.isArray(parcelles) || parcelles.length === 0) return;
       coordinates: parcelle.coordinates
     },
     properties: {
+      _id: parcelle._id, // 🔥 AGGIUNGI QUESTO
       name: parcelle.name || "Sans nom",
       category: parcelle.category || "Sans category",
     },
@@ -180,27 +182,55 @@ if (!Array.isArray(parcelles) || parcelles.length === 0) return;
       },
       
       onEachFeature: function (feature, layer) {
-        const popupContent = `
+
+       const popupContent = `
           <div>
             <strong>${feature.properties.name}</strong><br>
             Catégorie: ${feature.properties.category}<br>
-            Utente: ${feature.properties.user}
+            Utilisateur: ${feature.properties.user}
           </div>
         `;
         layer.bindPopup(popupContent);
+
+
+        // 🔑 usa SEMPRE feature.properties
+  layer._parcelleId = feature.properties._id;
+
+         // 🟢 HOVER su parcella → evidenzia riga
+        layer.on('mouseover', function () {
+           console.log("HOVER PARCELLA:", layer._parcelleId);
+        //  const row = document.querySelector(`tr[data-id="${layer._parcelleId}"]`);
+        const row = document.querySelector(`#main-table tbody tr[data-id="${layer._parcelleId}"]`);        console.log("ROW TROVATA:", row);
+          if (row) row.classList.add('row-highlight');
+        });
+
+        // 🔵 OUT → rimuovi highlight
+        layer.on('mouseout', function () {
+        const row = document.querySelector(`#main-table tbody tr[data-id="${layer._parcelleId}"]`);          if (row) row.classList.remove('row-highlight');
+        });
+
       }
     }).addTo(drawnItems);
-    parcelLayers[parcelle._id] = geoLayer;
+    // 🔥 QUI sei fuori da feature, ma hai ancora parcelle
+const id = parcelle._id;
+
+geoLayer.eachLayer(layer => {
+  const id = layer._parcelleId;
+  parcelLayers[id] = layer;
+});
+//parcelLayers[id] = geoLayer;
+
+   // parcelLayers[feature.properties._id] = geoLayer;
     geoLayer.eachLayer(layer => {
       if (layer.getBounds) {
         polygons.push(layer.getBounds());
       }
     });
 // Aggiungi marker (robusto)
-const coords = parcelle.coordinates;
+const coords = parcelle.geometry?.coordinates || parcelle.coordinates;
 
 // sicurezza
-if (!Array.isArray(coords) || coords.length === 0) return;
+if (!coords || !Array.isArray(coords) || coords.length === 0) return;
 
 // funzione helper interna (puoi anche metterla fuori)
 function addMarker(lat, lng) {
@@ -290,7 +320,7 @@ parcelle.coordinates.forEach(ring => {
   }));
     setTimeout(() => {
     map.invalidateSize();
-    updateMap(dtParcelles);
+    updateMap(parcelles);
   }, 200);
   console.log("💠 dtPoints per DataTables:", dtParcelles);
 const table = $("#main-table").DataTable({
@@ -309,7 +339,11 @@ const table = $("#main-table").DataTable({
       }
     }
   ],
-  
+    // 🔥 👉 METTILO QUI (stesso livello di order, rowGroup, ecc.)
+  rowCallback: function(row, data) {
+    $(row).attr('data-id', data._id);
+  },
+
   order: [[1, 'asc']],
   rowGroup: { dataSrc: "userId",
      startRender: function(rows, group) {
@@ -425,8 +459,8 @@ $('#main-table').on('click', 'tbody tr', function () {
 
 setTimeout(() => {
   map.invalidateSize();
-  updateMap(dtParcelles);          // aggiorna mappa con tutte le parcelle
-  updateInsightPanel(dtParcelles); // aggiorna panel con le statistiche
+  updateMap(parcelles);          // aggiorna mappa con tutte le parcelle
+  updateInsightPanel(parcelles); // aggiorna panel con le statistiche
 }, 200);
 // Dopo aver creato la DataTable
 const uniqueCategories = [...new Set(dtParcelles.map(p => p.category).filter(Boolean))];

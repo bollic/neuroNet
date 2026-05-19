@@ -1,8 +1,6 @@
  <!-- views/indexZoneGeo.ejs -->
 <%- include('layout/headerZoneGeo') %>
- <script>
-  window.APP_VIEW = "<%= mode %>";
-</script>
+ 
 
 <style>
   html, body { height: 100%; }
@@ -147,7 +145,6 @@
       <!-- Contenuto principale (mappa) -->
   <div class="drawer-content relative flex-1">
     <!-- Pulsante toggle sempre visibile -->
-      <% if (mode === "field") { %> 
       <!-- 👋 ONBOARDING -->
       <% if (showWelcomeAddPoint) { %>
         <%- include('partials/onboardingAddAction', {
@@ -156,24 +153,24 @@
           actionLabel: "Ajouter un signalement"
         }) %>
       <% } %>
-         <% } %>
+
           <!-- 3:  unica mappa -->
     <div id="content-sections" class="relative w-full h-full">
       <!-- 🗺️ MAPPA -->
     <div id="map-section" class="flex flex-col flex-1">
       <div id="map" class="w-full flex-1"></div>
-    <% if (mode === "field") { %> 
-        <div id="form-panel"
-            class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 
-            w-[90%] max-w-md 
-            bg-white shadow-xl z-[2000] p-4 rounded-2xl">   
-            <button id="close-form-btn">✕</button>
+    
+    <div id="form-panel"
+        class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 
+         w-[90%] max-w-md 
+         bg-white shadow-xl z-[2000] p-4 rounded-2xl">   
+        <button id="close-form-btn">✕</button>
 
-                <h3 id="form-title">Nouveau Signalement</h3>
+            <h3 id="form-title">Nouveau Signalement</h3>
 
-          <%- include('partials/addPointForm.ejs') %>
-        </div>
-     
+      <%- include('partials/addPointForm.ejs') %>
+    </div>
+      
 
         <!-- 🔴 Pulsante Add Point centrato sopra il footer -->
         <button
@@ -181,7 +178,7 @@
           class="fixed bottom-20 left-1/2 -translate-x-1/2 z-10 bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
           <i class="fas fa-plus text-gray-700 text-xl"></i>
         </button>
-         <% } %>
+
       </div>
     <!-- 🕸️ Pulsante toggle drawer (resta sopra tutto) -->
 
@@ -207,39 +204,36 @@
     <!-- ✨ Toast di benvenuto dinamico solo per utenti 'field' -->
     <!-- ✨ Fine toast -->
     <!-- 💫 FLASH MESSAGE SESSIONE (onboarding field) -->
+
     <script>
       window.points = <%- JSON.stringify(points || []) %>;
-    <% if (mode === "field") { %>
-  window.currentUserId = "<%= user._id %>";
-    window.planUX = <%- JSON.stringify(planUX) %>;
-     console.log("🧪 PLAN UX:", window.planUX);
-<% } %>
+      window.currentUserId = "<%= user._id %>";
       window.CATEGORIES = <%- JSON.stringify(categories || []) %>;
+        window.planUX = <%- JSON.stringify(planUX) %>;
       console.log("🧪 categorie dell'utente field:", window.CATEGORIES);
       console.log("🧪 categorie dell'utente field:", <%- JSON.stringify(categories || []) %>);
       console.log("🔎 Points lato client:", <%- JSON.stringify(points || []) %>);
-      
+       console.log("🧪 PLAN UX:", window.planUX);
     </script>
 
 </div> <!-- 🔒 chiusura flex-row -->
 <!-- ✅ MODAL EDIT (DaisyUI) -->
 <input type="checkbox" id="edit-modal" class="modal-toggle" />
-    <% if (mode === "field") { %> 
-      <div class="modal">
-        <div class="modal-box">
-          <h3 class="font-bold text-lg">Modifier</h3>
 
-          <input id="edit-name" class="input input-bordered w-full" />
+<div class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Modifier</h3>
 
-          <textarea id="edit-description" class="textarea w-full mt-2"></textarea>
+    <input id="edit-name" class="input input-bordered w-full" />
 
-          <div class="modal-action">
-            <button onclick="saveEdit()" class="btn btn-primary">Save</button>
-            <label for="edit-modal" class="btn">Cancel</label>
-          </div>
-        </div>
-      </div>
-    <% } %>
+    <textarea id="edit-description" class="textarea w-full mt-2"></textarea>
+
+    <div class="modal-action">
+      <button onclick="saveEdit()" class="btn btn-primary">Save</button>
+      <label for="edit-modal" class="btn">Cancel</label>
+    </div>
+  </div>
+</div>
 <%- include('layout/footer') %>
 
 <script>

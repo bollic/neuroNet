@@ -15,8 +15,9 @@ const {
   onlyField,
   onlyOffice
 } = require('../middleware/auth');
+
 const PLANS = require('../config/plans');
-const { checkPlanLimit, buildPlanUX, checkFieldLimit } = require("../services/planService");
+const { checkPlanLimit, buildPlanUX, countUsedPointsByUser, checkFieldLimit } = require("../services/planService");
 const { getGroupById } = require('../services/groupService');
 const { getUserById, getOfficeByGroupId } = require('../services/userService');
 const { parsePointGeoJSON, parsePolygonGeoJSON  } = require("../services/geoService");
@@ -46,19 +47,6 @@ var storage = multer.diskStorage({
   { name: 'E', icon: '🟦' }
 ];
 
-/*
-function canSeeDescription(point, user) {
-  if (!point?.description?.text) return false;
-
-  if (user.role === 'admin' || user.role === 'office') return true;
-
-  if (String(point.user) === String(user._id)) return true;
-
-  return point.description.visibleTo?.some(
-    id => String(id) === String(user._id)
-  );
-}
-*/
 // Configurazione di multer per gestire più immagini
 const uploadSingle = multer({ storage }).single("image");
 // 🔧 Funzione riutilizzabile per costruire groupsPreview
@@ -212,7 +200,7 @@ router.put('/points/:pointId', isAuthenticated, onlyField, uploadSingle, async (
       return res.status(400).json({ message: "ID non valido" });
     }
 
-    const { name, point, category, description } = req.body;
+    const { name, point, category, description } = req.body || {};
     console.log("🧾 Dati dal form:", { name, point, category, description });
     console.log("🧾 Body ricevuto:", req.body);
     console.log("📷 File ricevuto:", req.file ? req.file.filename : "❌ nessun file");
@@ -410,6 +398,7 @@ router.post('/groups/:groupId/updateInfo', async (req, res) => {
 
   res.redirect(`/groups/${groupId}`);
 });
+
 router.get('/indexZoneCombined', isAuthenticated, onlyField, async (req, res) => {
   try {
     const user = req.session.user;
@@ -422,7 +411,6 @@ router.get('/indexZoneCombined', isAuthenticated, onlyField, async (req, res) =>
     // 📍 Points (3 per test)
     const points = await PointModel
       .find({ user: user._id })
-      .limit(3)
       .lean();
 
     // 🏢 categorie office (se ti servono nella mappa)
@@ -435,6 +423,7 @@ router.get('/indexZoneCombined', isAuthenticated, onlyField, async (req, res) =>
 
     res.render('indexZoneCombined', {
       user,
+       mode: "field",
       parcelles,
       points,
       categories
@@ -443,6 +432,26 @@ router.get('/indexZoneCombined', isAuthenticated, onlyField, async (req, res) =>
   } catch (err) {
     console.error("❌ Errore in /indexZoneCombined:", err);
     res.status(500).send("Errore interno");
+  }
+});
+
+router.post("/parcelles/:id/status", async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    console.log("🔥 UPDATE STATUS:", req.params.id, status);
+
+    const updated = await ParcelleModel.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+
+    res.json({ success: true, parcelle: updated });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
@@ -472,6 +481,7 @@ const showWelcomeAddPoint = parcelleCount === 0;
 
       res.render('indexZoneParcelle', {
       user,
+      mode: "field",
       session: req.session,
       parcelles,
       categories,
@@ -607,7 +617,7 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
           name: p.name,
           category: p.category,
           coordinates: p.coordinates || [], // necessario per Leaflet
-          description: p.description || "",   // 👈 QUESTA RIGA
+          description: p.description || "",          
           createdAtFormatted: date
             ? date.toLocaleString("it-IT", {
                 day: "2-digit",
@@ -629,11 +639,12 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
 
       console.log("💡 Plan dal DB:", currentPlan);
       // Raggruppa i punti per ciascun field
-        const pointsByField = fieldUsers.map(f => ({
+       const pointsByField = fieldUsers.map(f => ({
           userId: f._id.toString(),
           email: f.email,
           points: points.filter(p => p.userId === f._id.toString())
         }));
+        
         // conta i field del gruppo
 const fieldCount = await User.countDocuments({
   groupId: currentUser.groupId,
@@ -659,9 +670,9 @@ const showOfficeEmptyState = points.length === 0;
         // render: PASSA SOLO l'array piatto (pointsForClient) al client
       res.render("indexOfficeGeo", {
         points,            // array piatto, per DataTables / map
-        pointsByField,     // array raggruppato, utile solo lato office
         fieldUsers,       // array field users (utile lato client)
         categories,
+        pointsByField,
         user: req.session.user,
           group,
         groupId: currentUser.groupId,
@@ -734,6 +745,61 @@ router.get('/groupFeedPublic', async (req, res) => {
 });
 */
 
+router.get('/openZoneGeo/:groupId',  async (req, res) => {
+  try {
+    
+    const groupId = req.params.groupId;
+     console.log("🌍 OPEN GROUP:", groupId);
+    // 🔍 Recupera il gruppo
+    const group = await Group.findOne({ groupId });
+    if (!group) {
+      return res.status(400).send("Gruppo non trovato");
+    }
+    const points = await PointModel.find({
+        groupId
+      }).lean();
+      console.log("📍 TOTAL POINTS GROUP:", points.length);
+    const plan = group.plan;
+    const pointLimit = PLANS[plan].maxPoints;
+
+    // 🔍 Office referente
+    const referenteOffice = await User.findOne({
+      role: 'office',
+      groupId
+    });
+    const categories = referenteOffice?.categories || [];
+    
+    // 🔢 Calcolo XP Parcelle (somma dei vertici)
+
+// const planCheck = await checkPlanLimit(user._id, user.groupId, 0);
+// const planUX = buildPlanUX(planCheck);
+
+// const pointsXp = planCheck.pointsCount;
+// const parcelleXp = planCheck.parcellePointsCount;
+// const PointsUsed = planCheck.totalUsed;
+
+
+// 🔢 XP Totale (points + parcelles)
+// const PointsUsed = pointsXp + parcelleXp;
+//const isFirstSignalement = pointsXp === 0;
+    res.render('indexZoneGeo', {
+        mode: "open",
+         groupId,
+      referenteOffice,
+      plan,
+      pointLimit,
+        points, // 👈 ORA VERO
+      categories
+
+    });
+
+  } catch (err) {
+    console.error("❌ Errore in /indexZoneGeo:", err);
+    res.status(500).send("Errore interno");
+  }
+});
+
+
 router.get('/indexZoneGeo', isAuthenticated, onlyField, async (req, res) => {
   try {
     const user = req.session.user;
@@ -746,6 +812,15 @@ router.get('/indexZoneGeo', isAuthenticated, onlyField, async (req, res) => {
       return res.status(400).send("Gruppo non trovato");
     }
 
+    // 👇 AGGIUNGI QUESTO
+const points = await PointModel.find({
+  groupId: user.groupId
+})
+.populate('user', '_id email role')
+.lean();
+
+
+      console.log("📍 TOTAL POINTS GROUP:", points.length);
     const plan = group.plan;
     const pointLimit = PLANS[plan].maxPoints;
 
@@ -755,30 +830,22 @@ router.get('/indexZoneGeo', isAuthenticated, onlyField, async (req, res) => {
       groupId: user.groupId
     });
     const categories = referenteOffice?.categories || [];
-    console.log("🧪 REFERENTE FINALE:", referenteOffice?.email || null);
+    
     // 🔢 Calcolo XP Parcelle (somma dei vertici)
-const parcelles = await ParcelleModel.find({ user: user._id });
 
-let parcelleXp = 0;
-
-parcelles.forEach(p => {
-  const coords = p.geometry?.coordinates?.[0] || [];
-
-  if (coords.length > 1) {
-    // -1 per togliere il punto di chiusura
-    parcelleXp += coords.length - 1;
-  }
-});
 const planCheck = await checkPlanLimit(user._id, user.groupId, 0);
 const planUX = buildPlanUX(planCheck);
 
-  // 🔢 XP Points (numero di punti inseriti)
-const pointsXp = await PointModel.countDocuments({ user: user._id });
+const pointsXp = planCheck.pointsCount;
+const parcelleXp = planCheck.parcellePointsCount;
+const PointsUsed = planCheck.totalUsed;
+
 
 // 🔢 XP Totale (points + parcelles)
-const PointsUsed = pointsXp + parcelleXp;
+// const PointsUsed = pointsXp + parcelleXp;
 const isFirstSignalement = pointsXp === 0;
     res.render('indexZoneGeo', {
+      mode: "field",
       user,
       referenteOffice,
       plan,
@@ -788,7 +855,7 @@ const isFirstSignalement = pointsXp === 0;
       parcelleXp,      // 👈 SOLO parcelle
       PointsUsed,      // 👈 TOTALE (per il limite)
       planUX,      // <-- QUI
-      points: [],
+        points, // 👈 ORA VERO
       categories, // <-- aggiungi qui
        // 👇 DECISIONE QUI
       showWelcomeAddPoint: isFirstSignalement
@@ -812,7 +879,7 @@ async function loadPointAndGroup(req, res, next) {
     res.status(500).send('Errore server');
   }
 }
-
+/*
 router.get('/addPoint', isAuthenticated, onlyField, async (req, res) => {
   console.log("🔎 /addPoint SESSIONE:", req.session);
 
@@ -858,7 +925,7 @@ router.get('/addPoint', isAuthenticated, onlyField, async (req, res) => {
     res.status(500).send("Errore interno del server");
   }
 });
-
+*/
 router.post('/update-categories', isAuthenticated, onlyOffice, async (req, res) => {
   console.log('🟡 [update-categories] INIZIO');
   console.log('📩 Body ricevuto:', JSON.stringify(req.body, null, 2));
@@ -1029,7 +1096,9 @@ router.get("/addParcelle", isAuthenticated, async (req, res) => {
     const office = await getOfficeByGroupId(currentUser.groupId);
     // 🔹 Categorie disponibili
     const categorieDisponibili = office?.categories || ['A', 'B', 'C', 'D', 'E'];
-      // 🔹 Definisci userId e groupId
+     // const status = ["A_VERIFIER", "OK", "NON_CONFORME"];
+    
+    // 🔹 Definisci userId e groupId
     const userId = currentUser._id;
     const groupId = currentUser.groupId;
     const planCheck = await checkPlanLimit(
@@ -1037,12 +1106,13 @@ router.get("/addParcelle", isAuthenticated, async (req, res) => {
             groupId,
             0 // ⬅️ zero, perché è solo preview
           );
-
+ const status = ["A_VERIFIER", "OK", "NON_CONFORME"];
     res.render("ajoute_parcelle", {
       title: 'Parcelle Form Page',
       user: currentUser,                // Passi l'utente loggato
       categories: categorieDisponibili, // Le categorie collegate all’office
-       pointsUsed: planCheck.totalUsed,
+      status,
+      pointsUsed: planCheck.totalUsed,
        planLimit: planCheck.planLimit,
        canAddParcelle: planCheck.allowed
     });
@@ -1276,7 +1346,7 @@ req.session.save(() => {
 });
 
 // ✅ Gestisce la ricezione della parcella dal form
-router.post("/ajoute_parcelle", isAuthenticated, async (req, res) => {
+router.post("/ajoute_parcelle", isAuthenticated, onlyField, async (req, res) => {
   try {
     const userId = req.session.user?._id;
     if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -1341,9 +1411,7 @@ if (!planCheck.allowed) {
   return res.status(403).json({
     success: false,
     code: "PLAN_LIMIT_REACHED",
-    message:
-      `Limite atteint (${planCheck.totalUsed}/${planCheck.planLimit})`
-  });
+    message: `Limite de points atteinte pour le plan ${planCheck.plan}.`  });
 }
     // Salvataggio nel DB
     await ParcelleModel.create({
@@ -1368,6 +1436,8 @@ if (!planCheck.allowed) {
     res.status(500).json({ message: "Errore interno del server" });
   }
 });
+
+
 /*
 router.post('/delete/:pointId', isAuthenticated, async (req, res) => {
   const userId = req.session.user?._id;
@@ -1394,19 +1464,31 @@ router.post('/delete/:pointId', isAuthenticated, async (req, res) => {
   }
 });
 */
-router.get('/delete/:pointId', isAuthenticated, onlyField, async (req, res) => {
+router.delete('/points/:pointId', isAuthenticated, onlyField, async (req, res) => {
   const userId = req.session.user._id;
   const pointId = req.params.pointId;
 
-  await PointModel.deleteOne({ _id: pointId, user: userId });
+  try {
+    const point = await PointModel.findOneAndDelete({
+      _id: pointId,
+      user: userId
+    });
 
-  const newXp = await PointModel.countDocuments({ user: userId });
-  await User.findByIdAndUpdate(userId, { xp: newXp });
-  req.session.user.xp = newXp;
+    if (!point) {
+      return res.status(404).json({ success: false });
+    }
 
-  res.redirect('/indexZoneGeo');
+    const newXp = await PointModel.countDocuments({ user: userId });
+    await User.findByIdAndUpdate(userId, { xp: newXp });
+    req.session.user.xp = newXp;
+
+    res.json({ success: true, xp: newXp });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
 });
-
 
 router.get('/delete-point/:parcelleId', isAuthenticated, onlyField, async (req, res) => {
   console.log("\n🌐 MATCHED ROUTE: /delete-point/:parcelleId");
@@ -1535,49 +1617,6 @@ router.post('/groups/:groupId/toggle-visibility', async (req, res) => {
   res.redirect(`/groups/${groupId}`);
 });
 
-router.post('/office/points/:pointId/visibility',
-  isAuthenticated,
-  async (req, res) => {
-    try {
-      const office = await User.findById(req.session.user._id);
-      if (!office || office.role !== 'office') {
-        return res.status(403).send('Accesso negato');
-      }
-
-      const { fieldId, until } = req.body;
-      const { pointId } = req.params;
-
-      const point = await PointModel.findOne({
-        _id: pointId,
-        groupId: office.groupId
-      });
-
-      if (!point) {
-        return res.status(404).send('Point non trovato');
-      }
-
-      // 🔁 rimuove eventuale autorizzazione precedente per lo stesso field
-      point.descriptionVisibleTo = point.descriptionVisibleTo.filter(
-        v => String(v.fieldId) !== String(fieldId)
-      );
-
-      // ➕ aggiunge nuova autorizzazione
-      point.descriptionVisibleTo.push({
-        fieldId,
-        until: until ? new Date(until) : null
-      });
-
-      await point.save();
-
-      // 🔙 torna alla pagina office (come fai già)
-      res.redirect('/indexOfficeGeo');
-
-    } catch (err) {
-      console.error('❌ Errore visibility point:', err);
-      res.status(500).send('Errore server');
-    }
-  }
-);
 
 // GET /points/:pointId
 router.get('/points/:pointId', isAuthenticated, async (req, res) => {
@@ -1666,12 +1705,55 @@ router.param("pointId", async (req, res, next, pointId) => {
   }
 });
 
-// deep link mappa → apre un punto specifico
-router.get("/point/:pointId", isAuthenticated, (req, res) => {
-  res.render("indexZoneGeo", {
-    showWelcomeAddPoint: false,
-     pointId: req.params.pointId
-  });
+router.get("/point/:pointId", isAuthenticated, async (req, res) => {
+  try {
+    const user = req.session.user;
+
+    const group = await Group.findOne({ groupId: user.groupId });
+    const plan = group.plan;
+    const pointLimit = PLANS[plan].maxPoints;
+
+    const referenteOffice = await User.findOne({
+      role: 'office',
+      groupId: user.groupId
+    });
+
+    const categories = referenteOffice?.categories || [];
+
+    const parcelles = await ParcelleModel.find({ user: user._id });
+
+    let parcelleXp = 0;
+    parcelles.forEach(p => {
+      const coords = p.geometry?.coordinates?.[0] || [];
+      if (coords.length > 1) parcelleXp += coords.length - 1;
+    });
+
+    const pointsXp = await PointModel.countDocuments({ user: user._id });
+
+    const planCheck = await checkPlanLimit(user._id, user.groupId, 0);
+    const planUX = buildPlanUX(planCheck);
+
+    res.render("indexZoneGeo", {
+      user,
+      referenteOffice,
+      plan,
+     // ✅ DOPO
+      planLimit: pointLimit,
+      pointsXp,
+      parcelleXp,
+      PointsUsed: pointsXp + parcelleXp,
+      planUX,
+      categories,
+      showWelcomeAddPoint: false,
+
+      // 👇 QUESTO È IL TUO DEEP LINK
+      pointId: req.params.pointId
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Errore");
+  }
 });
 
 

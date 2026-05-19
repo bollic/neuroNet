@@ -1,7 +1,11 @@
 <!-- indexofficeGeo.ejs-->
 
 <%- include('layout/headerOfficeGeo') %>
-
+<style>
+.row-highlight {
+  background-color: rgba(0, 150, 255, 0.2) !important;
+}
+</style>
 <% if (justCreatedGroup) { %>
   <div class="toast toast-top toast-end z-50">
     <div class="alert alert-success shadow-lg">
@@ -21,8 +25,9 @@
 
 <style>
   html, body { height: 100%; }
-  #map { height: 48vh }
-
+ #map {
+  height: calc(65vh);
+}
   .leaflet-container { z-index: 0 !important; }
 </style>
 
@@ -30,11 +35,13 @@
   <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
   <!-- CONTENUTO PRINCIPALE -->
-  <div class="drawer-content flex flex-col relative  p-4">
+<div class="drawer-content flex flex-col relative p-4 pt-1">
 
-    <a class="absolute top-4 left-4 z-50">
-      <label for="my-drawer" class="btn btn-primary btn-sm shadow-lg">☰ Menu</label>
-    </a>
+<a class="fixed top-4 left-4 z-[2000]">
+  <label for="my-drawer" class="btn btn-circle btn-primary btn-sm shadow-xl">
+    ☰
+  </label>
+</a>
     <!-- 🔗 Invitation privée (compacte) -->
 <div class="mt-2 p-2 bg-base-100 rounded-lg border border-dashed text-sm">
 
@@ -84,37 +91,30 @@
 </div>
 
 <!-- 🏷️ CONTEXTE DU GROUPE -->
-<div class="mt-8 mb-4 p-4 bg-base-100 rounded-xl shadow-sm">
+<div class="mt-1 mb-1 p-2 bg-base-100 rounded-xl shadow-sm">
 
-<div class="flex items-center gap-3 flex-wrap">
-  <h1 class="text-xl font-semibold text-gray-800">
-    🏷️ <%= group?.name || "Groupe" %>
-  </h1>
+<div class="flex items-center gap-2 flex-wrap">
+   <h1 class="text-lg font-semibold text-gray-800 leading-tight">
+      🏷️ <%= group?.name || "Groupe" %>
+    </h1>
 
-  <% if (group?.isPublic) { %>
-    <span class="badge badge-success badge-sm">
-      🌍 Groupe public
-    </span>
-  <% } else { %>
-    <span class="badge badge-warning badge-sm">
-      🔒 Groupe privé
-    </span>
+   <% if (group?.isPublic) { %>
+      <span class="badge badge-success badge-xs leading-none">
+        🌍 Public
+      </span>
+    <% } else { %>
+      <span class="badge badge-warning badge-xs leading-none">
+        🔒 Privé
+      </span>
   <% } %>
+
+    <span class="text-xs text-gray-500 ml-1 leading-tight">
+      <%= group?.description || "Aucune description" %>
+    </span>
 </div>
 
 
-  <% if (group?.description) { %>
-    <p class="text-sm text-gray-600 mt-1 italic">
-      <%= group.description %>
-    </p>
-  <% } else { %>
-    <p class="text-xs text-gray-400 mt-1">
-      Aucune description définie. 
-      <a href="/groups/<%= group.groupId %>" class="underline text-primary">
-        Ajouter une description
-      </a>
-    </p>
-  <% } %>
+ 
 
   <% if (group?.keywords && group.keywords.length > 0) { %>
     <div class="mt-2 flex flex-wrap gap-2">
@@ -134,11 +134,10 @@
 
   </div>
 
-  <div class="drawer-side" style="width: 440px; flex: 0 0 440px;">
+  <div class="drawer-side">
   <label for="my-drawer" class="drawer-overlay"></label>
 
-    <aside class="w-full bg-base-200 p-4 overflow-y-auto pb-20">
-
+  <aside class="w-64 sm:w-72 md:w-80 lg:w-96 bg-base-200 p-4 overflow-y-auto pb-20">
     <!-- 🔧 Gestione info gruppo -->
       <div class="mb-4">
        <a href="/groups/<%= group.groupId %>"
@@ -211,39 +210,7 @@
 <!-- Tabella punti (stile lista card) -->
 <div class="mt-4 card bg-base-100 shadow-md">
   <div class="card-body">
-    <h5 class="text-lg font-bold mb-2">Signalements par déclarant</h5>
-    <details class="mb-4">
-  <summary class="cursor-pointer font-semibold">
-  🔐 Partage de la description
-  </summary>
-    <% pointsByField.forEach(f => { %>
-  <div class="mb-4 p-3 border rounded">
-    <h6 class="font-semibold">
-      <%= f.email %> (<%= f.points.length %> signalements)
-    </h6>
 
-    <% f.points.forEach(p => { %>
-      <div class="flex items-center gap-2 ml-4 mt-2">
-        <span>📍 <%= p.name %></span>
-
-        <select
-          class="select select-bordered select-sm"
-          onchange="shareDescription('<%= p._id %>', this.value)">
-         <option value="">Partager avec…</option>
-
-          <% fieldUsers.forEach(u => { 
-               if (u._id.toString() !== f.userId) { %>
-            <option value="<%= u._id %>">
-              <%= u.email %>
-            </option>
-          <% } }) %>
-        </select>
-      </div>
-    <% }) %>
-  </div>
-<% }) %>
-  
-</details>
     <div class="overflow-x-auto">
       <table id="main-table" class="table table-zebra w-full">
         <thead>
@@ -289,20 +256,6 @@
     </aside>
   </div>
 </div>
-<script>
-async function shareDescription(pointId, fieldId) {
-  if (!fieldId) return;
-
-  await fetch(`/office/points/${pointId}/visibility`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ fieldId })
-  });
-
-  alert('Description condivisa');
-}
-</script>
 
 <script>
   window.FIELD_USERS = <%- JSON.stringify(fieldUsers || []) %>;

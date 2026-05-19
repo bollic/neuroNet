@@ -11,8 +11,12 @@ export let userUsedGeolocation = false;
 export let highlightTableRow = () => {};
 
 import { getIconEmoji } from "./mapCommon.js";
-
-
+export function resetMarkersMap() {
+  markersMap = {}; // reset pulito
+}
+export function getMarker(id) {
+  return markersMap[id];
+}
 export function setUpdateMapDeps(deps) {
     map = deps.map || map;
     points = deps.points || points;
@@ -20,7 +24,7 @@ export function setUpdateMapDeps(deps) {
     pointsLayer = deps.pointsLayer || pointsLayer;
     layerGroup = deps.layerGroup || layerGroup;
     drawnItems = deps.drawnItems || drawnItems;
-    markersMap = deps.markersMap || markersMap;
+
     userUsedGeolocation = deps.userUsedGeolocation ?? userUsedGeolocation;
     highlightTableRow = deps.highlightTableRow || highlightTableRow;
 }
@@ -35,88 +39,144 @@ export function setUpdateMapDeps(deps) {
 export function updateMap() {
     console.log("🔍 updateMap() chiamato — punti ricevuti: ", points);
     console.log("🔍 pointsLayer esiste?", !!pointsLayer, pointsLayer);
-
+    console.log("🔥 updateMap chiamato");
     if (!map || !pointsLayer) return;
+     // 👇 QUI
+    const isField = window.APP_VIEW === "field";
+    const isOpen = window.APP_VIEW === "open";
 
     // -------------------
     // 1️⃣ Pulisci layer esistenti
     // -------------------
+    console.log("💣 CLEAR LAYERS");
     pointsLayer.clearLayers();
     drawnItems?.clearLayers();
     layerGroup?.clearLayers();
-    console.log("Punto appena aggiunto:", points[points.length - 1])
+   resetMarkersMap();   // JS state pulito
+     // console.log("Punto appena aggiunto:", points[points.length - 1])
     // -------------------
     // 2️⃣ Determina quali punti mostrare
     // -------------------
-    const showGroupPoints = document.getElementById("toggleGroupPoints")?.checked ?? true;
-const pointsToShow = points.filter(point => {
-    if (!point.coordinates || point.coordinates.length !== 2) return false;
+const showGroupPoints = document.getElementById("toggleGroupPoints")?.checked === true;
+        const pointsToShow = points.filter(point => {
+            if (!point.coordinates || point.coordinates.length !== 2) return false;
 
-    const userId =
-        typeof point.user === "object"
-            ? point.user?._id
-            : point.user;
+            const userId =
+                typeof point.user === "object"
+                    ? point.user?._id
+                    : point.user;
+        if (!userId)
+                return false;
 
-    if (!userId) return false;
-
-    if (!showGroupPoints && String(userId) !== String(currentUserId))
-        return false;
-
-    return true;
-});
+            if (
+                isField &&
+                !showGroupPoints &&
+                String(userId) !== String(currentUserId)
+            ) {
+                return false;
+            }
+            return true;
+        });
 
     console.log("🔄 Punti filtrati:", pointsToShow);
-
+     
     // -------------------
     // 3️⃣ Crea i marker
     // -------------------
     const markers = pointsToShow.map(point => {
-        const isMyPoint = String(point.user._id) === String(currentUserId);
+const userId =
+  typeof point.user === "object"
+    ? point.user?._id
+    : point.user;
+
+const userEmail =
+  typeof point.user === "object"
+    ? point.user?.email
+    : null;
+
+const isMyPoint = String(userId) === String(currentUserId);
+        // 👇 QUI (ESATTAMENTE QUI)
+const bgColor = isMyPoint ? "#3b82f6" : "#ffffff";
+const borderColor = isMyPoint ? "#2563eb" : "#9ca3af";
+const opacity = isMyPoint ? "1" : "0.85";  
         const iconEmoji = getIconEmoji(point);
-       const userLabel = isMyPoint ? 'Toi' : (point.user?.email || 'Inconnu');
+      // const userLabel = isMyPoint ? 'Toi' : (point.user?.email || 'Inconnu');
 
         const marker = L.marker([point.coordinates[1], point.coordinates[0]], {
+                    
+                        
             icon: new L.divIcon({
-                html: `<div style="font-size:26px; width:30px; height:30px; display:flex; align-items:center; justify-content:center;">${iconEmoji}</div>`,
-                className: '',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
+            html: `<div style="
+                width:30px;
+                height:30px;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                border-radius:50%;
+                background:${bgColor};
+                border:2px solid ${borderColor};
+                font-size:18px;
+                opacity:${opacity};
+            ">
+                ${iconEmoji}
+            </div>`,
+            className: '',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
             }),
-            className: ''
-        }).bindPopup(`
-            <div style="min-width:120px;">
-       <strong>📍 ${point.name || 'Senza nome'}</strong><br>
+className: ''
+ }).bindPopup(`
+  <div style="min-width:120px;">
+    <strong>📍 ${point.name || 'Senza nome'}</strong><br>
 
-        👤 Declarant: 
-        <strong>
-            ${userLabel 
-                ? 'Toi'
-                : (point.user?.email || 'Inconnu')}
-        </strong>
-        <br>
-        
-        🏷️ Categorie: ${point.category || 'Senza categoria'}<br>
-                Description: ${point.description
-                    ? `<div style="margin-top:6px; font-style:italic;">
-                        📝 ${point.description}
-                        </div>`
-                    : ''
-                    }
+      ${!isOpen ? `
+      👤 Declarant: <strong>${userEmail || 'Toi'}</strong><br>
+    ` : ''}
 
-                ${point.image ? `<br><img src="${point.image}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">` : ''}
-           <button onclick="sharePointById('${point._id}')">
-            📤 Partager
-            </button>
-                </div>
-        `).addTo(pointsLayer);
+    🏷️ Catégorie: ${point.category || 'Senza categoria'}<br>
 
-       marker.on('click', () => {
-            highlightTableRow(point._id);
-            window.openOverlayView(point);
-        });
+    ${
+      point.description
+        ? `<div style="margin-top:6px; font-style:italic;">
+            📝 ${point.description}
+           </div>`
+        : ''
+    }
+
+    ${
+      point.image
+        ? `<br><img src="${point.image}"
+             style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`
+        : ''
+    }
+
+    ${
+  isField ? `
+     <button onclick="window.editPoint('${point._id}')">
+      ✏️ Modifier
+    </button>
+    <button onclick="deletePointById('${point._id}')">
+        🗑️ Supprimer
+    </button>
+    ` : ''
+}
+  </div>
+`).addTo(pointsLayer);
+
+//debug dopo 
+marker.on('click', (e) => {
+  console.log("MARKER CLICK:", point._id);
+  e.originalEvent?.stopPropagation();
+});
+      //  marker.on('click', () => {
+              //   console.log("🔥 CLICK MARKER:", point._id);
+                //NON RICHIAMO PIU LA FUNZ TEMPORANEAMENTE; lA RIATTIVO QUANDO FARO' apparire lista con ricerca o filtri
+                //highlightTableRow(point._id);
+      //  });
         markersMap[point._id] = marker;
         return marker;
-    });
+        
+        });
 
     // -------------------
     // 4️⃣ Centra la mappa sui marker (se non geolocalizzato)
@@ -133,15 +193,21 @@ const pointsToShow = points.filter(point => {
 
     // AGGIORNA LA TABELLA IN BASE AL TOGGLE
 // -------------------
+/*
 export function updateTable() {
     if (!points || !currentUserId) return;
     const dt = $('#main-table').DataTable();
     dt.clear();
-     const showGroupPoints = document.getElementById("toggleGroupPoints")?.checked ?? true;
+const showGroupPoints = !!document.getElementById("toggleGroupPoints")?.checked;
     points.forEach(point => {
-        if (!point.user || !point.user._id) return;
-        const isMine = String(point.user._id).trim() === String(currentUserId).trim();
-         // 👇 Se switch OFF → mostra solo i miei punti
+    
+const userId = typeof point.user === "object"
+    ? point.user._id
+    : point.user;
+
+if (!userId) return;
+
+     const isMine = String(userId).trim() === String(currentUserId).trim();         // 👇 Se switch OFF → mostra solo i miei punti
             if (!showGroupPoints && !isMine) return;
     const category = point.category || 'Senza categoria';
     const name = point.name || 'Senza nome';
@@ -174,7 +240,8 @@ export function updateTable() {
     ]).node();
 
     $(newRow).attr('data-point-id', point._id);  // 👈 aggiungi l'ID qui
-    });
+    $(newRow).off('click');
+});
     dt.draw();
     // 👇 aggiungi dopo dt.draw();
 $('#main-table tbody tr').each(function() {
@@ -185,7 +252,7 @@ $('#main-table tbody tr').each(function() {
              // 👉 Evidenzia la riga nella tabella
             highlightTableRow(pointId);
             
-            const marker = markersMap[pointId];
+           const marker = getMarker(pointId);
             if (marker) {
                 marker.openPopup();
                 // opzionale: anima marker
@@ -197,3 +264,4 @@ $('#main-table tbody tr').each(function() {
 });
 
 }
+ */

@@ -1,6 +1,7 @@
-
+// public/js/mapCommon.js
 export function createEmojiMarker(latlng, emoji) {
   return L.marker(latlng, {
+    interactive: false,
     icon: new L.divIcon({
       html: `<div style="font-size:22px;">${emoji}</div>`,
       className: '',
@@ -14,6 +15,13 @@ export function createEmojiMarker(latlng, emoji) {
     // 🔄 Aggiorna le categorie all’avvio
    export async function loadCategories() {
         try {
+              // 🌍 OPEN MODE
+  if (window.APP_MODE === "open") {
+    console.log("🌍 OPEN MODE → no categories fetch");
+    return;
+  }
+
+  // 👤 FIELD MODE
             const res = await fetch('/api/categories');
             const data = await res.json();
             if (data.success) {

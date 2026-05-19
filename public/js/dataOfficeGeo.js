@@ -33,7 +33,7 @@ function createCategoryRow(category, index) {
     <input type="text" name="categories[${index}][customEmoji]" value="${category?.icon || ''}" 
            placeholder="😊 Emoji" class="input input-bordered w-14 text-center emoji-input">
     
-    <button type="button" class="btn btn-error btn-sm remove-category">✖</button>
+
   `;
   return row;
 }
@@ -44,11 +44,22 @@ function createCategoryRow(category, index) {
   // Aggiungi listener delegato sul container
 if (list) {
       list.addEventListener('click', (e) => {
-
+        
+  // 👉 ELIMINA CATEGORIA
+ /* const removeBtn = e.target.closest('.remove-category');
+  if (removeBtn) {
+    const row = removeBtn.closest('.category-row');
+    if (row) row.remove();
+    return;
+  }*/
         const input = e.target.closest('.emoji-input');
         if (!input) return;
 
         e.stopPropagation();
+
+        // 🔥 chiudi eventuali picker già aperti
+        quickPicker.style.display = 'none';
+
         activeEmojiInput = input;
 
       const rect = input.getBoundingClientRect();
@@ -109,15 +120,25 @@ quickEmojis.forEach(e => {
 });
 
 document.body.appendChild(quickPicker);
-
+document.addEventListener('click', (e) => {
+  // se clicco fuori dal picker E fuori dall'input
+  if (
+    quickPicker &&
+    !quickPicker.contains(e.target) &&
+    !e.target.classList.contains('emoji-input')
+  ) {
+    quickPicker.style.display = 'none';
+  }
+});
   // click su bottone 😄 (delegato)
+  /*
   list.addEventListener('click', (e) => {
     const btn = e.target.closest('.emoji-picker-btn');
     if (!btn) return;
 
     e.stopPropagation();
 
-    activeEmojiInput = btn.previousElementSibling; // input customEmoji
+    activeEmojiInput = btn.previousElementSibling;
     if (!activeEmojiInput) return;
 
     const rect = btn.getBoundingClientRect();
@@ -125,7 +146,7 @@ document.body.appendChild(quickPicker);
     emojiPicker.style.left = `${rect.left + window.scrollX}px`;
     emojiPicker.style.display = 'block';
   });
-
+*/
   // selezione emoji
   emojiPicker.addEventListener('emoji-click', (e) => {
     if (activeEmojiInput) {
@@ -181,7 +202,7 @@ document.body.appendChild(quickPicker);
   // 3️⃣ fallback finale
   return "🔴";
 }
-
+const markerMap = {};
   function updateMap(filterCategory = "", filterDate = "") {
     console.log("updateMap triggered");
     if (!layerGroup || !drawnItems) return;
@@ -208,25 +229,54 @@ document.body.appendChild(quickPicker);
       const geoJson = {
         type: "Feature",
         geometry: { type: "Point", coordinates: point.coordinates },
-        properties: { name: point.name || "Senza nome", category, icon: iconEmoji , description: point.description},
+        properties: { _id: point._id, name: point.name || "Senza nome", category, icon: iconEmoji , description: point.description},
       };
 
       const geoLayer = L.geoJSON(geoJson, {
+
         pointToLayer: function (feature, latlng) {
+
+            // 🔑 collega marker → id punto
           const markerIcon = new L.divIcon({
-            html: `<div style="font-size:24px">${feature.properties.icon}</div>`,
+            html: `<div class="marker" style="font-size:24px; transition: transform 0.15s;"
+             onmouseenter="this.style.transform='scale(1.4)'"
+             onmouseleave="this.style.transform='scale(1)'">${feature.properties.icon}</div>`,
             className: "",
           });
-          return L.marker(latlng, { icon: markerIcon });
+
+            const marker = L.marker(latlng, { icon: markerIcon });
+      
+           // 🔑 collega id
+        marker._pointId = feature.properties._id;
+        markerMap[marker._pointId] = marker;
+        // 🟢 hover → evidenzia riga
+        marker.on('mouseover', function () {
+          const row = document.querySelector(`tr[data-id="${marker._pointId}"]`);
+          if (row) row.classList.add('row-highlight');
+  });
+
+  // 🔵 out → rimuovi highlight
+  marker.on('mouseout', function () {
+    const row = document.querySelector(`tr[data-id="${marker._pointId}"]`);
+    if (row) row.classList.remove('row-highlight');
+  });
+         return marker; // 🔥 IMPORTANTISSIMO
         },
-      }).bindPopup(`
-        <div style="min-width:180px">
-          <strong>${geoJson.properties.name}</strong><br>
-          Categoria: ${geoJson.properties.category || "Sans categoria"}<br>
-          Description: ${geoJson.properties.description || "Sans description"}<br>
-          Lat: ${point.coordinates[1].toFixed(5)}, Lng: ${point.coordinates[0].toFixed(5)}
-        </div>
-      `).addTo(drawnItems);
+    // 👇 AGGIUNGI QUESTO
+  onEachFeature: function (feature, layer) {
+     const [lng, lat] = feature.geometry.coordinates;
+    layer.bindPopup(`
+      <div style="min-width:180px">
+        <strong>${feature.properties.name}</strong><br>
+        Categoria: ${feature.properties.category || "Sans"}<br>
+        Description: ${feature.properties.description || "Sans description"}<br>
+        Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}
+
+      </div>
+    `);
+  }
+
+    }).addTo(drawnItems);
 
       geoLayer.eachLayer((m) => markers.push(m));
     });
@@ -392,15 +442,41 @@ document.querySelectorAll('.emoji-picker-btn').forEach(btn => {
       { data: 'createdAtISO', visible: false },
       { data: "userEmail", visible: false } // 👈 colonna tecnica
     ],
-    rowGroup: {
-    dataSrc: "userEmail",
-    startRender: function (rows, group) {
-      return `${group} (${rows.count()} punti)`;
-    }
+
+      // 🔥 QUESTO è più affidabile
+      rowCallback: function(row, data) {
+        $(row).attr('data-id', data._id);
+      },
+
+      rowGroup: {
+      dataSrc: "userEmail",
+      startRender: function (rows, group) {
+        return `${group} (${rows.count()} punti)`;
+      }
   },
 
   order: [[4, "asc"], [1, "asc"]]
   });
+  $('#main-table').on('mouseenter', 'tbody tr', function () {
+  const id = $(this).data('id');
+  const marker = markerMap[id];
+
+  if (marker && marker._icon) {
+    const el = marker._icon.querySelector('.marker');
+    if (el) el.style.transform = 'scale(1.5)';
+  }
+});
+
+$('#main-table').on('mouseleave', 'tbody tr', function () {
+  const id = $(this).data('id');
+  const marker = markerMap[id];
+
+  if (marker && marker._icon) {
+    const el = marker._icon.querySelector('.marker');
+    if (el) el.style.transform = 'scale(1)';
+  }
+});
+
 // ========================
 // Filtro combinato categoria + data (solo filtro custom)
 // ========================

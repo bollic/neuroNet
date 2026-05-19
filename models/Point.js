@@ -29,16 +29,8 @@ const PointSchema = new mongoose.Schema({
 
   description: {
        type: String, default: ""      
-    },
-
-   descriptionVisibleTo: [
-  {
-    fieldId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    until: { type: Date, default: null }
-  }
-]
+    }
  
-    
 });
 
 module.exports = mongoose.model('Point', PointSchema);

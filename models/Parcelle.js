@@ -29,6 +29,7 @@ const ParcelleSchema = new mongoose.Schema({
       required: true
     }
   },
+  status: { type: String, enum: ["OK", "NON_CONFORME", "A_VERIFIER"], default: "A_VERIFIER" },
   createdAt: { type: Date, default: Date.now }
 });
 

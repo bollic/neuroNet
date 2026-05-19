@@ -2,11 +2,10 @@
 const PointModel = require("../models/Point");
 const ParcelleModel = require("../models/Parcelle");
 const Group = require("../models/Group");
-//const User = require("../models/User");
 const User = require("../models/users");
 
 const PLANS = require("../config/plans");
-// services/planService.js
+
 function buildPlanUX(planCheck) {
   return {
     used: planCheck.totalUsed,
@@ -99,7 +98,9 @@ async function countUsedPointsByUser(userId) {
   let parcellePointsCount = 0;
   parcelles.forEach(p => {
     const coords = p.geometry?.coordinates?.[0] || [];
-    parcellePointsCount += coords.length;
+      if (coords.length > 1) {
+        parcellePointsCount += coords.length - 1;
+      }
   });
 
   return {

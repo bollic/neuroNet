@@ -31,11 +31,19 @@
     </div>
 
     <!-- Progress mini -->
-    <progress
-      class="progress progress-primary w-full h-2"
-      value="<%= planUX.used %>"
-      max="<%= planUX.limit %>">
-    </progress>
+<%
+  const percent = planUX.used / planUX.limit;
+  let progressClass = "progress-primary";
+  if (percent > 0.9) progressClass = "progress-error";
+  else if (percent > 0.75) progressClass = "progress-warning";
+%>
+
+<progress
+  class="progress <%= progressClass %> w-full h-2"
+  value="<%= planUX.used %>"
+  max="<%= planUX.limit %>">
+</progress>
+
     <div class="text-[10px] opacity-60 mt-1">
       Plan <%= plan.toUpperCase() %>
     </div>

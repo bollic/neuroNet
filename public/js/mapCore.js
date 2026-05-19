@@ -3,13 +3,17 @@ export let map, layerGroup, drawnItems;
 export let pointsLayer, parcellesLayer;
 export let markersMap = {};
 export let userUsedGeolocation = false;
-
+let userMarker; // 👈 QUI (fuori da tutto)
 // -------------------
 // FUNZIONE INIZIALIZZA MAPPA
 // -------------------
 export function initializeMap() {
     // 1️⃣ Inizializza mappa
     map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
+        // 👇 BLOCCA propagazione eventi Leaflet → DOM
+              const drawerCheckbox = document.getElementById("my-drawer");
+        // 👇 🔥 AGGIUNGI QUESTO QUI
+      
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { 
         maxZoom: 19,
@@ -22,10 +26,7 @@ export function initializeMap() {
     layerGroup = L.featureGroup().addTo(map);  
     drawnItems = L.featureGroup().addTo(map);
 
-    console.log("✅ initializeMap: pointsLayer creato", pointsLayer);
-    console.log("✅ initializeMap: parcellesLayer creato", parcellesLayer);
-    console.log("✅ initializeMap: layerGroup/drawnItems creati");
-
+     console.log("✅ map inizializzata");
     // 3️⃣ Controlli disegno (Draw Control)
 /*
 const drawControl = new L.Control.Draw({
@@ -64,7 +65,7 @@ map.addControl(drawControl);
     // 4️⃣ Pulsante geolocalizzazione
     const locationButton = document.getElementById("use-my-location");
     if (locationButton) {
-        locationButton.addEventListener("click", function() {
+        locationButton.onclick = function() {
             if (!navigator.geolocation) {
                 alert("❌ Geolocalisation non supportée par le navigateur.");
                 return;
@@ -76,21 +77,28 @@ map.addControl(drawControl);
                     map.setView([lat, lng], 14);
                     userUsedGeolocation = true;
 
-                    L.marker([lat, lng])
-                        .addTo(map)
-                        .bindPopup("📍 Tu es ici")
-                        .openPopup();
+               // rimuove marker precedente
+                    if (userMarker) {
+                    map.removeLayer(userMarker);
+                    }
+
+                    // crea nuovo marker
+                    userMarker = L.marker([lat, lng])
+                    .addTo(map)
+                    .bindPopup("📍 Tu es ici")
+                    .openPopup();
                 },
                 function(err) {
                     alert("Erreur de géolocalisation : " + err.message);
                 },
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
             );
-        });
+        };
     }
-
+    // 4️⃣ Fix dimensione (UNO solo basta)
+    setTimeout(() => map.invalidateSize(), 300);
     // 5️⃣ Invalida dimensioni mappa dopo render
-    setTimeout(() => map.invalidateSize(), 500);
+
     // 6️⃣ ⚡ Dispatch evento mapReady
     document.dispatchEvent(new Event("mapReady"));
     console.log("🔥 initializeMap: mapReady dispatchato");
