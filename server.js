@@ -93,8 +93,9 @@ app.set('trust proxy', 1);
 // SESSIONE OK
 app.use(session({
   name: 'sid',          // 👈 opzionale ma consigliato
-  secret: 'tonia',
-  resave: true,
+ secret: process.env.SESSION_SECRET || 'dev-secret',
+ 
+  resave: false,
   saveUninitialized: false,
  
   cookie: {
@@ -138,10 +139,6 @@ app.use((req, res, next) => {
 app.set('views', path.join(__dirname, 'views'));
 app.set("view engine", "ejs");
 
-app.use((req, res, next) => {
-  console.log(`➡️  REQUEST: ${req.method} ${req.originalUrl}`);
-  next();
-});
 /*
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
