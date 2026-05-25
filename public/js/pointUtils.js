@@ -9,6 +9,7 @@ export let drawnItems = null;
 export let markersMap = {};
 export let userUsedGeolocation = false;
 export let highlightTableRow = () => {};
+export let showGroupPoints = false;
 
 import { getIconEmoji } from "./mapCommon.js";
 export function resetMarkersMap() {
@@ -24,7 +25,7 @@ export function setUpdateMapDeps(deps) {
     pointsLayer = deps.pointsLayer || pointsLayer;
     layerGroup = deps.layerGroup || layerGroup;
     drawnItems = deps.drawnItems || drawnItems;
-
+    showGroupPoints = deps.showGroupPoints ?? showGroupPoints;
     userUsedGeolocation = deps.userUsedGeolocation ?? userUsedGeolocation;
     highlightTableRow = deps.highlightTableRow || highlightTableRow;
 }
@@ -57,7 +58,7 @@ export function updateMap() {
     // -------------------
     // 2️⃣ Determina quali punti mostrare
     // -------------------
-const showGroupPoints = document.getElementById("toggleGroupPoints")?.checked === true;
+
         const pointsToShow = points.filter(point => {
             if (!point.coordinates || point.coordinates.length !== 2) return false;
 

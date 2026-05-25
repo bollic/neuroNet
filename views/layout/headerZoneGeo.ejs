@@ -48,6 +48,16 @@
         <a href="/" class="btn btn-sm btn-ghost gap-2">
           <i class="fas fa-home"></i> Home
         </a>
+       <p><strong>Email:</strong> <%= user.email %></p>
+        <p><strong>Groupe:</strong> <%= group.name || '—' %></p>
+   <a href="/logout" class="btn btn-xs btn-outline">Déconnexion</a>
+      <form method="POST" action="/delete_account"
+          onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');"
+          style="display: inline;">
+          <button class="btn btn-xs btn-outline-error" type="submit">
+            🗑️ Supprimer mon compte
+          </button>
+      </form>
       </div>
     </div>
   </nav>

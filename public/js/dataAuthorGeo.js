@@ -450,10 +450,9 @@ document.addEventListener("DOMContentLoaded", async function() {
         pointsLayer,
         parcellesLayer,
         layerGroup,
-        drawnItems,
-   
-       
-        userUsedGeolocation
+        drawnItems,     
+        userUsedGeolocation,
+        showGroupPoints: false
     });
     
     // -------------------
@@ -499,8 +498,17 @@ if(sharedPointId){
 const toggleGroupPoints = document.getElementById("toggleGroupPoints");
 
 if (toggleGroupPoints) {
+       // stato iniziale
+    setUpdateMapDeps({
+        showGroupPoints: toggleGroupPoints.checked
+    });
+
     toggleGroupPoints.addEventListener("change", () => {
         console.log("🔄 toggle cambiato — showGroupPoints:", toggleGroupPoints.checked);
+        setUpdateMapDeps({
+            showGroupPoints: toggleGroupPoints.checked
+        });
+       
         updateMap();   // la funzione interna fa già il filtraggio
       //  updateTable(); // idem per la tabella
     });

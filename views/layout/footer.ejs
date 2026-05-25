@@ -5,7 +5,7 @@
 
   
 
-      <div class="flex items-center gap-4">
+    <div class="flex flex-wrap items-center justify-center gap-2 px-2">
           <% if (user) { %>
     <!-- Profilo: manda alla pagina Geo con hash per aprire il profilo -->
    <!-- <a id="open-profile" href="/indexZoneGeo#profile" class="text-center flex flex-col items-center py-1">
@@ -47,14 +47,7 @@
         </a>
 
 
-         <a href="/logout" class="btn btn-outline btn-sm">Déconnexion</a>
-      <form method="POST" action="/delete_account"
-          onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');"
-          style="display: inline;">
-          <button class="btn btn-sm btn-outline-error" type="submit">
-            🗑️ Supprimer mon compte
-          </button>
-      </form>
+   
 
         <% } %>
       </div>

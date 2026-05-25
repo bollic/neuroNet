@@ -93,6 +93,7 @@ async function buildGroupsPreview(filter = {}) {
 
 // fuori dalla route, in alto nel file
 let devCounter = 0;
+
 router.get('/', async (req, res) => {
   try {
     console.log("➡️ Entrato in / con sessione:", req.session);
@@ -128,17 +129,25 @@ if (user && user._id) {
     }
 
 
-res.render('index', {
-  title: 'La liste des points',
-  session: req.session,
-  user  
-});
+    // 👇 SOLO anonimi arrivano qui
+    const groupsPreview = await buildGroupsPreview({
+      isPublic: true
+    });
+
+
+    res.render("groups", {
+          title: "Tous les groupes actifs",
+          user: null,
+          groupsPreview
+        });
+
 
   } catch (error) {
     console.error('❌ Errore durante caricamento index:', error);
     res.status(500).send('Erreur lors de la récupération des groupes');
   }
 });
+
 // ===========================
 // GET /groups  → lista completa dei gruppi
 // ===========================
@@ -812,15 +821,15 @@ router.get('/indexZoneGeo', isAuthenticated, onlyField, async (req, res) => {
       return res.status(400).send("Gruppo non trovato");
     }
 
-    // 👇 AGGIUNGI QUESTO
-const points = await PointModel.find({
-  groupId: user.groupId
-})
-.populate('user', '_id email role')
-.lean();
+        // 👇 AGGIUNGI QUESTO
+    const points = await PointModel.find({
+      groupId: user.groupId
+    })
+    .populate('user', '_id email role')
+    .lean();
 
 
-      console.log("📍 TOTAL POINTS GROUP:", points.length);
+    console.log("📍 TOTAL POINTS GROUP:", points.length);
     const plan = group.plan;
     const pointLimit = PLANS[plan].maxPoints;
 
@@ -844,13 +853,15 @@ const PointsUsed = planCheck.totalUsed;
 // 🔢 XP Totale (points + parcelles)
 // const PointsUsed = pointsXp + parcelleXp;
 const isFirstSignalement = pointsXp === 0;
+
+
     res.render('indexZoneGeo', {
       mode: "field",
       user,
       referenteOffice,
       plan,
       pointLimit,
-
+      group,
       pointsXp,        // 👈 SOLO punti
       parcelleXp,      // 👈 SOLO parcelle
       PointsUsed,      // 👈 TOTALE (per il limite)
