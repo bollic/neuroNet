@@ -794,6 +794,7 @@ router.get('/openZoneGeo/:groupId',  async (req, res) => {
     res.render('indexZoneGeo', {
         mode: "open",
          groupId,
+          group,
       referenteOffice,
       plan,
       pointLimit,

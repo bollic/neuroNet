@@ -78,12 +78,7 @@
   text-align: center;
 }
 </style>
-<style>
-.highlight-row {
-    background-color: #ffe9a8 !important;
-    transition: background-color 0.3s ease
-}
-</style>
+
 <style>
   #group-feed {
     max-height: none !important;   /* niente limite altezza */
@@ -91,53 +86,21 @@
   }
 </style>
 <style>
-  #profile-section {
-    min-height: calc(100vh - 60px); /* spazio per il footer */
-    overflow-y: auto;
-  }
-  #map-section {
-    min-height: 0;
- 
+  .floating-btn {
+  bottom: calc(7rem + env(safe-area-inset-bottom));
 }
-
-  footer {
-    width: 100%;
-  }
+footer {
+  padding-bottom: env(safe-area-inset-bottom);
+}
 </style>
+
 <style>
-#main-table {
-  table-layout: fixed; /* forza larghezza colonne */
-  width: 100%;
-}
-/* Celle e intestazioni */
-#main-table th, 
-#main-table td {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  vertical-align: middle;
-  font-size: 0.85rem;
-  padding: 6px;
-}
-/* Larghezze colonne */
-#main-table td:nth-child(1),
-#main-table th:nth-child(1) { width: 40px; }
-
-#main-table td:nth-child(2),
-#main-table th:nth-child(2) { width: 60px; }
-
-#main-table td:nth-child(3),
-#main-table th:nth-child(3) { 
-  width: 40px; 
-  text-align: center; 
-}
-/* Bottone Delete più compatto */
-#main-table .btn-error {
-  min-width: 24px;
-  height: 24px;
-  padding: 0;
-}
+    #map-section {
+      min-height: 0;
+  }
+    footer {
+      width: 100%;
+    }
 </style>
 
    <!-- 1: inizio flex -->
@@ -187,7 +150,7 @@
 
     <!-- 📍 Pulsante geolocalizzazione -->
     <button id="use-my-location"
-            class="fixed bottom-24 right-4 z-[3000] bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
+            class="fixed bottom-28 right-4 z-[3000] bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
       <i class="fas fa-crosshairs text-gray-700 text-xl"></i>
     </button>
 
