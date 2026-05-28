@@ -43,14 +43,21 @@
 }
 
 #form-panel {
-  max-height: 50vh;
-   max-height: calc(100vh - 80px);
-    bottom: 50px; /* altezza reale footer */
+  max-height: calc(100vh - 140px);
+  bottom: 50px;
   overflow-y: auto;
+
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
 }
-
+@media (min-width: 768px) {
+  #form-panel {
+    bottom: 30px;
+    max-height: calc(100vh - 120px);
+  }
+}
 
 .hidden {
   display: none;
@@ -234,6 +241,25 @@ footer {
     if (e.key === 'Escape') closeProfile();
   });
 </script>
+<script>
 
+document
+  .getElementById("start-first-point")
+  ?.addEventListener("click", () => {
+    // apre il pannello
+    document
+      .getElementById("form-panel")
+      ?.classList.remove("hidden");
+
+        // 🔥 ATTIVA selezione punto
+    window.isSelectingPoint = true;
+
+    // feedback UX
+    document.body.style.cursor = "crosshair";
+
+    alert("Cliquez sur la carte pour ajouter le point");
+});
+
+</script>
 <script type="module" src="/js/dataAuthorGeo.js" defer></script>
 <script type="module" src="/js/formMapIntegration.js"></script>
