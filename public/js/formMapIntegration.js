@@ -37,7 +37,7 @@ document.getElementById("open-add-point")?.addEventListener("click", () => {
     return;
   }
 
-     if (!window.isSelectingPoint) return; // 👈 BLOCCA se non stai aggiungendo
+     if (!window.mapState.isSelectingPoint) return; // 👈 BLOCCA se non stai aggiungendo
     //  openOverlay(e.latlng.lat, e.latlng.lng, true); // 👈 QUI
     // 1️⃣ pulizia
     drawnItems.clearLayers();
@@ -56,7 +56,7 @@ document.getElementById("open-add-point")?.addEventListener("click", () => {
       document.getElementById("point").value = JSON.stringify(marker.toGeoJSON());
         
       // 6️⃣ reset stato UX
-      window.isSelectingPoint = false;
+      window.mapState.isSelectingPoint = false;
       document.body.style.cursor = "default"; 
      
      // 7️⃣ apri overlay (con micro delay 👇)

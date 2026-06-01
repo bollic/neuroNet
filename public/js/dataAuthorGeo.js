@@ -22,7 +22,11 @@ window.editPoint = function (id) {
 
 let overlayLock = false;
 // 👇 AGGIUNGI QUI
-window.isSelectingPoint = false;
+window.mapState = {
+  isSelectingPoint: false,
+  
+  plan: window.planUX || null
+};
 window.deletePointById = async function (id) {
   if (!confirm("Supprimer ce point ?")) return;
 
@@ -237,7 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btn.addEventListener("click", () => {
     console.log("🟢 CLICK ADD POINT");
 
-    window.isSelectingPoint = true;
+  window.mapState.isSelectingPoint = true;
     document.body.style.cursor = "crosshair";
 
     const panel = document.getElementById("form-panel");
@@ -413,7 +417,7 @@ document.addEventListener("DOMContentLoaded", async function() {
                 return; // 👈 QUESTO È IL FIX
             }
 
-            window.isSelectingPoint = true;
+            window.mapState.isSelectingPoint = true;
 
             console.log("🟡 Modalità selezione attiva");
 

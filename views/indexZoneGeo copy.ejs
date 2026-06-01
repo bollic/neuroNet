@@ -1,13 +1,15 @@
  <!-- views/indexZoneGeo.ejs -->
 <%- include('layout/headerZoneGeo') %>
- 
+ <script>
+  window.APP_VIEW = "<%= mode %>";
+</script>
 
 <style>
   html, body { height: 100%; }
 #map {
 
   width: 100%;
-    min-height: 400px;
+  height: calc(100vh - 120px);
 }
   .leaflet-container {
   z-index: 0 !important;
@@ -41,14 +43,21 @@
 }
 
 #form-panel {
-  max-height: 50vh;
-   max-height: calc(100vh - 80px);
-    bottom: 50px; /* altezza reale footer */
+  max-height: calc(100vh - 140px);
+  bottom: 50px;
   overflow-y: auto;
+
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
 }
-
+@media (min-width: 768px) {
+  #form-panel {
+    bottom: 30px;
+    max-height: calc(100vh - 120px);
+  }
+}
 
 .hidden {
   display: none;
@@ -76,12 +85,7 @@
   text-align: center;
 }
 </style>
-<style>
-.highlight-row {
-    background-color: #ffe9a8 !important;
-    transition: background-color 0.3s ease
-}
-</style>
+
 <style>
   #group-feed {
     max-height: none !important;   /* niente limite altezza */
@@ -89,62 +93,31 @@
   }
 </style>
 <style>
-  #profile-section {
-    min-height: calc(100vh - 60px); /* spazio per il footer */
-    overflow-y: auto;
-  }
-  #map-section {
-    min-height: 0;
-  padding-bottom: 60px;
+  .floating-btn {
+  bottom: calc(7rem + env(safe-area-inset-bottom));
 }
-
-  footer {
-    width: 100%;
-  }
+footer {
+  padding-bottom: env(safe-area-inset-bottom);
+}
 </style>
+
 <style>
-#main-table {
-  table-layout: fixed; /* forza larghezza colonne */
-  width: 100%;
-}
-/* Celle e intestazioni */
-#main-table th, 
-#main-table td {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-  vertical-align: middle;
-  font-size: 0.85rem;
-  padding: 6px;
-}
-/* Larghezze colonne */
-#main-table td:nth-child(1),
-#main-table th:nth-child(1) { width: 40px; }
-
-#main-table td:nth-child(2),
-#main-table th:nth-child(2) { width: 60px; }
-
-#main-table td:nth-child(3),
-#main-table th:nth-child(3) { 
-  width: 40px; 
-  text-align: center; 
-}
-/* Bottone Delete più compatto */
-#main-table .btn-error {
-  min-width: 24px;
-  height: 24px;
-  padding: 0;
-}
+    #map-section {
+      min-height: 0;
+  }
+    footer {
+      width: 100%;
+    }
 </style>
 
    <!-- 1: inizio flex -->
-<div class="flex flex-row min-h-screen">
+<div class="flex flex-row ">
 <!-- 2: drawer -->
   
       <!-- Contenuto principale (mappa) -->
   <div class="drawer-content relative flex-1">
     <!-- Pulsante toggle sempre visibile -->
+      <% if (mode === "field") { %> 
       <!-- 👋 ONBOARDING -->
       <% if (showWelcomeAddPoint) { %>
         <%- include('partials/onboardingAddAction', {
@@ -153,48 +126,117 @@
           actionLabel: "Ajouter un signalement"
         }) %>
       <% } %>
-
+         <% } %>
           <!-- 3:  unica mappa -->
-    <div id="content-sections" class="relative w-full h-full">
+    <div id="content-sections" class="relative w-full">
       <!-- 🗺️ MAPPA -->
-    <div id="map-section" class="flex flex-col flex-1">
-      <div id="map" class="w-full flex-1"></div>
-    
-    <div id="form-panel"
-        class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 
-         w-[90%] max-w-md 
-         bg-white shadow-xl z-[2000] p-4 rounded-2xl">   
-        <button id="close-form-btn">✕</button>
+  <div id="map-section" class="relative flex-1">
+  <div id="map" class="w-full h-full"></div>
 
-            <h3 id="form-title">Nouveau Signalement</h3>
+      <div class="absolute top-4 right-4 z-[2000]">
+      <button id="profile-btn"
+        class="bg-white shadow-lg rounded-full
+              w-12 h-12
+              flex items-center justify-center">
 
-      <%- include('partials/addPointForm.ejs') %>
-    </div>
+        <div class="w-8 h-8 rounded-full
+                    bg-purple-500 text-white
+                    flex items-center justify-center
+                    text-sm font-semibold">
+
+          <%= user.email.charAt(0).toUpperCase() %>
+
+  </div>
+
+</button>
+      </div>     
       
+        <div id="profile-panel"
+              class="hidden absolute top-14 right-4 z-[2000]
+                    w-56 rounded-2xl
+                    bg-white/95 backdrop-blur-xl
+                    shadow-xl border border-gray-100
+                    p-3 text-sm">
+            <% if (user) { %>
+            <div class="flex items-center gap-2 mb-3">
+              <i class="fas fa-envelope text-gray-400"></i>
+              <span class="text-gray-700 truncate">
+                <%= user.email %>
+              </span>
+            </div>
+          <% } %>
+
+          <% if (group) { %>
+            <div class="flex items-center gap-2 mb-3">
+              <i class="fas fa-users text-gray-400"></i>
+              <span class="text-gray-700"><%= group.name %></span>
+            </div>
+          <% } %>
+
+          <div class="h-px bg-gray-100 my-2"></div>
+
+          <% if (user) { %>
+            <a href="/logout"
+              class="flex items-center gap-2 text-blue-600 mb-2">
+              <i class="fas fa-sign-out-alt"></i>
+              Déconnexion
+            </a>
+
+            <form method="POST" action="/delete_account"
+              onsubmit="return confirm('Êtes-vous sûr ?');">
+
+              <button class="flex items-center gap-2 text-red-600">
+                <i class="fas fa-trash"></i>
+                Supprimer
+              </button>
+            </form>
+          <% } %>
+        </div>
+
+
+</div>
+
+  
+</div>
+    <% if (mode === "field") { %> 
+        <div id="form-panel"
+            class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 
+            w-[95%] sm:w-[90%] max-w-md 
+            bg-white shadow-xl z-[2000] p-4 rounded-2xl">   
+            <button id="close-form-btn">✕</button>
+
+                <h3 id="form-title">Nouveau Signalement</h3>
+
+          <%- include('partials/addPointForm.ejs') %>
+        </div>
+     
 
         <!-- 🔴 Pulsante Add Point centrato sopra il footer -->
         <button
           id="open-add-point"
-          class="fixed bottom-20 left-1/2 -translate-x-1/2 z-10 bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
+          class="fixed bottom-28 left-1/2 -translate-x-1/2
+           z-10 bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
           <i class="fas fa-plus text-gray-700 text-xl"></i>
         </button>
-
+         <% } %>
       </div>
     <!-- 🕸️ Pulsante toggle drawer (resta sopra tutto) -->
 
     <!-- 📍 Pulsante geolocalizzazione -->
     <button id="use-my-location"
-            class="fixed bottom-24 right-4 z-[3000] bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
+            class="fixed bottom-28 right-4 z-[3000] bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
       <i class="fas fa-crosshairs text-gray-700 text-xl"></i>
     </button>
 
     <!-- 👥 Toggle punti gruppo -->
+     <% if (mode === "field") { %>
     <div class="fixed bottom-40 right-4 z-[3000] flex items-center gap-2 text-xs bg-white/90 backdrop-blur px-3 py-2 rounded-full shadow-lg">
-
-
       <span>👥 Groupe</span>
-      <input type="checkbox" id="toggleGroupPoints" class="toggle toggle-primary toggle-sm" />
+      <input type="checkbox" id="toggleGroupPoints" 
+      class="toggle toggle-primary toggle-sm"
+       />
     </div>
+    <% } %>
           <!-- 👤 PROFILO (inizialmente nascosto) -->
       <%# include('partials/profileSection', { user: user, referenteOffice: referenteOffice }) %>
     </div>
@@ -204,36 +246,39 @@
     <!-- ✨ Toast di benvenuto dinamico solo per utenti 'field' -->
     <!-- ✨ Fine toast -->
     <!-- 💫 FLASH MESSAGE SESSIONE (onboarding field) -->
-
     <script>
       window.points = <%- JSON.stringify(points || []) %>;
-      window.currentUserId = "<%= user._id %>";
+    <% if (mode === "field") { %>
+  window.currentUserId = "<%= user._id %>";
+    window.planUX = <%- JSON.stringify(planUX) %>;
+     console.log("🧪 PLAN UX:", window.planUX);
+<% } %>
       window.CATEGORIES = <%- JSON.stringify(categories || []) %>;
-        window.planUX = <%- JSON.stringify(planUX) %>;
       console.log("🧪 categorie dell'utente field:", window.CATEGORIES);
       console.log("🧪 categorie dell'utente field:", <%- JSON.stringify(categories || []) %>);
       console.log("🔎 Points lato client:", <%- JSON.stringify(points || []) %>);
-       console.log("🧪 PLAN UX:", window.planUX);
+      
     </script>
 
 </div> <!-- 🔒 chiusura flex-row -->
 <!-- ✅ MODAL EDIT (DaisyUI) -->
 <input type="checkbox" id="edit-modal" class="modal-toggle" />
+    <% if (mode === "field") { %> 
+      <div class="modal">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg">Modifier</h3>
 
-<div class="modal">
-  <div class="modal-box">
-    <h3 class="font-bold text-lg">Modifier</h3>
+          <input id="edit-name" class="input input-bordered w-full" />
 
-    <input id="edit-name" class="input input-bordered w-full" />
+          <textarea id="edit-description" class="textarea w-full mt-2"></textarea>
 
-    <textarea id="edit-description" class="textarea w-full mt-2"></textarea>
-
-    <div class="modal-action">
-      <button onclick="saveEdit()" class="btn btn-primary">Save</button>
-      <label for="edit-modal" class="btn">Cancel</label>
-    </div>
-  </div>
-</div>
+          <div class="modal-action">
+            <button onclick="saveEdit()" class="btn btn-primary">Save</button>
+            <label for="edit-modal" class="btn">Cancel</label>
+          </div>
+        </div>
+      </div>
+    <% } %>
 <%- include('layout/footer') %>
 
 <script>
@@ -241,7 +286,18 @@
   const goPlanBtn = document.getElementById('go-plan');
   const mapSection = document.getElementById('map-section');
   const profileSection = document.getElementById('profile-section');
+ const btn = document.getElementById("profile-btn");
+const panel = document.getElementById("profile-panel");
 
+btn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  panel.classList.toggle("hidden");
+});
+
+// chiudi cliccando fuori
+document.addEventListener("click", () => {
+  panel?.classList.add("hidden");
+});
   function openProfile() {
     mapSection.classList.add('hidden');
     profileSection.classList.remove('hidden');
@@ -263,6 +319,37 @@
     if (e.key === 'Escape') closeProfile();
   });
 </script>
+<script>
+document
+  .getElementById("menu-btn")
+  ?.addEventListener("click", () => {
 
+    document
+      .getElementById("menu-panel")
+      ?.classList.toggle("hidden");
+
+  });
+</script>
+
+<script>
+
+document
+  .getElementById("start-first-point")
+  ?.addEventListener("click", () => {
+    // apre il pannello
+    document
+      .getElementById("form-panel")
+      ?.classList.remove("hidden");
+
+        // 🔥 ATTIVA selezione punto
+    window.isSelectingPoint = true;
+
+    // feedback UX
+    document.body.style.cursor = "crosshair";
+
+    alert("Cliquez sur la carte pour ajouter le point");
+});
+
+</script>
 <script type="module" src="/js/dataAuthorGeo.js" defer></script>
 <script type="module" src="/js/formMapIntegration.js"></script>

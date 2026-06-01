@@ -132,10 +132,76 @@ footer {
       <!-- 🗺️ MAPPA -->
   <div id="map-section" class="relative flex-1">
   <div id="map" class="w-full h-full"></div>
+
+      <div class="absolute top-4 right-4 z-[2000]">
+      <button id="profile-btn"
+        class="bg-white shadow-lg rounded-full
+              w-12 h-12
+              flex items-center justify-center">
+
+        <div class="w-8 h-8 rounded-full
+                    bg-purple-500 text-white
+                    flex items-center justify-center
+                    text-sm font-semibold">
+
+          <%= user.email.charAt(0).toUpperCase() %>
+
+  </div>
+
+</button>
+      </div>     
+      
+        <div id="profile-panel"
+              class="hidden absolute top-14 right-4 z-[2000]
+                    w-56 rounded-2xl
+                    bg-white/95 backdrop-blur-xl
+                    shadow-xl border border-gray-100
+                    p-3 text-sm">
+            <% if (user) { %>
+            <div class="flex items-center gap-2 mb-3">
+              <i class="fas fa-envelope text-gray-400"></i>
+              <span class="text-gray-700 truncate">
+                <%= user.email %>
+              </span>
+            </div>
+          <% } %>
+
+          <% if (group) { %>
+            <div class="flex items-center gap-2 mb-3">
+              <i class="fas fa-users text-gray-400"></i>
+              <span class="text-gray-700"><%= group.name %></span>
+            </div>
+          <% } %>
+
+          <div class="h-px bg-gray-100 my-2"></div>
+
+          <% if (user) { %>
+            <a href="/logout"
+              class="flex items-center gap-2 text-blue-600 mb-2">
+              <i class="fas fa-sign-out-alt"></i>
+              Déconnexion
+            </a>
+
+            <form method="POST" action="/delete_account"
+              onsubmit="return confirm('Êtes-vous sûr ?');">
+
+              <button class="flex items-center gap-2 text-red-600">
+                <i class="fas fa-trash"></i>
+                Supprimer
+              </button>
+            </form>
+          <% } %>
+        </div>
+
+
+</div>
+
+  
+</div>
     <% if (mode === "field") { %> 
         <div id="form-panel"
             class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 
-            w-[90%] max-w-md 
+            w-[95%] sm:w-[90%] max-w-md 
             bg-white shadow-xl z-[2000] p-4 rounded-2xl">   
             <button id="close-form-btn">✕</button>
 
@@ -146,11 +212,20 @@ footer {
      
 
         <!-- 🔴 Pulsante Add Point centrato sopra il footer -->
-        <button
-          id="open-add-point"
-          class="fixed bottom-28 left-1/2 -translate-x-1/2 z-10 bg-white border border-gray-300 rounded-full p-3 shadow-lg hover:scale-110 transition-transform">
-          <i class="fas fa-plus text-gray-700 text-xl"></i>
-        </button>
+<button
+  id="open-add-point"
+  class="fixed bottom-28 left-1/2 -translate-x-1/2
+  z-10 bg-white border border-gray-300 rounded-full
+  px-4 py-3 shadow-lg hover:scale-110 transition-transform
+  flex items-center gap-2">
+
+  <span class="text-base">📍</span>
+
+  <span class="text-sm font-medium text-gray-700">
+    Ajouter
+  </span>
+
+</button>
          <% } %>
       </div>
     <!-- 🕸️ Pulsante toggle drawer (resta sopra tutto) -->
@@ -219,7 +294,18 @@ footer {
   const goPlanBtn = document.getElementById('go-plan');
   const mapSection = document.getElementById('map-section');
   const profileSection = document.getElementById('profile-section');
+ const btn = document.getElementById("profile-btn");
+const panel = document.getElementById("profile-panel");
 
+btn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  panel.classList.toggle("hidden");
+});
+
+// chiudi cliccando fuori
+document.addEventListener("click", () => {
+  panel?.classList.add("hidden");
+});
   function openProfile() {
     mapSection.classList.add('hidden');
     profileSection.classList.remove('hidden');
@@ -242,6 +328,18 @@ footer {
   });
 </script>
 <script>
+document
+  .getElementById("menu-btn")
+  ?.addEventListener("click", () => {
+
+    document
+      .getElementById("menu-panel")
+      ?.classList.toggle("hidden");
+
+  });
+</script>
+
+<script>
 
 document
   .getElementById("start-first-point")
@@ -252,7 +350,7 @@ document
       ?.classList.remove("hidden");
 
         // 🔥 ATTIVA selezione punto
-    window.isSelectingPoint = true;
+    window.mapState.isSelectingPoint = true;
 
     // feedback UX
     document.body.style.cursor = "crosshair";
