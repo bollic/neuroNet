@@ -15,7 +15,7 @@
       type="text"
       id="form-name"
       name="name"
-      class="input input-bordered w-full"
+      class="input input-bordered input-sm w-full"
       placeholder="Nom"
       required
     />
@@ -25,7 +25,7 @@
     <select
       id="form-category"
       name="category"
-      class="select select-bordered w-full"
+      class="select select-bordered select-sm w-full"
       required>
       <% categories.forEach(function(cat) { %>
         <option value="<%= cat.name %>">
@@ -35,26 +35,26 @@
     </select>
   </div>
 
-  <div class="mb-2">
-    <textarea
-      id="form-description"
-      name="description"
-      class="textarea textarea-bordered w-full"
-      placeholder="Description">
-    </textarea>
+  <div class="mb-1">
+ <textarea
+  id="form-description"
+  name="description"
+  rows="2"
+  class="textarea textarea-bordered textarea-sm w-full"
+  placeholder="Description"></textarea>
   </div>
 
   <div class="mb-2">
     <input
       type="file"
       name="image"
-      class="file-input file-input-bordered w-full"
+      class="file-input file-input-bordered file-input-sm w-full"
     />
   </div>
 
 <div class="sticky bottom-0 bg-white pt-2">
   <button type="submit" class="btn btn-primary w-full">
-    Ajouter
+    Ajouter   uiu__o
   </button>
 </div>
 </form>

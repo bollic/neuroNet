@@ -1,7 +1,7 @@
 // public/js/dataAuthorGeo.js
 import { loadCategories } from "./mapCommon.js";
 import { initializeMap, map } from "./mapCore.js";
-import { updateMap, resetMarkersMap, setUpdateMapDeps } from "./pointUtils.js";
+import { updateMap, updateTable, resetMarkersMap, setUpdateMapDeps } from "./pointUtils.js";
 import { getMarker } from "./pointUtils.js";
 const points = window.points || [];
 const currentUserId = window.currentUserId;
@@ -20,13 +20,14 @@ window.editPoint = function (id) {
   document.getElementById("edit-modal").checked = true;
 };
 
-let overlayLock = false;
-// 👇 AGGIUNGI QUI
+
 window.mapState = {
   isSelectingPoint: false,
-  
   plan: window.planUX || null
 };
+
+window.mapState.quickAddMode = false;
+
 window.deletePointById = async function (id) {
   if (!confirm("Supprimer ce point ?")) return;
 
@@ -107,9 +108,6 @@ document.querySelectorAll(".modal").forEach(m => {
 
 
 // 🔥 QUESTO È QUELLO CHE TI MANCAVA
-// overlay vecchio sistema
-document.getElementById("map-overlay")?.classList.add("hidden");
-
 // panel nuovo sistema
 const panel = document.getElementById("form-panel");
 if (panel) {
@@ -127,34 +125,16 @@ document.body.style.pointerEvents = "auto";
 };
 
 
-/*
-function openOverlay(lat = null, lng = null, resetPoint = false) {
-  const overlay = document.getElementById("map-overlay");
-  if (overlay) overlay.classList.remove("hidden");
-
-  // resetta il campo point SOLO se richiesto
-  if (resetPoint) {
-    const pointInput = document.getElementById("point");
-    if (pointInput) pointInput.value = "";
-  }
-
-  const latInput = document.getElementById("form-lat");
-  const lngInput = document.getElementById("form-lat");
-
-  if (lat && lng) {
-    if (latInput) latInput.value = lat;
-    if (lngInput) lngInput.value = lng;
-  }
-
-  const title = document.getElementById("overlay-title");
-  if (title) title.innerText = "Nuovo Signalement";
-}
-*/
 
 // 👇 FORZA globale (sicuro al 100%)
 window.closeForm = function () {
   const panel = document.getElementById("form-panel");
   if (!panel) return;
+  document.getElementById("open-add-point")
+    ?.classList.remove("hidden");
+
+  document.getElementById("quick-add-point")
+    ?.classList.remove("hidden");
 
   panel.classList.add("hidden");
   panel.classList.remove("active");
@@ -171,65 +151,6 @@ function getPointIdFromURL() {
 }
 
 
-function openOverlay(lat = null, lng = null, resetPoint = false) {
- 
-  console.log("OPEN OVERLAY lat/lng:", lat, lng);
-
-  const overlay = document.getElementById("map-overlay");
-  if (overlay) overlay.classList.remove("hidden");
-
-  const form = document.getElementById("add-point");
-  const submitBtn = form.querySelector("button[type='submit']");
-  const hiddenPoint = document.getElementById("point");
-
-  // 🟢 Modalità CREATE
-  form.dataset.mode = "create";
-  if (submitBtn) submitBtn.innerText = "AJOUTER";
-  if (hiddenPoint) hiddenPoint.value = "";
-    // ✅ SE abbiamo coordinate, crea il GeoJSON
-  if (lat !== null && lng !== null && hiddenPoint) {
-    hiddenPoint.value = JSON.stringify({
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "Point",
-        coordinates: [lng, lat]
-      }
-    });
-  }
-
-    const nameInput = document.getElementById("form-name");
-    // 👇 SOLO se clic su mappa (lat/lng) + campo vuoto
-    if (lat !== null && lng !== null && nameInput && !nameInput.value) {
-      //nameInput.placeholder = "Signalement rapide";
-      nameInput.value = "Signalement rapide";
-      nameInput.focus();
-// ❌ niente select()
-    }
-  const title = document.getElementById("overlay-title");
-  if (title) title.innerText = "Nouveau Signalement";
-
-        // 👇 AUTO-FOCUS sul campo nome
-    setTimeout(() => {
-        const nameInput = document.getElementById("form-name");
-
-        if (nameInput) {
-          nameInput.focus();
-         // nameInput.select();
-
-          // 🔥 QUESTA È LA DIFFERENZA VERA
-          nameInput.onkeydown = null;
-          nameInput.addEventListener("keydown", function (e) {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              document.getElementById("add-point").requestSubmit();
-            }
-          }, { once: true });
-        }
-      }, 100);
-
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("open-add-point");
 
@@ -239,17 +160,49 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   btn.addEventListener("click", () => {
+   
     console.log("🟢 CLICK ADD POINT");
+   const planLimit = window.PLAN_LIMIT;
 
+           const myPointsCount = points.filter(p => {
+                const userId = typeof p.user === "object" ? p.user._id : p.user;
+                return String(userId) === String(currentUserId);
+              }).length;
+           
+               // 🚫 BLOCCO REALE
+            if (myPointsCount  >= planLimit) {
+                alert("Limite de points atteint pour le plan free");
+                return; // 👈 QUESTO È IL FIX
+            }
+
+                   // 👇 NUOVO (al posto di alert)
+      const hint = document.querySelector("#map-hint");
+        if (hint) {
+          hint.textContent = "Cliquez sur la carte pour placer le point";
+          hint.classList.remove("hidden");
+
+      
+        }
   window.mapState.isSelectingPoint = true;
+          console.log(
+          "STATE =",
+          window.mapState.isSelectingPoint
+        );
     document.body.style.cursor = "crosshair";
 
     const panel = document.getElementById("form-panel");
     if (panel) {
       panel.classList.remove("hidden");
     }
-  });
 
+    document.getElementById("open-add-point")
+  ?.classList.add("hidden");
+
+document.getElementById("quick-add-point")
+  ?.classList.add("hidden");
+
+  });
+  
     // 👇 AGGIUNGI QUI
   const closeBtn = document.getElementById("close-form-btn");
   if (closeBtn) {
@@ -259,75 +212,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 });
-//window.openOverlay = openOverlay;
-function openOverlayView(pointData) {
-  console.log("🟢 OPEN EDIT VIEW");
 
-  // 👉 NUOVO CONTAINER (NON overlay)
-  const panel = document.getElementById("form-panel");
-  if (!panel) return;
+const quickBtn = document.getElementById("quick-add-point");
 
-  panel.classList.remove("hidden");
-  panel.classList.add("active");
+if (quickBtn) {
+  quickBtn.addEventListener("click", () => {
 
-  const form = document.getElementById("add-point");
-  const hiddenPoint = document.getElementById("point");
-  const hiddenPointId = document.getElementById("pointId");
+    window.mapState.quickAddMode = true;
+    alert("Cliquez sur la carte pour ajouter un point");
+    console.log("⚡ QUICK MODE ON");
 
-  const nameInput = document.getElementById("form-name");
-  const descInput = document.getElementById("form-description");
-  const catInput  = document.getElementById("form-category");
-  const submitBtn = form?.querySelector("button[type='submit']");
-
-  // 🟦 MODE EDIT
-  form.dataset.mode = "edit";
-
-  if (hiddenPointId) hiddenPointId.value = pointData._id;
-
-  if (hiddenPoint) {
-    hiddenPoint.value = JSON.stringify({
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "Point",
-        coordinates: [
-          pointData.coordinates[0],
-          pointData.coordinates[1]
-        ]
-      }
-    });
-  }
-
-  if (nameInput) nameInput.value = pointData.name || "";
-  if (descInput) descInput.value = pointData.description || "";
-  if (catInput)  catInput.value  = pointData.category || "";
-
-  // titolo (se lo hai nel panel)
-  const title = document.getElementById("overlay-title");
-  if (title) title.innerText = "MODIFIER Signalement";
-
-  if (submitBtn) submitBtn.innerText = "MODIFIER";
+  });
 }
-
-window.openOverlayView = openOverlayView;
-/*function openOverlay(lat = null, lng = null) {
-  const overlay = document.getElementById("map-overlay");
-  if (overlay) overlay.classList.remove("hidden");
-
-  const latInput = document.getElementById("form-lat");
-  const lngInput = document.getElementById("form-lng");
-  if (lat && lng) {
-    if (latInput) latInput.value = lat;
-    if (lngInput) lngInput.value = lng;
-  }
-
-
-  const title = document.getElementById("overlay-title");
-  if (title) title.innerText = "Nuovo Signalement";
-}
-window.openOverlay = openOverlay;
-
-*/
 
 
 
@@ -351,11 +247,10 @@ document.addEventListener("DOMContentLoaded", async function() {
   autoWidth: false,
   responsive: false,
   columnDefs: [
-    { targets: 0, width: "30px" },
-    { targets: 1, width: "40px" },
-    { targets: 2, width: "40px", className: "text-center", orderable: false },
-    { targets: 3, width: "40px", className: "text-center", orderable: false },
-        { targets: 4, width: "40px", className: "text-center", orderable: false }
+   {
+    targets: 0,
+    orderable: false
+  }
   ],
   language: {
     url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/fr-FR.json'
@@ -379,7 +274,78 @@ document.addEventListener("DOMContentLoaded", async function() {
     const res = initializeMap();
     let map = res.map;
 
-  map.on('click', () => {
+  map.on('click', async (e) => {
+    const hint = document.getElementById("map-hint");
+if (hint) hint.classList.add("hidden");
+      if (window.mapState.quickAddMode) {
+        const marker = L.marker([
+          e.latlng.lat,
+          e.latlng.lng
+        ]);
+
+      marker.addTo(map);
+        marker.setOpacity(0.5);
+      marker.bindTooltip("⚡", {
+        permanent: false
+      }).openTooltip();
+
+ //   console.log("Categorie disponibili:", window.CATEGORIES);
+const defaultCategory = window.CATEGORIES?.[0]?.name;
+
+const formData = new FormData();
+
+formData.append("name", "📍 Point rapide");
+formData.append("category", defaultCategory);
+formData.append("description", "");
+
+formData.append(
+  "point",
+  JSON.stringify(marker.toGeoJSON())
+);
+
+    try {
+
+  const response = await fetch("/addPoint", {
+    method: "POST",
+    body: formData,
+    credentials: "include"
+  });
+
+  const result = await response.json();
+
+  console.log("🚀 QUICK RESULT", result);
+
+  if (result.success) {
+
+  if (typeof result.point.user === "string") {
+    result.point.user = { _id: result.point.user };
+  }
+
+  points.push(result.point);
+
+  marker.bindTooltip("✅", {
+       permanent: false
+  }).openTooltip();
+
+  updateMap();
+
+setTimeout(() => {
+  marker.remove();
+}, 1000);
+}
+
+
+} catch (err) {
+
+  console.error("❌ QUICK ERROR", err);
+
+}
+    // QUI ARRIVERÀ IL FETCH
+
+    window.mapState.quickAddMode = false;
+
+    return;
+  }
   console.log("MAP CLICK OK");
 });
     setTimeout(() => {
@@ -401,10 +367,9 @@ document.addEventListener("DOMContentLoaded", async function() {
           window.isSelectingPoint = true;
         });
         */
-        document.getElementById("open-add-point")
+    /*      document.getElementById("open-add-point")
         ?.addEventListener("click", () => {
-
-            const planLimit = window.PLAN_LIMIT;
+         const planLimit = window.PLAN_LIMIT;
 
            const myPointsCount = points.filter(p => {
                 const userId = typeof p.user === "object" ? p.user._id : p.user;
@@ -415,8 +380,7 @@ document.addEventListener("DOMContentLoaded", async function() {
             if (myPointsCount  >= planLimit) {
                 alert("Limite de points atteint pour le plan free");
                 return; // 👈 QUESTO È IL FIX
-            }
-
+            } 
             window.mapState.isSelectingPoint = true;
 
             console.log("🟡 Modalità selezione attiva");
@@ -425,16 +389,9 @@ document.addEventListener("DOMContentLoaded", async function() {
             document.body.style.cursor = "crosshair";
         
         // 👇 NUOVO (al posto di alert)
-        const hint = document.getElementById("map-hint");
-        if (hint) {
-          hint.classList.remove("hidden");
 
-          setTimeout(() => {
-            hint.classList.add("hidden");
-          }, 1500);
-        }
          //  alert("📍 Clique sur la carte pour ajouter un point");
-   });
+   });*/
 
     // -------------------
     // 3️⃣ Carica i punti dall’API
@@ -462,7 +419,8 @@ document.addEventListener("DOMContentLoaded", async function() {
     // -------------------
     // 5️⃣ Aggiorna mappa e tabella
     updateMap();
-   // updateTable();
+  console.log("🧪 CHIAMO updateTable");
+updateTable();
 
 
 const sharedPointId = getPointIdFromURL();
@@ -514,7 +472,8 @@ if (toggleGroupPoints) {
         });
        
         updateMap();   // la funzione interna fa già il filtraggio
-      //  updateTable(); // idem per la tabella
+      console.log("🧪 CHIAMO updateTable per toggleGroupPoints");
+updateTable();
     });
 }
 

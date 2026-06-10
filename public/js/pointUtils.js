@@ -194,8 +194,9 @@ marker.on('click', (e) => {
 
     // AGGIORNA LA TABELLA IN BASE AL TOGGLE
 // -------------------
-/*
+
 export function updateTable() {
+    
     if (!points || !currentUserId) return;
     const dt = $('#main-table').DataTable();
     dt.clear();
@@ -210,21 +211,9 @@ if (!userId) return;
 
      const isMine = String(userId).trim() === String(currentUserId).trim();         // 👇 Se switch OFF → mostra solo i miei punti
             if (!showGroupPoints && !isMine) return;
-    const category = point.category || 'Senza categoria';
+  
     const name = point.name || 'Senza nome';
-    
-    const viewCell = `
-    <a href="/points/${point._id}/show"
-        class="btn btn-xs btn-outline btn-primary">
-        👁️
-    </a>
-    `;
-    const editCell = `
-    <a href="/points/${point._id}"
-        class="btn btn-xs btn-outline btn-primary">
-        ✏️
-    </a>
-    `;
+
 
     const actionCell = isMine
     ? `<a href="/delete/${point._id}" class="btn btn-xs btn-error">
@@ -232,13 +221,16 @@ if (!userId) return;
         </a>`
     : `<span class="text-gray-400 text-xs italic">—</span>`;
 
-    const newRow = dt.row.add([
-    category,   // colonna 0
-    name,       // colonna 1
-    viewCell, // colonna 2
-    editCell,   // colonna 3 (Modifier)
-    actionCell  // colonna 4 (Action)
-    ]).node();
+   const rowContent = `
+<div class="flex items-center gap-2">
+  <span>${getIconEmoji(point)}</span>
+  <span>${name}</span>
+</div>
+`;
+
+const newRow = dt.row.add([
+  rowContent
+]).node();
 
     $(newRow).attr('data-point-id', point._id);  // 👈 aggiungi l'ID qui
     $(newRow).off('click');
@@ -265,4 +257,4 @@ $('#main-table tbody tr').each(function() {
 });
 
 }
- */
+ 

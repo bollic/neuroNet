@@ -5,7 +5,7 @@
 </script>
 
 <style>
-  html, body { height: 100%; }
+  html, body { height: 100%;  outline: 3px solid blue;}
 #map {
 
   width: 100%;
@@ -41,21 +41,21 @@
   position: relative;
   height: 100%;
 }
-
 #form-panel {
   max-height: calc(100vh - 140px);
-  bottom: 50px;
+  bottom: 100px;
   overflow-y: auto;
+  outline: 3px solid red;
 
-  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  padding-bottom: 20px;
 
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
 }
-@media (min-width: 768px) {
+
+@media (max-width: 767px) {
   #form-panel {
-    bottom: 30px;
-    max-height: calc(100vh - 120px);
+     padding-bottom: 20px;
   }
 }
 
@@ -196,16 +196,30 @@ footer {
 
 </div>
 
-  
+     <!-- 👇 METTI QUI -->
+    <%- include('partials/tablePoints') %>
+    
 </div>
+
+
+<div id="map-hint"
+     class="hidden fixed top-24 left-1/2 -translate-x-1/2
+            max-w-[90vw]
+            px-4 py-2
+            bg-black text-white text-sm
+            rounded-2xl
+            text-center
+            z-[4000]">
+</div>
+
     <% if (mode === "field") { %> 
         <div id="form-panel"
             class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 
             w-[95%] sm:w-[90%] max-w-md 
-            bg-white shadow-xl z-[2000] p-4 rounded-2xl">   
+            bg-white shadow-xl z-[2000] p-2 rounded-2xl">   
             <button id="close-form-btn">✕</button>
 
-                <h3 id="form-title">Nouveau Signalement</h3>
+                <h3 id="form-title">Nouveau hkiuuo Signalement</h3>
 
           <%- include('partials/addPointForm.ejs') %>
         </div>
@@ -226,8 +240,29 @@ footer {
   </span>
 
 </button>
+<button
+  id="quick-add-point"
+  class="fixed bottom-44 left-1/2 -translate-x-1/2
+  z-10 bg-yellow-400 rounded-full
+  px-4 py-3 shadow-lg hover:scale-110 transition-transform
+  flex items-center gap-2">
+
+  <span>⚡</span>
+
+  <span class="text-sm font-medium">
+    Point rapide
+      ↓
+      Cliquez sur la carte
+  </span>
+
+</button>
+
          <% } %>
+
+           
       </div>
+              <!-- Sidebar- a sinistra -->
+   
     <!-- 🕸️ Pulsante toggle drawer (resta sopra tutto) -->
 
     <!-- 📍 Pulsante geolocalizzazione -->
@@ -249,7 +284,9 @@ footer {
       <%# include('partials/profileSection', { user: user, referenteOffice: referenteOffice }) %>
     </div>
       </div>   
+
         <!-- Sidebar- a sinistra -->
+             <!-- partials/tablePoints.ejs -->
     <!-- Fine .container-fluid -->
     <!-- ✨ Toast di benvenuto dinamico solo per utenti 'field' -->
     <!-- ✨ Fine toast -->
@@ -276,7 +313,7 @@ footer {
         <div class="modal-box">
           <h3 class="font-bold text-lg">Modifier</h3>
 
-          <input id="edit-name" class="input input-bordered w-full" />
+          <input id="edit-name" class="input input-bordered input-sm w-full" />
 
           <textarea id="edit-description" class="textarea w-full mt-2"></textarea>
 
