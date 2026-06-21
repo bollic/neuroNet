@@ -423,39 +423,59 @@ document.querySelectorAll('.emoji-picker-btn').forEach(btn => {
   // ========================
   // DataTables e filtri
   // ========================
-  const dtPoints = points.map((p) => ({
-    name: p.name,
-    category: p.category,
-    createdAtFormatted: p.createdAtFormatted,
+const dtPoints = points.map((p) => {
+
+  const rowContent = `
+    <div class="flex flex-col">
+      <div class="flex items-center gap-2">
+        <span>${getIconEmoji(p)}</span>
+        <span>${p.name || 'Sans nom'}</span>
+      </div>
+
+      <div class="text-[10px] text-gray-500 ml-6">
+        ${p.createdAtFormatted || ''}
+      </div>
+    </div>
+  `;
+
+  return {
+    signalement: rowContent,
     createdAtISO: p.createdAtISO,
     userEmail: p.userEmail,
+    category: p.category,
     userId: p.userId || null,
-    _id: p._id,
-  }));
+    _id: p._id
+  };
+});
 
   const table = $("#main-table").DataTable({
     data: dtPoints,
-    columns: [
-      { data: 'name', title: 'Name' },
-      { data: 'category', title: 'Categorie' },
-      { data: 'createdAtFormatted', title: 'Date' },
-      { data: 'createdAtISO', visible: false },
-      { data: "userEmail", visible: false } // 👈 colonna tecnica
-    ],
+          columns: [
+            {
+              data: 'signalement',
+              title: 'Signalement'
+            },
 
+            { data: 'createdAtISO', visible: false },
+            { data: "userEmail", visible: false },
+            { data: 'category', visible: false }
+          ],
       // 🔥 QUESTO è più affidabile
       rowCallback: function(row, data) {
         $(row).attr('data-id', data._id);
       },
 
-      rowGroup: {
-      dataSrc: "userEmail",
-      startRender: function (rows, group) {
-        return `${group} (${rows.count()} punti)`;
-      }
-  },
+   rowGroup: {
+  dataSrc: "userEmail",
+  startRender: function (rows, group) {
 
-  order: [[4, "asc"], [1, "asc"]]
+    const shortName = group.split("@")[0];
+
+    return `${shortName} (${rows.count()})`;
+  }
+},
+
+  order: [[1, "desc"]]
   });
   $('#main-table').on('mouseenter', 'tbody tr', function () {
   const id = $(this).data('id');
@@ -484,9 +504,10 @@ $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
   const filterCategory = $('#filter-category').val();
   const filterDate = $('#filter-date').val();
 
-  const category = data[1];        // colonna Categorie
-  const createdAtISO = data[3];    // colonna invisibile createdAtISO
+    const createdAtISO = data[1];
+    const category = data[3];
 
+    
   const categoryMatch = !filterCategory || category === filterCategory;
   const dateMatch = !filterDate || (createdAtISO && createdAtISO.startsWith(filterDate));
 

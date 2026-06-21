@@ -5,7 +5,32 @@
 .row-highlight {
   background-color: rgba(0, 150, 255, 0.2) !important;
 }
+
+
+
 </style>
+<style>@media (max-width: 640px) {
+  
+    .dataTables_length {
+    display: none;
+  }
+
+   .dataTables_info,
+  .dataTables_paginate {
+    display: none;
+  }
+    .dataTables_filter {
+    display: none;
+  }
+  #main-table th,
+  #main-table td {
+    padding: 0.15rem !important;
+    font-size: 0.8rem;
+  }
+
+}
+</style>
+
 <% if (justCreatedGroup) { %>
   <div class="toast toast-top toast-end z-50">
     <div class="alert alert-success shadow-lg">
@@ -37,11 +62,13 @@
   <!-- CONTENUTO PRINCIPALE -->
 <div class="drawer-content flex flex-col relative p-4 pt-1">
 
-<a class="fixed top-4 left-4 z-[2000]">
-  <label for="my-drawer" class="btn btn-circle btn-primary btn-sm shadow-xl">
-    ☰
-  </label>
-</a>
+    <a class="fixed top-16 left-3 z-[2000]">
+      <label for="my-drawer" class="btn btn-circle btn-primary btn-sm shadow-xl">
+        ☰
+      </label>
+    </a>
+
+
     <!-- 🔗 Invitation privée (compacte) -->
 <div class="mt-2 p-2 bg-base-100 rounded-lg border border-dashed text-sm">
 
@@ -131,13 +158,15 @@
 
     <!-- MAPPA -->
     <div id="map" class="w-full rounded-lg "></div>
-
+  
   </div>
 
   <div class="drawer-side">
   <label for="my-drawer" class="drawer-overlay"></label>
 
   <aside class="w-64 sm:w-72 md:w-80 lg:w-96 bg-base-200 p-4 overflow-y-auto pb-20">
+   
+   
     <!-- 🔧 Gestione info gruppo -->
       <div class="mb-4">
        <a href="/groups/<%= group.groupId %>"
@@ -146,17 +175,35 @@
         </a>
       </div>
       <!-- Filtro -->
-      <div class="flex space-x-4 my-3">
-        <select id="filter-category" class="select select-bordered">
+      <div class="flex flex-col gap-2 my-3">
+        <select id="filter-category" class="select select-bordered w-full">
          <option value="">Toutes les catégories</option>
 
         </select>
-        <input type="date" id="filter-date" class="input input-bordered" />
+        <input type="date" id="filter-date" class="input input-bordered " />
       </div>
-      
+      <!-- Tabella punti (stile lista card) -->
+<div class="mt-1 p-1 bg-base-100 rounded-lg shadow-md">
+  <div class="card-body" >
+
+    <div class="overflow-x-auto">
+      <table id="main-table" class="table table-zebra w-full">
+        <thead>
+          <tr>
+            <th>Signalement</th>
+        
+            <th>Date</th>
+            <th style="display:none;">createdAtISO</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
       <!-- Stato piano -->
        
-<div class="my-3 p-3 bg-base-100 rounded-lg shadow-md">
+<div class="my-1 p-3 bg-base-100 rounded-lg shadow-md">
   <h3 class="font-bold text-lg mb-1">Votre plan</h3>
 
     <span class="badge <%= plan === 'free' ? 'badge-warning' : plan === 'pro' ? 'badge-success' : 'badge-primary' %>">
@@ -207,25 +254,7 @@
 <% } %>
 </div>
 
-<!-- Tabella punti (stile lista card) -->
-<div class="mt-4 card bg-base-100 shadow-md">
-  <div class="card-body">
 
-    <div class="overflow-x-auto">
-      <table id="main-table" class="table table-zebra w-full">
-        <thead>
-          <tr>
-            <th>Signalement</th>
-            <th>Catégorie</th>
-            <th>Date</th>
-            <th style="display:none;">createdAtISO</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
-</div>
 
       <!-- Form categorie globali -->
       <div class="mt-4 card bg-base-100 shadow-md w-full max-w-full overflow-hidden">
@@ -254,10 +283,100 @@
       </div>
 
     </aside>
+    
   </div>
 </div>
 
+
+
+
+<!-- INIZIO -->
+
+      <div class="absolute top-28 right-4 z-[2000]">
+      <button id="profile-btn"
+        class="bg-white shadow-lg rounded-full
+              w-12 h-12
+              flex items-center justify-center">
+
+        <div class="w-8 h-8 rounded-full
+                    bg-purple-500 text-white
+                    flex items-center justify-center
+                    text-sm font-semibold">
+      <% if (user) { %>
+          <%= user.email.charAt(0).toUpperCase() %>
+      <% } %>
+  </div>
+
+      </button>
+      </div>     
+      
+        <div id="profile-panel"
+              class="hidden fixed top-16 right-4 z-[2000]
+                    w-72 rounded-2xl
+                    bg-white
+                    shadow-2xl
+                    border border-gray-200
+                  
+                    p-4 text-sm">
+            <% if (user) { %>
+            <div class="flex items-center gap-2 mb-3">
+              <i class="fas fa-envelope text-gray-400"></i>
+              <span class="text-gray-700 truncate">
+                <%= user.email %>
+              </span>
+            </div>
+          <% } %>
+
+          <% if (group) { %>
+            <div class="flex items-center gap-2 mb-3">
+              <i class="fas fa-users text-gray-400"></i>
+              <span class="text-gray-700"><%= group.name %></span>
+            </div>
+          <% } %>
+
+          <div class="h-px bg-gray-100 my-2"></div>
+
+          <% if (user) { %>
+           
+       <form method="POST"
+              action="/delete_account"
+              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.');">
+
+          <button type="submit"
+                  class="flex items-center gap-2 text-red-600">
+            <i class="fas fa-trash"></i>
+            Supprimer le compte
+          </button>
+        </form> 
+            <a href="/logout"
+              class="flex items-center gap-2 text-blue-600 mb-2">
+              <i class="fas fa-sign-out-alt"></i>
+              Déconnexion
+            </a>
+
+          <% } %>
+        </div>
+ <!-- FINE -->
+
 <script>
+  const btn = document.getElementById("profile-btn");
+const panel = document.getElementById("profile-panel");
+
+btn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  panel.classList.toggle("hidden");
+});
+
+// chiude cliccando fuori
+document.addEventListener("click", () => {
+  panel?.classList.add("hidden");
+});
+
+// evita che cliccare nel pannello lo chiuda
+panel?.addEventListener("click", (e) => {
+  e.stopPropagation();
+});
+
   window.FIELD_USERS = <%- JSON.stringify(fieldUsers || []) %>;
   window.POINTS = <%- JSON.stringify(points || []) %>;
   window.CATEGORIES = <%- JSON.stringify(categories || []) %>;

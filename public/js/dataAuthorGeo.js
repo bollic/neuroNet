@@ -8,6 +8,15 @@ const currentUserId = window.currentUserId;
 
 let currentEditPoint = null;
 
+setUpdateMapDeps({
+  map: window.map,
+  points: window.points,
+  currentUserId: window.currentUserId,
+  pointsLayer: window.pointsLayer,
+  layerGroup: window.layerGroup,
+  drawnItems: window.drawnItems,
+  showGroupPoints: document.getElementById("toggleGroupPoints")?.checked
+});
 window.editPoint = function (id) {
   const point = window.points.find(p => p._id === id);
   if (!point) return;
@@ -15,6 +24,7 @@ window.editPoint = function (id) {
   currentEditPoint = point;
 
   document.getElementById("edit-name").value = point.name || "";
+    document.getElementById("edit-category").value = point.category || "";
   document.getElementById("edit-description").value = point.description || "";
 
   document.getElementById("edit-modal").checked = true;
@@ -63,7 +73,7 @@ window.saveEdit = async function () {
   const updatedData = {
     name: document.getElementById("edit-name").value,
     description: document.getElementById("edit-description").value,
-    category: currentEditPoint.category,
+    category: document.getElementById("edit-category").value,
 
       point: JSON.stringify({
       type: "Feature",
@@ -219,9 +229,15 @@ if (quickBtn) {
   quickBtn.addEventListener("click", () => {
 
     window.mapState.quickAddMode = true;
-    alert("Cliquez sur la carte pour ajouter un point");
-    console.log("⚡ QUICK MODE ON");
 
+    const hint = document.getElementById("map-hint");
+    if (hint) {
+      hint.textContent =
+        "Cliquez sur la carte pour ajouter un point rapide";
+      hint.classList.remove("hidden");
+    }
+
+    console.log("⚡ QUICK MODE ON");
   });
 }
 
@@ -242,8 +258,11 @@ let table;
 document.addEventListener("DOMContentLoaded", async function() { 
       console.log("🤖 DOM CONTENT LOADED callback ESEGUITA");
   table = $('#main-table').DataTable({
-  pageLength: 20,
-  scrollX: true,
+    paging: false,
+  //pageLength: 20,
+
+
+  scrollX: false,
   autoWidth: false,
   responsive: false,
   columnDefs: [

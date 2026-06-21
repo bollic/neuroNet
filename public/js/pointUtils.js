@@ -29,8 +29,6 @@ export function setUpdateMapDeps(deps) {
     userUsedGeolocation = deps.userUsedGeolocation ?? userUsedGeolocation;
     highlightTableRow = deps.highlightTableRow || highlightTableRow;
 }
-
-
    // -------------------
     // FUNZIONE AGGIORNA MAPPA
     // -------------------
@@ -85,21 +83,21 @@ export function updateMap() {
     // 3️⃣ Crea i marker
     // -------------------
     const markers = pointsToShow.map(point => {
-const userId =
-  typeof point.user === "object"
-    ? point.user?._id
-    : point.user;
+        const userId =
+        typeof point.user === "object"
+            ? point.user?._id
+            : point.user;
 
-const userEmail =
-  typeof point.user === "object"
-    ? point.user?.email
-    : null;
+        const userEmail =
+        typeof point.user === "object"
+            ? point.user?.email
+            : null;
 
-const isMyPoint = String(userId) === String(currentUserId);
-        // 👇 QUI (ESATTAMENTE QUI)
-const bgColor = isMyPoint ? "#3b82f6" : "#ffffff";
-const borderColor = isMyPoint ? "#2563eb" : "#9ca3af";
-const opacity = isMyPoint ? "1" : "0.85";  
+        const isMyPoint = String(userId) === String(currentUserId);
+                // 👇 QUI (ESATTAMENTE QUI)
+        const bgColor = isMyPoint ? "#3b82f6" : "#ffffff";
+        const borderColor = isMyPoint ? "#2563eb" : "#9ca3af";
+        const opacity = isMyPoint ? "1" : "0.85";  
         const iconEmoji = getIconEmoji(point);
       // const userLabel = isMyPoint ? 'Toi' : (point.user?.email || 'Inconnu');
 
@@ -152,7 +150,7 @@ className: ''
     }
 
     ${
-  isField ? `
+  (isField && isMyPoint) ? `
      <button onclick="window.editPoint('${point._id}')">
       ✏️ Modifier
     </button>
@@ -196,41 +194,63 @@ marker.on('click', (e) => {
 // -------------------
 
 export function updateTable() {
+        if (!currentUserId) {
+            currentUserId = window.currentUserId;
+        }
+        console.log("TABLE", points?.length, currentUserId);
+        if (!points ) return;
+        const dt = $('#main-table').DataTable();
+        dt.clear();
+    const showGroupPoints = !!document.getElementById("toggleGroupPoints")?.checked;
+        console.log("TOGGLE =", showGroupPoints);
+        
+points.filter(point => {
+    const userId =
+        typeof point.user === "object"
+            ? point.user?._id
+            : point.user;
+
+    return (
+        showGroupPoints ||
+        String(userId) === String(currentUserId)
+    );
+})
+
+   .forEach(point => {
     
-    if (!points || !currentUserId) return;
-    const dt = $('#main-table').DataTable();
-    dt.clear();
-const showGroupPoints = !!document.getElementById("toggleGroupPoints")?.checked;
-    points.forEach(point => {
-    
-const userId = typeof point.user === "object"
-    ? point.user._id
-    : point.user;
+            const userId = typeof point.user === "object"
+                ? point.user._id
+                : point.user;
 
-if (!userId) return;
+                const isMine = String(userId) === String(currentUserId);
+                const name = point.name || 'Senza nome';
 
-     const isMine = String(userId).trim() === String(currentUserId).trim();         // 👇 Se switch OFF → mostra solo i miei punti
-            if (!showGroupPoints && !isMine) return;
-  
-    const name = point.name || 'Senza nome';
+                const dateText = point.createdAt
+                    ? new Date(point.createdAt).toLocaleDateString('fr-FR')
+                    : '';
 
+            const actionCell = isMine
+                ? `<a href="/delete/${point._id}" class="btn btn-xs btn-error">
+                    <i class="fas fa-trash"></i>
+                    </a>`
+                : `<span class="text-gray-400 text-xs italic">—</span>`;
 
-    const actionCell = isMine
-    ? `<a href="/delete/${point._id}" class="btn btn-xs btn-error">
-        <i class="fas fa-trash"></i>
-        </a>`
-    : `<span class="text-gray-400 text-xs italic">—</span>`;
+            const rowContent = `
+                    <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                    <span>${getIconEmoji(point)}</span>
+                    <span>${name}</span>
+                    </div>
+                    <div class="text-[10px] text-gray-500 ml-6">
+           ${dateText} 
+  </div>
 
-   const rowContent = `
-<div class="flex items-center gap-2">
-  <span>${getIconEmoji(point)}</span>
-  <span>${name}</span>
 </div>
-`;
+        `;
 
-const newRow = dt.row.add([
-  rowContent
-]).node();
+        const newRow = dt.row.add([
+        rowContent
+        ]).node();
 
     $(newRow).attr('data-point-id', point._id);  // 👈 aggiungi l'ID qui
     $(newRow).off('click');

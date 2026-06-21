@@ -4,8 +4,9 @@
 
 <style>
   html, body { height: 100%; }
+
    #map {   
-     height: 70%;
+     height: 100%;
     width: 100%; 
     position: relative;   /* 👈 AGGIUNGI QUESTO */
     z-index: 10;          /* 👈 AGGIUNGI QUESTO */
@@ -13,19 +14,21 @@
   }
 
   .leaflet-container {
-  z-index: 0 !important;
+  z-index: 1 !important;
   }
 </style>
 <style>
+  /*
 .drawer-side {
     pointer-events: none;
-    z-index: 1 !important;   /* 👈 BASSO */
+    z-index: 1 !important;
 }
 
 .drawer-side aside {
     pointer-events: auto;
     z-index: 2;
 }
+*/
 </style>
   <style>
 .highlight-row {
@@ -39,117 +42,129 @@
     overflow-y: visible !important; /* elimina scrollbar verticale */
   }
 </style>
+<div class="drawer">
 
-   <!-- 1: inizio flex -->
+  <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
-<!-- 2: drawer -->
+  <!-- CONTENUTO PRINCIPALE -->
+  <div class="drawer-content h-screen flex flex-col">
 
-    <!-- CONTENUTO -->
-      <!-- ✅ OBBLIGATORIO -->
-   <div class="drawer-content h-full px-6 py-4"> 
-      <% if (showWelcomeAddPoint) { %>
-    <div class="flex items-start gap-4">
-      <div class="flex-shrink-0">
-        <label for="my-drawer" class="btn btn-primary btn-sm shadow">
-          ☰ Menu
-        </label>
-      </div>
-
-      <div class="flex-1">
-        <%- include('partials/onboardingAddAction', {
-          description: "Vous pouvez maintenant dessiner votre première parcelle.",
-          actionUrl: "/addParcelle",
-          actionLabel: "Ajouter"
-        }) %>
-      </div>
-    </div>
-  <% } else { %>
-
-    <div>
+    <!-- TOP BAR MOBILE -->
+    <div class="p-2 md:hidden">
       <label for="my-drawer" class="btn btn-primary btn-sm shadow">
         ☰ Menu
       </label>
     </div>
 
-  <% } %>
-    <div class="flex h-full gap-4">
+    <!-- AREA PRINCIPALE -->
+    <div class="flex flex-1 min-h-0 md:gap-4">
+            <!-- SIDEBAR DESKTOP -->
+      <aside class="hidden md:block w-80 bg-base-200 p-4 overflow-y-auto">
 
+        <% if (parcelles && parcelles.length > 0) { %>
+          <table class="table table-zebra w-full">
+            <tbody>
+              <% parcelles.forEach((parcelle, index) => { %>
+                <tr class="parcelle-item" data-id="<%= parcelle._id %>">
+                  <td><%= index + 1 %></td>
+                  <td><%= parcelle.name %></td>
+                  <td>
+                    <a href="/delete-parcelle/<%= parcelle._id %>"
+                       class="btn btn-xs btn-outline-danger">
+                      🗑
+                    </a>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <div class="text-center text-secondary mt-5">
+            Aucune parcelle trouvée 🌱
+          </div>
+        <% } %>
 
-
-   <!-- MENU SOPRA -->
-
-      <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
-        
-        <!-- Tabella parcelles -->    
-  <% if (parcelles && parcelles.length > 0) { %>
-    <div class="overflow-x-auto">
-     <!-- AGGIUNGI id="main-table" QUI -->
-   <table id="main-table" class="table table-zebra w-full"> 
-     <thead class="table-dark">
-         <tr>
-            <th>Numero</th>
-            <th>Name</th>           
-             <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-<% parcelles.forEach((parcelle, index) => { %>
-  <% const coordinates = parcelle.geometry.coordinates[0] || []; %>
-  <% coordinates.forEach((coord, i) => { %>
-    <tr class="parcelle-item" data-id="<%= parcelle._id %>" data-vertex="<%= i %>">
-      <td><%= i + 1 %></td>
-      <td><%= parcelle.name %></td>     
-      <td> 
-      <a href="/delete-point/<%= parcelle._id %>?lat=<%= coord[1] %>&lng=<%= coord[0] %>" class="btn btn-sm btn-outline-danger">
-         <i class="fas fa-trash"></i>
-       </a>
-      </td>
-    </tr>
-  <% }) %>
-<% }) %>
-
-        </tbody>
-      </table>
-    </div>
-  <% } else { %>
-    <div class="text-center text-secondary mt-5">
-              Aucune parcelle trouvée pour vous ! Ajoutez votre première parcelle 🌱
-            </div>
-  <% } %>
-      
-  
       </aside>
-  <!-- MAPPA -->
-     <div class="flex-1 relative">
-    <div id="map" class="w-full h-full rounded-lg shadow-md"></div>
- 
-     <% if (!showWelcomeAddPoint) { %>
-      <a href="/addParcelle"
-         class="absolute bottom-14 right-8 z-50">
-        <button class="btn btn-warning btn-sm shadow-lg rounded-full px-4">
-          ➕ Ajouter
-        </button>
-      </a>
-    <% } %>
-    
-     </div>
-   </div> <!-- 👈 CHIUDE drawer-content -->
-       
+
+      <!-- MAPPA -->
+      <div class="flex-1 relative min-h-0">
+
+        <!-- 🔥 FIX IMPORTANTE: wrapper con altezza garantita -->
+        <div class="absolute inset-0">
+
+          <div id="map" class="w-full h-full z-0"></div>
+
+        </div>
+      
+      </div>
+
+
+    </div>
+  </div>
+
+  <!-- SIDEBAR MOBILE -->
+  <div class="drawer-side md:hidden">
+    <label for="my-drawer" class="drawer-overlay"></label>
+
+    <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
+
+      <% if (parcelles && parcelles.length > 0) { %>
+        <table class="table table-zebra w-full">
+          <tbody>
+            <% parcelles.forEach((parcelle, index) => { %>
+              <tr class="parcelle-item" data-id="<%= parcelle._id %>">
+                <td><%= index + 1 %></td>
+                <td><%= parcelle.name %></td>
+                <td>
+                  <a href="/delete-parcelle/<%= parcelle._id %>"
+                     class="btn btn-xs btn-outline-danger">
+                    🗑
+                  </a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="text-center text-secondary mt-5">
+          Aucune parcelle trouvée 🌱
+        </div>
+      <% } %>
+
+    </aside>
+  </div>
+
 </div>
 
-        <!-- Sidebar- a sinistra -->
-  
-     <label for="my-drawer" class="drawer-overlay lg:hidden" style="display:none;"></label>    
- 
+     <!-- 🔥 BOTTONE ADD SEMPRE VISIBILE -->
 
-</div> <!-- fine flex -->
+<!-- 🔥 GLOBAL FLOATING BUTTON (FORZA SOPRA TUTTO) -->
+<div style="
+  position: fixed;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  pointer-events: auto;
+">
+  <a href="/addParcelle">
+    <button style="
+      background: #facc15;
+      color: black;
+      padding: 12px 20px;
+      border-radius: 9999px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      border: none;
+    ">
 
+      <span>➕</span>
+      <span>Ajouter</span>
 
-</div>  <!-- 👈 QUESTA è la chiusura del drawer -->
+    </button>
+  </a>
 
-<!-- script sotto -->
-
- <!-- chiusura container -->
+</div>
 
 <script>
 

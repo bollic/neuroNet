@@ -584,6 +584,8 @@ router.get('/indexOfficeParcelle', isAuthenticated, onlyOffice, async (req, res)
 router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
   
   try {
+     console.log("VIEW =", req.query.view);
+    
     // Recupera l'utente office attuale
     const currentUser = await User.findById(req.session.user._id);
     if (!currentUser) {
@@ -792,14 +794,15 @@ router.get('/openZoneGeo/:groupId',  async (req, res) => {
 // const PointsUsed = pointsXp + parcelleXp;
 //const isFirstSignalement = pointsXp === 0;
     res.render('indexZoneGeo', {
-        mode: "open",
-         groupId,
+          mode: "open",
+          user: null,
+          groupId,
           group,
-      referenteOffice,
-      plan,
-      pointLimit,
-        points, // 👈 ORA VERO
-      categories
+          referenteOffice,
+          plan,
+          pointLimit,
+          points, // 👈 ORA VERO
+          categories
 
     });
 
