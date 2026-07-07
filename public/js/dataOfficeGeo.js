@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let layerGroup;
   let drawnItems;
 
-  const points = window.POINTS || [];
+  let points = window.POINTS || [];
   const fieldUsers = window.FIELD_USERS || [];
     const list = document.getElementById("category-list");
     const addBtn = document.getElementById("add-category");
@@ -297,7 +297,41 @@ const markerMap = {};
     map.invalidateSize();
     updateMap();
   }, 200);
+    // ===============================
+  // 🔄 QUANDO IL RESPONABILE PREME start-tracking
+  // ===============================
+  //document.getElementById('start-tracking')
+ const startTrackingBtn = document.getElementById('start-tracking');
+let watchId = null;
 
+if (startTrackingBtn) {
+  startTrackingBtn.addEventListener('click', () => {
+
+    if (watchId !== null) return; // evita doppioni
+
+    watchId = navigator.geolocation.watchPosition(
+      async pos => {
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        await fetch('/update-driver-position', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ lat, lng })
+        });
+
+      },
+      console.error,
+      {
+        enableHighAccuracy: true
+      }
+    );
+
+  });
+}
   // ===============================
   // 🔄 AGGIORNA categorie (submit)
   // ===============================
@@ -419,12 +453,55 @@ document.querySelectorAll('.emoji-picker-btn').forEach(btn => {
   });
 });
 */
+async function deleteServicePoint(id) {
+  if (!confirm("Supprimer ce signalement ?")) return;
 
+  try {
+    const res = await fetch(`/service/point/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include"
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+      alert(data.message || "Erreur suppression");
+      return;
+    }
+
+    // 1️⃣ rimuovi marker
+    if (markerMap[id]) {
+      map.removeLayer(markerMap[id]);
+      delete markerMap[id];
+    }
+
+    // 2️⃣ rimuovi riga DataTable
+    const table = $("#main-table").DataTable();
+    table
+      .rows((idx, rowData) => rowData._id === id)
+      .remove()
+      .draw();
+
+      // 🔥 MINI MIGLIORAMENTO (QUI ESATTAMENTE)
+     window.POINTS = window.POINTS.filter(p => p._id !== id);
+    // points = window.POINTS;
+    updateMap();
+
+    console.log("🗑️ Point supprimé:", id);
+
+  } catch (err) {
+    console.error("DELETE error:", err);
+  }
+}
+//window.deleteServicePoint = deleteServicePoint;
   // ========================
   // DataTables e filtri
   // ========================
 const dtPoints = points.map((p) => {
-
+/*
   const rowContent = `
     <div class="flex flex-col">
       <div class="flex items-center gap-2">
@@ -437,7 +514,27 @@ const dtPoints = points.map((p) => {
       </div>
     </div>
   `;
+  */
+const rowContent = `
+  <div class="flex flex-col">
+    <div class="flex items-center gap-2 justify-between">
+      <div class="flex items-center gap-2">
+        <span>${getIconEmoji(p)}</span>
+        <span>${p.name || 'Sans nom'}</span>
+      </div>
 
+      <button 
+            class="delete-btn text-red-500 text-xs ml-2"
+            data-id="${p._id}">
+            🗑
+      </button>
+    </div>
+
+    <div class="text-[10px] text-gray-500 ml-6">
+      ${p.createdAtFormatted || ''}
+    </div>
+  </div>
+`;
   return {
     signalement: rowContent,
     createdAtISO: p.createdAtISO,
@@ -447,7 +544,7 @@ const dtPoints = points.map((p) => {
     _id: p._id
   };
 });
-
+  // creazione della DataTable
   const table = $("#main-table").DataTable({
     data: dtPoints,
           columns: [
@@ -477,6 +574,12 @@ const dtPoints = points.map((p) => {
 
   order: [[1, "desc"]]
   });
+  /*
+  $('#main-table').on('click', '.delete-btn', function () {
+  deleteServicePoint($(this).data('id'));
+});
+*/
+  // eventi dopo creazione DataTable sopra
   $('#main-table').on('mouseenter', 'tbody tr', function () {
   const id = $(this).data('id');
   const marker = markerMap[id];
@@ -549,6 +652,13 @@ $("#filter-category, #filter-date").on("change", function () {
   updateMap(filterCategory, filterDate); // aggiorna la mappa
  
 });
+// 👇 QUI METTILO
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".delete-btn");
+  if (!btn) return;
 
+  const id = btn.dataset.id;
+  deleteServicePoint(id);
+});
 
 });

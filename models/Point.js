@@ -1,8 +1,17 @@
+// models/Point.js
 const mongoose = require('mongoose');
 
 const PointSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId,
   ref: 'User' },
+
+  source: {
+    type: String,
+    enum: ['field', 'public'],
+    default: 'field'
+  },
+
+
   name: {
     type: String,
     required: true,

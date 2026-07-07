@@ -282,7 +282,7 @@ if (role === "field" && group) {
       let inheritedCategories = [
         { name: "A", icon: "🟥" },
         { name: "B", icon: "🟧" },
-      ];
+      ];c
       if (officeUser && Array.isArray(officeUser.categories)) {
         inheritedCategories = officeUser.categories;
       }
@@ -357,10 +357,10 @@ if (role === "field" && group) {
 
 // Traitement du formulaire de signup
 router.post('/signup', async (req, res) => {
-  const { email, password, role, group, groupName} = req.body;
+  const { email, password, role, group, groupName, groupType } = req.body;
   const groupId = (group || "").trim();
 
-
+  // console.log("🧪 Tipo gruppo scelto:", groupType);
     // 🔹 Log del gruppo ricevuto
  // console.log('🔹 POST signup, gruppo scelto:', group);
   console.log('📨 [SIGNUP] Richiesta ricevuta');
@@ -441,17 +441,19 @@ console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);
 
 // 🔹 CREAZIONE/AGGIORNAMENTO AUTOMATICA DEL GROUP SE È OFFICE
     if (role === "office") {
-      
-        await Group.findOneAndUpdate(
-          { groupId: generatedGroupId },
-          {
-              groupId: generatedGroupId,
-              name: groupName,
-              plan: "free"
-          },
-          { upsert: true }
-        );
-}
+            
+             const savedGroup = await Group.findOneAndUpdate(
+                { groupId: generatedGroupId },
+                {
+                    groupId: generatedGroupId,
+                    name: groupName,
+                    plan: "free",
+                    groupType: groupType || "classic"
+                },
+                { upsert: true, new: true }
+              );
+             // console.log("🧪 Gruppo salvato:", savedGroup);
+      }
 
 
     console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);

@@ -31,6 +31,7 @@ export function setUpdateMapDeps(deps) {
 }
    // -------------------
     // FUNZIONE AGGIORNA MAPPA
+    
     // -------------------
  // -------------------
 // FUNZIONE AGGIORNA MAPPA
@@ -105,20 +106,45 @@ export function updateMap() {
                     
                         
             icon: new L.divIcon({
-            html: `<div style="
-                width:30px;
-                height:30px;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                border-radius:50%;
-                background:${bgColor};
-                border:2px solid ${borderColor};
-                font-size:18px;
-                opacity:${opacity};
-            ">
-                ${iconEmoji}
-            </div>`,
+         html: `
+<div style="
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+">
+
+    <div style="
+        width:30px;
+        height:30px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:50%;
+        background:${bgColor};
+        border:2px solid ${borderColor};
+        font-size:18px;
+        opacity:${opacity};
+    ">
+        ${iconEmoji}
+    </div>
+
+    <div style="
+        margin-top:3px;
+        background:white;
+        padding:2px 8px;
+        border-radius:12px;
+        font-size:11px;
+        white-space:nowrap;
+        box-shadow:0 1px 4px rgba(0,0,0,0.25);
+        max-width:120px;
+        overflow:hidden;
+        text-overflow:ellipsis;
+    ">
+        ${point.name || 'Point'}
+    </div>
+
+</div>
+`,
             className: '',
             iconSize: [30, 30],
             iconAnchor: [15, 15]

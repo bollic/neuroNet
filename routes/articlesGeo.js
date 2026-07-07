@@ -21,6 +21,9 @@ const { checkPlanLimit, buildPlanUX, countUsedPointsByUser, checkFieldLimit } = 
 const { getGroupById } = require('../services/groupService');
 const { getUserById, getOfficeByGroupId } = require('../services/userService');
 const { parsePointGeoJSON, parsePolygonGeoJSON  } = require("../services/geoService");
+
+const { distanceMeters } = require('../utils/geoServer');
+
 const { validateCategory } = require("../services/categoryService");
 const paypal = require('@paypal/checkout-server-sdk');
 const { notifyAdminUpgrade } = require("../utils/notifyAdmin");
@@ -53,7 +56,7 @@ const uploadSingle = multer({ storage }).single("image");
 async function buildGroupsPreview(filter = {}) {
   // 1️⃣ Gruppi autorizzati (pubblici, o del user, ecc.)
   const groups = await Group.find(filter).lean();
-  console.log("GROUPS FOUND:", groups);
+  // console.log("GROUPS FOUND:", groups);
 
   const groupsPreview = [];
 
@@ -96,7 +99,7 @@ let devCounter = 0;
 
 router.get('/', async (req, res) => {
   try {
-    console.log("➡️ Entrato in / con sessione:", req.session);
+   // console.log("➡️ Entrato in / con sessione:", req.session);
     let user = req.session.user || null;
     console.log("👤 Utente:", user);
 if (user && user._id) {
@@ -317,6 +320,32 @@ router.put('/points/:pointId', isAuthenticated, onlyField, uploadSingle, async (
   }
 });
 
+router.get('/service/:groupId', async (req, res) => {
+
+   const group = await Group.findOne({
+    groupId: req.params.groupId
+  });
+
+  if (!group) {
+    return res.status(404).send("Groupe introuvable");
+  }
+
+  // 👇 AGGIUNGERE QUESTO
+  const referenteOffice = await User.findOne({
+    role: "office",
+    groupId: group.groupId
+  });
+
+  const categories = referenteOffice?.categories || [];
+
+  res.render("service", {
+    group,
+    categories
+  });
+
+
+});
+
 router.get('/join/:groupId', async (req, res) => {
   const group = await Group.findOne({ groupId: req.params.groupId });
   if (!group) return res.status(404).send("Groupe introuvable");
@@ -351,7 +380,8 @@ router.get('/groups/:groupId', async (req, res) => {
         groupId,
         name: "Groupe sans nom",
         description: "Aucune description pour le moment.",
-        keywords: []
+        keywords: [],
+        groupType: "classic"
       });
     }
 
@@ -581,6 +611,60 @@ router.get('/indexOfficeParcelle', isAuthenticated, onlyOffice, async (req, res)
   }
 });
 
+router.get('/api/driver-position', isAuthenticated, async (req, res) => {
+
+  const group = await Group.findOne({
+    groupId: req.session.user.groupId
+  });
+
+  res.json(group.driverPosition || null);
+});
+
+router.post('/update-driver-position',  isAuthenticated,
+  onlyOffice, async (req, res) => {
+
+  if (!req.session.user) {
+    return res.sendStatus(401);
+  }
+
+  const { lat, lng } = req.body;
+
+  // recupera il gruppo PRIMA dell'update
+const group = await Group.findOne({
+  groupId: req.session.user.groupId
+});
+
+const oldLat = group?.driverPosition?.lat;
+const oldLng = group?.driverPosition?.lng;
+
+// salva la nuova posizione
+await Group.updateOne(
+  { groupId: req.session.user.groupId },
+  {
+    driverPosition: {
+      lat,
+      lng,
+      updatedAt: new Date()
+    }
+  }
+);
+
+// stampa il log SOLO se il camion si è spostato
+if (
+  !oldLat ||
+  distanceMeters(oldLat, oldLng, lat, lng) > 20
+) {
+  console.log(
+  `TOGLI ${req.session.user.email} → ${lat}, ${lng}`
+);
+ // console.log("🚚 Camion:", req.session.user.email);
+  // console.log("📍 Nouvelle position:", lat, lng);
+ // console.log("🏷️ Groupe:", req.session.user.groupId);
+}
+
+  res.json({ success: true });
+});
+
 router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
   
   try {
@@ -609,10 +693,10 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
 
     const fieldUserIds = fieldUsers.map((u) => u._id); // ObjectId, NON string
     const pointsRaw = await PointModel.find({
-      user: { $in: fieldUserIds },
+      // user: { $in: fieldUserIds },
       groupId: currentUser.groupId
     }).populate('user', 'email');
-
+    // QUI? 
     // 👇 aggiungi qui i log di debug
     console.log('📍 Punti trovati dopo il filtro:', pointsRaw.length);
      pointsRaw.forEach((p,i) => {
@@ -641,7 +725,7 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
 
           createdAtISO: date ? date.toISOString().slice(0, 10) : "", // 👈 campo nascosto per filtro DataTables
           userId: p.user ? p.user._id.toString() : null,
-          userEmail: p.user ? p.user.email : "❓utente sconosciuto"
+          userEmail: p.user ? p.user.email : "Signalements rapides"
         };
       });
       points.forEach(p => {
@@ -655,7 +739,15 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
           email: f.email,
           points: points.filter(p => p.userId === f._id.toString())
         }));
-        
+        pointsByField.push({
+            userId: null,
+            email: "📍 Signalements publics",
+            points: points.filter(p => p.userId === null)
+        });
+        console.log("📦 pointsByField:");
+pointsByField.forEach(g => {
+    console.log("-", g.email, "→", g.points.length, "points");
+});
         // conta i field del gruppo
 const fieldCount = await User.countDocuments({
   groupId: currentUser.groupId,
@@ -1137,6 +1229,104 @@ router.get("/addParcelle", isAuthenticated, async (req, res) => {
   }
 });
 
+// office cancella punti post("/service/addPoint e
+router.delete("/service/point/:pointId", isAuthenticated, onlyOffice, async (req, res) => {
+   console.log("🗑️ DELETE SERVICE ROUTE");
+    try {
+
+        const point = await PointModel.findByIdAndDelete(req.params.pointId);
+        console.log("RISULTATO DELETE =", point);
+        if (!point) {
+          console.log("❌ Punto non trovato");
+            return res.json({
+                success: false,
+                message: "Point introuvable"
+            });
+        }
+         console.log("✅ Punto eliminato:", point._id);
+        return res.json({
+            success: true
+        });
+
+    } catch (err) {
+
+        console.error(err);
+
+        return res.status(500).json({
+            success: false
+        });
+
+    }
+
+});
+router.post("/service/addPoint", uploadSingle, async (req, res) => {
+  try {
+
+    const { name, point, category, description, groupId } = req.body;
+
+    // 1️⃣ Recupera il gruppo
+    const group = await Group.findOne({ groupId });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: "Groupe introuvable"
+      });
+    }
+
+    // 2️⃣ Recupera l'office del gruppo
+    const office = await User.findOne({
+      role: "office",
+      groupId
+    });
+
+    if (!office) {
+      return res.status(404).json({
+        success: false,
+        message: "Office introuvable"
+      });
+    }
+
+    // 3️⃣ Valida categoria (riusi la tua funzione)
+    const categoryData = validateCategory(office, category);
+
+    // 4️⃣ Parsing GeoJSON (riusi la tua funzione)
+    const { lng, lat } = parsePointGeoJSON(point);
+
+    // 5️⃣ Crea il punto
+    const newPoint = await PointModel.create({
+      user: null, // pubblico
+      name,
+      category: categoryData.name,
+      description,
+      coordinates: [lng, lat],
+      groupId,
+      source: "public",
+      icon: categoryData.icon,
+      image: null
+    });
+    console.log("🟢 POINT SAVED:", {
+  id: newPoint._id.toString(),
+  groupId: newPoint.groupId,
+  category: newPoint.category,
+  coordinates: newPoint.coordinates
+});
+    return res.json({
+      success: true,
+      point: newPoint
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
+  }
+});
 // Gestisce la ricezione del punto dal form
 router.post('/addPoint', isAuthenticated, onlyField, uploadSingle, async (req, res) => {
   
@@ -1225,7 +1415,6 @@ if (!planCheck.allowed) {
 const { lng, lat } = parsePointGeoJSON(point);
 
 console.log("📍 Coordinate salvate:", { lng, lat });
-
   // 🔍 LOG EXTRA prima della creazione del punto
 console.log("\n=============================");
 console.log("📍 PREPARAZIONE NUOVO PUNTO");
@@ -1241,6 +1430,7 @@ console.log("Icon:", icon);
   // ✅ Crea il punto nel DB
   const newPoint = await PointModel.create({
      user: userId,
+    source: "field",
     name,
     category: cleanCategory,
     description,
@@ -1249,13 +1439,15 @@ console.log("Icon:", icon);
     groupId: groupId || fieldUser.groupId || null,
     icon
   });
+
   fieldUser.xp = await PointModel.countDocuments({ user: fieldUser._id });
-await fieldUser.save();
-req.session.user.xp = fieldUser.xp;
+  await fieldUser.save();
+  req.session.user.xp = fieldUser.xp;
 
   console.log("✅ NUOVO PUNTO CREATO:", {
     id: newPoint._id.toString(),
     name: newPoint.name,
+    source: newPoint.source,
     category: newPoint.category,
     description: newPoint.description,
     coordinates: newPoint.coordinates,
@@ -1609,6 +1801,7 @@ router.get('/delete-parcelle/:id', isAuthenticated, async (req, res) => {
     res.status(500).send('Errore del server');
   }
 });
+
 router.post('/groups/:groupId/toggle-visibility', async (req, res) => {
   const { groupId } = req.params;
 

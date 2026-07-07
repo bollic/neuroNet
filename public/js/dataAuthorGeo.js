@@ -441,6 +441,80 @@ setTimeout(() => {
   console.log("🧪 CHIAMO updateTable");
 updateTable();
 
+      const notifiedPoints = new Set();
+      // 🚚 TEST posizione camion
+     setInterval(async () => {
+
+          const res = await fetch('/api/driver-position');
+          const driver = await res.json();
+
+          console.log("🚚 Posizione camion:", driver);
+
+          // sicurezza
+          if (!driver) return;
+          if (!window.truckMarker) {
+
+                  window.truckMarker = L.marker(
+                    [driver.lat, driver.lng]
+                  ).addTo(map);
+
+                } else {
+
+                  window.truckMarker.setLatLng(
+                    [driver.lat, driver.lng]
+                  );
+
+                }
+
+                
+              const myPoints = points.filter(p => {
+
+              let userId = null;
+
+              if (p.user && typeof p.user === "object") {
+                userId = p.user._id;
+              } else {
+                userId = p.user;
+              }
+
+              return String(userId) === String(currentUserId);
+
+            });
+
+          myPoints.forEach(point => {
+
+            const distance = map.distance(
+              [driver.lat, driver.lng],
+              [point.coordinates[1], point.coordinates[0]]
+            );
+
+            console.log(
+              `🚚 → ${point.name}: ${Math.round(distance)} m`
+            );
+        if (distance < 100 &&
+           !notifiedPoints.has(point._id)) {
+
+            notifiedPoints.add(point._id);
+
+            if (document.getElementById("truck-notification")) return;
+
+            const notif = document.createElement("div");
+            notif.id = "truck-notification";
+
+            notif.textContent =
+              `🚚 Il camion est proche de ${point.name}`;
+
+            notif.className =
+              "fixed top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-3 rounded-xl shadow-xl z-[9999]";
+
+            document.body.appendChild(notif);        
+          }
+          if (distance >= 100) {
+              notifiedPoints.delete(point._id);
+          }
+          });
+
+}, 10000);
 
 const sharedPointId = getPointIdFromURL();
 if(sharedPointId){

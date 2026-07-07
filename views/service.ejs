@@ -1,0 +1,40 @@
+ <!-- views/service.ejs -->
+<%- include('layout/headerZoneGeo') %>
+<div class="container mx-auto px-4">
+<h1><%= group.name %></h1>
+<button id="locate"
+        class="self-start px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">
+  📍 Me localiser
+</button>
+</div>
+<div class="mt-6 mb-6">
+
+    <h2 class="text-lg font-semibold mb-3">
+        Quel est le problème ?
+    </h2>
+
+    <div class="flex flex-wrap gap-3">
+
+        <% categories.forEach(cat => { %>
+
+        <button
+            class="btn category-btn px-4 py-2 rounded-xl"
+            data-category="<%= cat.name %>">
+            <%= cat.icon %> <%= cat.name %>
+        </button>
+
+        <% }) %>
+
+    </div>
+
+</div>
+
+<div id="map" style="height:55vh;"></div>
+
+
+
+<p>Page client mobile-service</p>
+
+<%- include('layout/footer') %>
+
+<script type="module" src="/js/service.js"></script>

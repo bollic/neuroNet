@@ -63,7 +63,9 @@ map.addControl(drawControl);
     });
 
     // 4️⃣ Pulsante geolocalizzazione
-    const locationButton = document.getElementById("use-my-location");
+  const locationButton =
+    document.getElementById("use-my-location") ||
+    document.getElementById("locate");
     if (locationButton) {
         locationButton.onclick = function() {
             if (!navigator.geolocation) {
@@ -87,6 +89,14 @@ map.addControl(drawControl);
                     .addTo(map)
                     .bindPopup("📍 Tu es ici")
                     .openPopup();
+
+                    document.dispatchEvent(new CustomEvent("userLocated", {
+                            detail: {
+                                lat,
+                                lng
+                            }
+                        }));
+
                 },
                 function(err) {
                     alert("Erreur de géolocalisation : " + err.message);

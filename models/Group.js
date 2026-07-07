@@ -11,6 +11,23 @@ const GroupSchema = new mongoose.Schema({
   planSource:  { type: String },
   isPublic: {type: Boolean, default: true }, 
 
+    groupType: {
+      type: String,
+      enum: [
+        "classic",
+        "mobile-service",
+        "maintenance",
+        "community",
+        "observation"
+      ],
+      default: "classic"
+    },
+    
+  driverPosition: {
+  lat: Number,
+  lng: Number,
+  updatedAt: Date
+},
   
   // 👇 NUOVI CAMPI
   planUpdatedAt: {
