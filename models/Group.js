@@ -14,13 +14,12 @@ const GroupSchema = new mongoose.Schema({
     groupType: {
       type: String,
       enum: [
-        "classic",
         "mobile-service",
         "maintenance",
         "community",
         "observation"
       ],
-      default: "classic"
+      default: "community"
     },
     
   driverPosition: {

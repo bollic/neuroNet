@@ -29,9 +29,7 @@ export function setUpdateMapDeps(deps) {
     userUsedGeolocation = deps.userUsedGeolocation ?? userUsedGeolocation;
     highlightTableRow = deps.highlightTableRow || highlightTableRow;
 }
-   // -------------------
-    // FUNZIONE AGGIORNA MAPPA
-    
+
     // -------------------
  // -------------------
 // FUNZIONE AGGIORNA MAPPA
@@ -49,7 +47,15 @@ export function updateMap() {
     // 1️⃣ Pulisci layer esistenti
     // -------------------
     console.log("💣 CLEAR LAYERS");
+
+    console.log("Popup aperta:", map._popup);
+
     pointsLayer.clearLayers();
+
+    console.log("Popup dopo clear:", map._popup);
+
+    console.log("Layers dopo clear:", pointsLayer.getLayers().length);
+
     drawnItems?.clearLayers();
     layerGroup?.clearLayers();
    resetMarkersMap();   // JS state pulito
@@ -79,7 +85,9 @@ export function updateMap() {
         });
 
     console.log("🔄 Punti filtrati:", pointsToShow);
-     
+    
+    
+   
     // -------------------
     // 3️⃣ Crea i marker
     // -------------------
@@ -101,7 +109,103 @@ export function updateMap() {
         const opacity = isMyPoint ? "1" : "0.85";  
         const iconEmoji = getIconEmoji(point);
       // const userLabel = isMyPoint ? 'Toi' : (point.user?.email || 'Inconnu');
+       
+      
+      const a = point.attributes || {};
+        const climate = a.climate || {};
+        const environment = a.environment || {};
+        const building = a.building || {};
 
+        
+const comfortScore = getComfortIndex(point);
+const comfortBadge = getComfortBadge(comfortScore);
+
+console.log("🌿 Comfort debug");
+console.log({
+    temperature: climate.temperature,
+    interieurTemperature: climate.interieurTemperature,
+    humidite: climate.humidite,
+    surface: environment.surface,
+    trees: environment.trees,
+    shade: environment.shade,
+    water: environment.water,
+    volets: building.volets,
+    clim: building.airConditioning,
+    etage: building.etage,
+    exposition: building.exposition,
+    score: comfortScore
+});
+
+const facteursDefavorables = [];
+const facteursFavorables = [];
+
+if (building.dernierEtage) facteursDefavorables.push("Dernier étage (chauffe par le toit)");
+if (building.toitSansOmbrage) facteursDefavorables.push("Toit sans ombrage");
+if (environment.surface === "beton") facteursDefavorables.push("Environnement très minéral");
+if (building.exposition === "Sud") facteursDefavorables.push("Façade exposée au sud");
+
+if (environment.trees) facteursFavorables.push("Arbres à proximité");
+if (environment.shade) facteursFavorables.push("Ombre");
+if (environment.water) facteursFavorables.push("Présence d'eau");
+if (building.volets) facteursFavorables.push("Volets");
+if (building.toitBlanc) facteursFavorables.push("Toiture réfléchissante");
+if (building.airConditioning) facteursFavorables.push("Climatisation");   
+
+
+        let observationHtml = "";
+
+        if (window.GROUP_TYPE === "observation") {
+
+            observationHtml = `
+
+                ${climate.temperature != null
+                    ? `🌡 Extérieur : <strong>${climate.temperature}°C</strong><br>`
+                    : ""}
+                
+                ${climate.interieurTemperature != null
+                    ? `🏠 Intérieur : <strong>${climate.interieurTemperature}°C</strong><br>`
+                    : ""}
+
+
+
+                ${environment.shade
+                    ? `☂ Ombre : oui<br>`
+                    : ""}
+          
+                ${building.exposition
+                    ? `☀️ Exposition : ${building.exposition}<br>`
+                    : ""}
+
+                ${building.etage
+                    ? `🏢 Étage : ${building.etage}<br>`
+                    : ""}
+
+
+                ${building.airConditioning
+                    ? `❄ Climatisation : oui<br>`
+                    : ""}
+<br>
+<hr>
+
+🌿 <strong>Indice de confort thermique : ${comfortScore}/10</strong><br><br>
+
+<br>
+${
+    facteursDefavorables.length
+        ? `⚠️ <strong>Facteurs défavorables</strong><br>
+           ${facteursDefavorables.map(f => `• ${f}`).join("<br>")}<br><br>`
+        : ""
+}
+
+${
+    facteursFavorables.length
+        ? `✅ <strong>Facteurs favorables</strong><br>
+           ${facteursFavorables.map(f => `• ${f}`).join("<br>")}`
+        : ""
+}
+
+            `;
+}
         const marker = L.marker([point.coordinates[1], point.coordinates[0]], {
                     
                         
@@ -129,19 +233,17 @@ export function updateMap() {
     </div>
 
     <div style="
-        margin-top:3px;
-        background:white;
-        padding:2px 8px;
-        border-radius:12px;
-        font-size:11px;
-        white-space:nowrap;
-        box-shadow:0 1px 4px rgba(0,0,0,0.25);
-        max-width:120px;
-        overflow:hidden;
-        text-overflow:ellipsis;
-    ">
-        ${point.name || 'Point'}
-    </div>
+    margin-top:3px;
+    background:white;
+    padding:2px 6px;
+    border-radius:12px;
+    text-align:center;
+    box-shadow:0 1px 4px rgba(0,0,0,0.25);
+">
+    <strong style="font-size:11px;">
+        ${comfortBadge}
+    </strong>
+</div>
 
 </div>
 `,
@@ -158,8 +260,8 @@ className: ''
       👤 Declarant: <strong>${userEmail || 'Toi'}</strong><br>
     ` : ''}
 
-    🏷️ Catégorie: ${point.category || 'Senza categoria'}<br>
 
+        ${observationHtml}
     ${
       point.description
         ? `<div style="margin-top:6px; font-style:italic;">
@@ -174,7 +276,7 @@ className: ''
              style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`
         : ''
     }
-
+<br><br>
     ${
   (isField && isMyPoint) ? `
      <button onclick="window.editPoint('${point._id}')">
@@ -192,6 +294,7 @@ className: ''
 marker.on('click', (e) => {
   console.log("MARKER CLICK:", point._id);
   e.originalEvent?.stopPropagation();
+    highlightTableRow(point._id);
 });
       //  marker.on('click', () => {
               //   console.log("🔥 CLICK MARKER:", point._id);
@@ -200,9 +303,9 @@ marker.on('click', (e) => {
       //  });
         markersMap[point._id] = marker;
         return marker;
-        
+      
         });
-
+          console.log("Marker creati:", markers.length);
     // -------------------
     // 4️⃣ Centra la mappa sui marker (se non geolocalizzato)
     // -------------------
@@ -220,6 +323,8 @@ marker.on('click', (e) => {
 // -------------------
 
 export function updateTable() {
+
+    console.log("🟢 updateTable chiamata");
         if (!currentUserId) {
             currentUserId = window.currentUserId;
         }
@@ -230,11 +335,15 @@ export function updateTable() {
     const showGroupPoints = !!document.getElementById("toggleGroupPoints")?.checked;
         console.log("TOGGLE =", showGroupPoints);
         
+
+
+const isOpen = window.APP_VIEW === "open";
+
 points.filter(point => {
-    const userId =
-        typeof point.user === "object"
-            ? point.user?._id
-            : point.user;
+
+if (isOpen) return true;
+
+   const userId = point.user?._id ?? point.user;
 
     return (
         showGroupPoints ||
@@ -244,12 +353,15 @@ points.filter(point => {
 
    .forEach(point => {
     
-            const userId = typeof point.user === "object"
+            /*const userId = typeof point.user === "object"
                 ? point.user._id
-                : point.user;
-
+                : point.user; */
+    const userId = point.user?._id ?? point.user;
                 const isMine = String(userId) === String(currentUserId);
                 const name = point.name || 'Senza nome';
+              
+                const comfortScore = getComfortIndex(point);
+                const comfortBadge = getComfortBadge(comfortScore);
 
                 const dateText = point.createdAt
                     ? new Date(point.createdAt).toLocaleDateString('fr-FR')
@@ -275,7 +387,8 @@ points.filter(point => {
         `;
 
         const newRow = dt.row.add([
-        rowContent
+        rowContent,
+        comfortBadge
         ]).node();
 
     $(newRow).attr('data-point-id', point._id);  // 👈 aggiungi l'ID qui
@@ -304,3 +417,65 @@ $('#main-table tbody tr').each(function() {
 
 }
  
+
+export function getComfortIndex(point) {
+
+    let score = 5; // punto di partenza
+
+    const climate = point.attributes?.climate || {};
+    const env = point.attributes?.environment || {};
+    const building = point.attributes?.building || {};
+    // Surface
+    if (env.surface === "beton") score -= 2;
+    if (env.surface === "asphalte") score -= 2;
+    if (env.surface === "terre") score += 1;
+    if (env.surface === "herbe") score += 2;
+
+    if (env.trees) score += 2;
+    if (env.shade) score += 2;
+    if (env.water) score += 1;
+
+    if (building.volets) score += 1;
+    if (building.airConditioning) score += 1;
+   
+    // Étage
+    if (building.etage >= 6) score -= 1;
+    // Dernier étage
+     if (building.dernierEtage) score -= 1;
+     if (building.toitSansOmbrage) score -= 1;
+     if (building.toitBlanc) score += 1;
+// Exposition
+if (building.exposition === "Sud") score -= 1;
+if (building.exposition === "Ouest") score -= 1;
+if (building.exposition === "Nord") score += 1;
+// Température intérieure
+if (climate.interieurTemperature <= 27) score += 2;
+else if (climate.interieurTemperature >= 30) score -= 2;
+
+// Température extérieure
+if (climate.temperature >= 38) score -= 2;
+else if (climate.temperature >= 35) score -= 1;
+
+    score = Math.max(0, Math.min(score, 10));
+
+    return score;
+}
+
+function getComfortBadge(score) {
+
+    if (score <= 2)
+        return "🥵 Très chaud<br><small>" + score + "/10</small>";
+
+    if (score <= 4)
+        return "🔴 Faible<br><small>" + score + "/10</small>";
+
+    if (score <= 6)
+        return "🟡 Moyen<br><small>" + score + "/10</small>";
+
+    if (score <= 8)
+        return "🟢 Confortable<br><small>" + score + "/10</small>";
+
+    return "🌿 Excellent<br><small>" + score + "/10</small>";
+}
+
+

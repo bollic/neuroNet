@@ -38,8 +38,95 @@ const PointSchema = new mongoose.Schema({
 
   description: {
        type: String, default: ""      
+    },
+    
+  
+  // 👇 NUOVO
+attributes: {
+
+  climate: {
+
+    temperature: {
+      type: Number,
+      default: null
+    },
+     interieurTemperature: {
+      type: Number,
+      default: null
+    },
+    humidite: {
+      type: Number,
+      default: null
+    },
+
+    wind: {
+      type: Number,
+      default: null
     }
- 
+
+  },
+
+  environment: {
+
+    surface: {
+      type: String,
+      default: ""
+    },
+
+    trees: {
+      type: Boolean,
+      default: false
+    },
+
+    shade: {
+      type: Boolean,
+      default: false
+    },
+
+    water: {
+      type: Boolean,
+      default: false
+    }
+
+  },
+
+  building: {
+
+    etage: {
+        type: Number,
+        default: null
+    },
+        dernierEtage: {
+      type: Boolean,
+      default: false
+    },
+    toitSansOmbrage: {
+      type: Boolean,
+      default: false
+    },
+    toitBlanc: {
+      type: Boolean,
+      default: false
+    },
+      exposition: {
+    type: String,
+    enum: ["Nord", "Est", "Sud", "Ouest"],
+    default: null
+  },
+    volets: {
+      type: Boolean,
+      default: false
+    },
+
+    airConditioning: {
+      type: Boolean,
+      default: false
+    }
+
+  }
+
+}
+
 });
 
 module.exports = mongoose.model('Point', PointSchema);

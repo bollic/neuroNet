@@ -4,6 +4,7 @@
 <script>
   window.APP_VIEW = "<%= mode %>";
   window.APP_MODE = "<%= mode %>";
+  window.GROUP_TYPE = "<%= group.groupType %>";
 </script>
 <style>
   html, body { height: 100% }
@@ -93,6 +94,7 @@
     overflow-y: visible !important; /* elimina scrollbar verticale */
   }
 </style>
+<link rel="stylesheet" href="/css/map.css">
 <style>
   .floating-btn {
   bottom: calc(7rem + env(safe-area-inset-bottom));

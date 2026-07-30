@@ -81,6 +81,7 @@ async function buildGroupsPreview(filter = {}) {
       name: group.name,
       description: group.description,
       keywords: group.keywords || [],
+      groupType: group.groupType,
       totalMembers: members.length,
       pointsCount,
       lastPoint,
@@ -137,20 +138,29 @@ if (user && user._id) {
       isPublic: true
     });
 
+    const groupsByType = groupsPreview.reduce((acc, group) => {
+  const type = group.groupType || "community";
 
+  if (!acc[type]) acc[type] = [];
+
+  acc[type].push(group);
+
+  return acc;
+}, {});
+
+console.log(groupsByType);
     res.render("groups", {
           title: "Tous les groupes actifs",
           user: null,
-          groupsPreview
+          groupsPreview,
+          groupsByType
         });
-
 
   } catch (error) {
     console.error('❌ Errore durante caricamento index:', error);
     res.status(500).send('Erreur lors de la récupération des groupes');
   }
 });
-
 // ===========================
 // GET /groups  → lista completa dei gruppi
 // ===========================
@@ -174,11 +184,23 @@ router.get('/groups',  async (req, res) => {
     }
 
     const groupsPreview = await buildGroupsPreview(filter);
+    
+    // 👇 qui
+    const groupsByType = groupsPreview.reduce((acc, group) => {
+      const type = group.groupType || "community";
+
+      if (!acc[type]) acc[type] = [];
+
+      acc[type].push(group);
+
+      return acc;
+    }, {});
 
     res.render('groups', {
       title: 'Tous les groupes actifs',
       user,
-      groupsPreview
+      groupsPreview,
+      groupsByType
     });
   } catch (error) {
     console.error('❌ Errore durante il caricamento dei gruppi:', error);
@@ -245,16 +267,35 @@ router.put('/points/:pointId', isAuthenticated, onlyField, uploadSingle, async (
     // Parsing GeoJSON
     const { lng, lat } = parsePointGeoJSON(point);
     console.log("📍 Coordinate aggiornate:", { lng, lat });
-
+    console.log("TEMPERATURE DAL BODY =", req.body.temperature);
     // Aggiorna il punto solo se appartiene all’utente
     const updatedPoint = await PointModel.findOneAndUpdate(
       { _id: pointId, user: userId },
       {
         name,
+      
         description,
         category: cleanCategory,
         coordinates: [lng, lat],
         icon,
+          "attributes.climate.temperature": req.body.temperature || null,
+           "attributes.climate.interieurTemperature": req.body.interieurTemperature || null,
+  "attributes.climate.humidite": req.body.humidite || null,
+
+  "attributes.environment.surface": req.body.surface || "",
+  "attributes.environment.trees": !!req.body.trees,
+  "attributes.environment.shade": !!req.body.shade,
+  "attributes.environment.water": !!req.body.water,
+
+  "attributes.building.etage": req.body.etage || null,
+  "attributes.building.exposition": req.body.exposition || null,
+  "attributes.building.volets": !!req.body.volets,
+  "attributes.building.airConditioning": !!req.body.airConditioning,
+  "attributes.building.dernierEtage": !!req.body.dernierEtage,
+  "attributes.building.toitSansOmbrage": !!req.body.toitSansOmbrage,
+  "attributes.building.toitBlanc": !!req.body.toitBlanc,
+
+        
         ...(req.file ? { image: `/uploads/${req.file.filename}` } : {})
       },
       { new: true }
@@ -266,6 +307,8 @@ router.put('/points/:pointId', isAuthenticated, onlyField, uploadSingle, async (
     }
     // 🔹 QUI POPOLI user
       await updatedPoint.populate('user', 'email role');
+
+console.log("ATTRIBUTES SALVATI =", updatedPoint.attributes);
     // Aggiorna XP utente (conteggio punti)
     fieldUser.xp = await PointModel.countDocuments({ user: fieldUser._id });
     await fieldUser.save();
@@ -293,10 +336,14 @@ router.put('/points/:pointId', isAuthenticated, onlyField, uploadSingle, async (
       const safePoint = {
         _id: updatedPoint._id.toString(),
         name: updatedPoint.name,
+        createdAt: updatedPoint.createdAt,
         category: updatedPoint.category,
-         description: updatedPoint.description,  // <-- aggiunto
+        description: updatedPoint.description,  // <-- aggiunto
         coordinates: updatedPoint.coordinates,
         icon: updatedPoint.icon,
+
+        attributes: updatedPoint.attributes,   // <-- AGGIUNGI QUEST
+
           user: {
           _id: updatedPoint.user._id.toString(),
           email: updatedPoint.user.email,
@@ -419,24 +466,30 @@ router.get('/groups/:groupId/feed', async (req, res) => {
 // 👇 in routes/groups.js
 router.post('/groups/:groupId/updateInfo', async (req, res) => {
   const { groupId } = req.params;
-  const { name, description, keywords } = req.body;
+  const { name, description, keywords, groupType} = req.body;
     const user = req.session.user;
     // ✅ Controllo dei permessi
   if (!user || (user.role !== 'admin' && !(user.role === 'office' && user.groupId === groupId))) {
     return res.status(403).send("Non hai i permessi per aggiornare questo gruppo");
   }
+  console.log("📥 DATI FORM:", req.body);
+
   await Group.findOneAndUpdate(
     { groupId },
     {
       name,
       description,
-      keywords: keywords ? keywords.split(',').map(k => k.trim()) : []
+      keywords: keywords ? keywords.split(',').map(k => k.trim()) : [],
+      groupType
     },
     { new: true, upsert: true }
   );
-
-  res.redirect(`/groups/${groupId}`);
-});
+  const check = await Group.findOne({ groupId });
+  console.log("💾 GRUPPO DOPO UPDATE:", check.groupType);
+    console.log(check);
+     // console.log("GROUP SALVATO:", updated);
+      res.redirect(`/groups/${groupId}`);
+    });
 
 router.get('/indexZoneCombined', isAuthenticated, onlyField, async (req, res) => {
   try {
@@ -711,6 +764,7 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
           _id: p._id,
           name: p.name,
           category: p.category,
+          attributes: p.attributes,
           coordinates: p.coordinates || [], // necessario per Leaflet
           description: p.description || "",          
           createdAtFormatted: date
@@ -913,6 +967,10 @@ router.get('/indexZoneGeo', isAuthenticated, onlyField, async (req, res) => {
 
     // 🔍 Recupera il gruppo
     const group = await Group.findOne({ groupId: user.groupId });
+    
+    console.log("🧪 GROUP:", group);
+console.log("🧪 GROUP TYPE:", group.groupType);
+   
     if (!group) {
       return res.status(400).send("Gruppo non trovato");
     }
@@ -1024,7 +1082,6 @@ router.get('/addPoint', isAuthenticated, onlyField, async (req, res) => {
       user: currentUser, // Passi l'oggetto user per usare dati utente nel template
       categories: categorieDisponibili, // ✅ Ora sono quelle dell'office
       
-    
        planUX
     });
   } catch (error) {
@@ -1033,6 +1090,7 @@ router.get('/addPoint', isAuthenticated, onlyField, async (req, res) => {
   }
 });
 */
+
 router.post('/update-categories', isAuthenticated, onlyOffice, async (req, res) => {
   console.log('🟡 [update-categories] INIZIO');
   console.log('📩 Body ricevuto:', JSON.stringify(req.body, null, 2));
@@ -1075,11 +1133,18 @@ console.log("SESSIONE:", req.session);
       // 🔹 Elimina punti orfani con categorie obsolete
 const validCategoryNames = updatedCategories.map(c => c.name);
 
-deleteResult = await PointModel.deleteMany({
-  groupId: currentUser.groupId,
-  category: { $nin: validCategoryNames }
-});
+if (validCategoryNames.length > 0) {
 
+    deleteResult = await PointModel.deleteMany({
+        groupId: currentUser.groupId,
+        category: { $nin: validCategoryNames }
+    });
+
+} else {
+
+    deleteResult = { deletedCount: 0 };
+
+}
 console.log(`🧹 Eliminati ${deleteResult.deletedCount} punti con categorie obsolete`);
     }   
     // 🧩 CASO 2 — aggiornamento SINGOLO (vecchia UI)
@@ -1348,8 +1413,45 @@ router.post('/addPoint', isAuthenticated, onlyField, uploadSingle, async (req, r
     console.log("👤 userId:", userId);
     console.log("🏷️ groupId dalla sessione:", groupId);
     console.log("📷 File ricevuto:", req.file ? req.file.filename : "❌ nessun file");
-    const { name, point, category, description } = req.body;
+   
+   const { 
+  name, 
+  point, 
+  category, 
+  description,
+  temperature,
+  interieurTemperature,
+  humidite,
+  wind,
+  surface,
+  trees,
+  shade,
+  water,
+  etage,
+  dernierEtage,
+  toitSansOmbrage,
+  toitBlanc,
+  exposition,
+  volets,
+  airConditioning
+
+} = req.body;
+ //   const { name, point, category, description } = req.body;
     console.log("🧾 Tutto il body ricevuto:", req.body);
+    console.log("🌡 Observation data:", {
+  temperature,
+   interieurTemperature,
+  humidite,
+  wind,
+  surface,
+  trees,
+  shade,
+  water,
+  etage,
+  volets,
+  airConditioning
+});
+    
     // Recupera utente field
 
     const fieldUser = await getUserById(userId);
@@ -1426,19 +1528,78 @@ console.log("Coordinate [lng, lat]:", [lng, lat]);
 console.log("File immagine:", req.file ? req.file.filename : "❌ nessun file");
 console.log("GroupId:", groupId || fieldUser.groupId);
 console.log("Icon:", icon);
-    
+console.log("🌍 ATTRIBUTES:", {
+  climate: {
+    temperature,
+    interieurTemperature,
+    humidite,
+    wind
+  },
+  environment: {
+    surface,
+    trees,
+    shade,
+    water
+  },
+  building: {
+    volets,
+    etage,
+    dernierEtage,
+    toitSansOmbrage,
+    toitBlanc,
+    airConditioning
+  }
+});  
   // ✅ Crea il punto nel DB
-  const newPoint = await PointModel.create({
-     user: userId,
+const newPoint = await PointModel.create({
+
+    user: userId,
     source: "field",
     name,
     category: cleanCategory,
     description,
+
     coordinates: [lng, lat],
+
     image: req.file ? `/uploads/${req.file.filename}` : null,
+
     groupId: groupId || fieldUser.groupId || null,
-    icon
-  });
+
+    icon,
+
+
+    attributes: {
+
+      climate: {
+        temperature: temperature ? Number(temperature) : null,
+        interieurTemperature: interieurTemperature ? Number(interieurTemperature) : null,
+        humidite: humidite ? Number(humidite) : null,
+        wind: wind ? Number(wind) : null
+      },
+
+      environment: {
+        surface: surface || "",
+        trees: trees === "on",
+        shade: shade === "on",
+        water: water === "on"
+      },
+
+      building: {
+          etage: etage ? Number(etage) : null,
+
+           dernierEtage: dernierEtage === "on",
+           toitSansOmbrage: toitSansOmbrage === "on",
+           toitBlanc: toitBlanc === "on",
+
+          exposition: exposition || null,
+          
+        volets: volets === "on",
+        airConditioning: airConditioning === "on"
+      }
+
+    }
+
+});
 
   fieldUser.xp = await PointModel.countDocuments({ user: fieldUser._id });
   await fieldUser.save();
@@ -1470,13 +1631,15 @@ console.log(`🧮 PUNTI FIELD aggiornati: ${userPointsCount}`);
 const safePoint = {
   _id: newPoint._id.toString(),
   name: newPoint.name,
+  createdAt: newPoint.createdAt,
   category: newPoint.category,
   description: newPoint.description,
   coordinates: newPoint.coordinates,
   icon: newPoint.icon,
   user: newPoint.user.toString(),
   image: newPoint.image || null,
-  groupId: newPoint.groupId || null
+  groupId: newPoint.groupId || null,
+    attributes: newPoint.attributes
 };
 
 return res.status(200).json({

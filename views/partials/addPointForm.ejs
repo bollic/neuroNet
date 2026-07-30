@@ -4,8 +4,7 @@
   <form id="add-point" method="POST" enctype="multipart/form-data">
   <input type="hidden" id="point" name="point" />
   <input type="hidden" id="pointId" name="pointId" />
-  <input type="hidden" id="form-lat" name="lat" />
-  <input type="hidden" id="form-lng" name="lng" />
+
       <!-- 👇 QUI -->
   <p class="text-xs opacity-60 mb-2">
     📍 Cliquez sur la carte pour placer le point
@@ -35,6 +34,10 @@
     </select>
   </div>
 
+  
+  <!-- Campi specifici del gruppo -->
+  <%- include("form/observationFields") %>
+
   <div class="mb-1">
  <textarea
   id="form-description"
@@ -53,8 +56,8 @@
   </div>
 
 <div class="sticky bottom-0 bg-white pt-2">
-  <button type="submit" class="btn btn-primary w-full">
-    Ajouter   uiu__o
+  <button  id="submit-point-btn" type="submit" class="btn btn-primary w-full">
+    Ajouter
   </button>
 </div>
 </form>

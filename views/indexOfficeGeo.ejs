@@ -1,12 +1,7 @@
 <!-- indexofficeGeo.ejs-->
 
 <%- include('layout/headerOfficeGeo') %>
-<style>
-.row-highlight {
-  background-color: rgba(0, 150, 255, 0.2) !important;
-}
 
-</style>
 <style>@media (max-width: 640px) {
   
     .dataTables_length {
@@ -28,7 +23,7 @@
 
 }
 </style>
-
+<link rel="stylesheet" href="/css/map.css">
 <% if (justCreatedGroup) { %>
   <div class="toast toast-top toast-end z-50">
     <div class="alert alert-success shadow-lg">
@@ -90,7 +85,7 @@
       Envoyez ce lien aux membres pour commencer à recevoir des signalements.
     </div>
   <% } %>
-  <% if (!categories || categories.length <= 2) { %>
+  <% if (!categories || categories.length === 0) { %>
         <div class="alert alert-warning mt-4">
           <span>
             ⚠️ Aucune catégorie définie.<br>
@@ -192,10 +187,23 @@
       </div>
       <!-- Filtro -->
       <div class="flex flex-col gap-2 my-3">
+               <% if (group.groupType === "observation") { %>
+
+        <select id="filter-comfort" class="select select-bordered w-full">
+            <option value="">Tous les niveaux</option>
+            <option value="0-2">🔥 Très chaud</option>
+            <option value="3-4">🟠 Chaud</option>
+            <option value="5-6">🟡 Moyen</option>
+            <option value="7-8">🟢 Confortable</option>
+            <option value="9-10">🌿 Excellent</option>
+        </select>
+
+        <% } %>
         <select id="filter-category" class="select select-bordered w-full">
          <option value="">Toutes les catégories</option>
 
         </select>
+
         <input type="date" id="filter-date" class="input input-bordered " />
       </div>
       <!-- Tabella punti (stile lista card) -->
@@ -399,4 +407,4 @@ panel?.addEventListener("click", (e) => {
 </script>
 
 <%- include('layout/footerOffice') %>
-<script src="/js/dataOfficeGeo.js" defer></script>
+<script type="module" src="/js/dataOfficeGeo.js" defer></script>

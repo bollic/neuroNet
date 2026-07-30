@@ -72,10 +72,9 @@
                     <td><%= group.office.email %></td>
                     <td><%= group.office.groupId %></td>
                     <td>
-                      <a href="/edit/<%= group.office._id %>" class="text-success">
-                        <i class="fas fa-edit fa-lg mx-1"></i>
-                      </a>
-
+                    
+                   
+                      
                       <a href="/del/<%= group.office._id %>"
                         class="text-danger"
                         onclick="return confirm('Supprimer ?');">
@@ -101,9 +100,7 @@
                   </td>
 
                   <td>
-                    <a href="/edit/<%= field._id %>" class="text-success">
-                      <i class="fas fa-edit fa-lg mx-1"></i>
-                    </a>
+
 
                     <a href="/del/<%= field._id %>"
                       class="text-danger"

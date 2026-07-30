@@ -21,6 +21,41 @@
         class="input input-bordered w-1/2" 
       />
 
+
+           
+    <!-- Type de groupe -->
+    <div>
+      <label for="groupType" class="block text-sm font-medium text-gray-700">
+        Utilisation principale
+      </label>
+
+      <select
+        id="groupType"
+        name="groupType"
+        class="select select-bordered w-full mt-1"
+      >
+        <option value="maintenance"
+  <%= group.groupType === "maintenance" ? "selected" : "" %>>
+  🏘️ Maintenance
+</option>
+
+<option value="mobile-service"
+  <%= group.groupType === "mobile-service" ? "selected" : "" %>>
+  🚚 Service mobile
+</option>
+
+<option value="observation"
+  <%= group.groupType === "observation" ? "selected" : "" %>>
+  🔍 Observation
+</option>
+
+<option value="community"
+  <%= group.groupType === "community" ? "selected" : "" %>>
+  👥 Communauté
+</option>
+      </select>
+    </div>
+        
       <textarea 
         name="description"
         placeholder="Décrivez le type de signalements,

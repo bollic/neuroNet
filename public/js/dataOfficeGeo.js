@@ -1,4 +1,5 @@
 // js/dataOfficeGeo.js
+import { getComfortIndex } from "./pointUtils.js";
 document.addEventListener("DOMContentLoaded", function () {
   let map;
   let layerGroup;
@@ -34,6 +35,14 @@ function createCategoryRow(category, index) {
            placeholder="😊 Emoji" class="input input-bordered w-14 text-center emoji-input">
     
 
+           
+    <button
+        type="button"
+        class="btn btn-error btn-xs remove-category"
+        title="Supprimer">
+        ✕
+    </button>
+
   `;
   return row;
 }
@@ -46,12 +55,18 @@ if (list) {
       list.addEventListener('click', (e) => {
         
   // 👉 ELIMINA CATEGORIA
- /* const removeBtn = e.target.closest('.remove-category');
-  if (removeBtn) {
+const removeBtn = e.target.closest('.remove-category');
+
+if (removeBtn) {
     const row = removeBtn.closest('.category-row');
-    if (row) row.remove();
+
+    if (confirm("Supprimer cette catégorie ?")) {
+        row.remove();
+    }
+
     return;
-  }*/
+}
+
         const input = e.target.closest('.emoji-input');
         if (!input) return;
 
@@ -202,9 +217,18 @@ document.addEventListener('click', (e) => {
   // 3️⃣ fallback finale
   return "🔴";
 }
+
+
 const markerMap = {};
-  function updateMap(filterCategory = "", filterDate = "") {
+
+
+  function updateMap(filterCategory = "", filterDate = "", filterComfort = "") {
     console.log("updateMap triggered");
+    console.log("updateMap:", {
+    filterCategory,
+    filterDate,
+    filterComfort
+});
     if (!layerGroup || !drawnItems) return;
     layerGroup.clearLayers();
     drawnItems.clearLayers();
@@ -214,10 +238,35 @@ const markerMap = {};
   const data = (points || []).filter(p => p.coordinates && p.coordinates.length === 2)
                              .filter(p => categories.includes(p.category))
                              .filter(p => !filterCategory || p.category === filterCategory)
+
+                              
+
                              .filter(p => {
                               if (!filterDate) return true;
                               return p.createdAtISO && p.createdAtISO.startsWith(filterDate);
-                            });
+                            })
+
+                                .filter(p => {
+        if (!filterComfort) return true;
+      
+        console.log("POINT =", p);                        
+        const score = getComfortIndex(p);
+        console.log("SCORE =", score);
+  console.log(
+    p.name,
+    "score =", score,
+    "filter =", filterComfort
+);
+        switch (filterComfort) {
+            case "0-2": return score <= 2;
+            case "3-4": return score >= 3 && score <= 4;
+            case "5-6": return score >= 5 && score <= 6;
+            case "7-8": return score >= 7 && score <= 8;
+            case "9-10": return score >= 9;
+            default: return true;
+        }
+    });
+
   if (!data.length) return;
 
     const markers = [];
@@ -252,13 +301,13 @@ const markerMap = {};
         // 🟢 hover → evidenzia riga
         marker.on('mouseover', function () {
           const row = document.querySelector(`tr[data-id="${marker._pointId}"]`);
-          if (row) row.classList.add('row-highlight');
+          if (row) row.classList.add('highlight-row');
   });
 
   // 🔵 out → rimuovi highlight
   marker.on('mouseout', function () {
     const row = document.querySelector(`tr[data-id="${marker._pointId}"]`);
-    if (row) row.classList.remove('row-highlight');
+    if (row) row.classList.remove('highlight-row');
   });
          return marker; // 🔥 IMPORTANTISSIMO
         },
@@ -540,6 +589,7 @@ const rowContent = `
     createdAtISO: p.createdAtISO,
     userEmail: p.userEmail,
     category: p.category,
+    comfort: getComfortIndex(p),
     userId: p.userId || null,
     _id: p._id
   };
@@ -604,17 +654,46 @@ $('#main-table').on('mouseleave', 'tbody tr', function () {
 // Filtro combinato categoria + data (solo filtro custom)
 // ========================
 $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+
   const filterCategory = $('#filter-category').val();
   const filterDate = $('#filter-date').val();
+    const filterComfort = $('#filter-comfort').val();
 
     const createdAtISO = data[1];
     const category = data[3];
+  const comfort = table.row(dataIndex).data().comfort;
 
-    
+
   const categoryMatch = !filterCategory || category === filterCategory;
   const dateMatch = !filterDate || (createdAtISO && createdAtISO.startsWith(filterDate));
 
-  return categoryMatch && dateMatch;
+
+let comfortMatch = true;
+
+switch (filterComfort) {
+    case "0-2":
+        comfortMatch = comfort <= 2;
+        break;
+
+    case "3-4":
+        comfortMatch = comfort >= 3 && comfort <= 4;
+        break;
+
+    case "5-6":
+        comfortMatch = comfort >= 5 && comfort <= 6;
+        break;
+
+    case "7-8":
+        comfortMatch = comfort >= 7 && comfort <= 8;
+        break;
+
+    case "9-10":
+        comfortMatch = comfort >= 9;
+        break;
+}
+
+
+  return categoryMatch && dateMatch && comfortMatch;
 });
 
 // ========================
@@ -640,18 +719,21 @@ $('#main-table_filter input').on('input', function() {
 // ========================
 // Trigger draw quando cambiano categoria o data
 // ========================
-$("#filter-category, #filter-date").on("change", function () {
+$("#filter-category, #filter-date, #filter-comfort" ).on("change", function () {
   
   // svuota la ricerca globale SENZA triggerare input
   table.search('');
-
+   const filterComfort = $("#filter-comfort").val();
   const filterCategory = $("#filter-category").val();
   const filterDate = $("#filter-date").val();
   
+  console.log("Filtro comfort:", filterComfort);
+
    table.draw(); // trigger filtro custom
-  updateMap(filterCategory, filterDate); // aggiorna la mappa
+  updateMap(filterCategory, filterDate, filterComfort); // aggiorna la mappa
  
 });
+
 // 👇 QUI METTILO
 document.addEventListener("click", (e) => {
   const btn = e.target.closest(".delete-btn");

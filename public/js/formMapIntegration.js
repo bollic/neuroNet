@@ -1,6 +1,6 @@
 // js/formMapIntegration.js
 import { map, drawnItems } from "./mapCore.js"; // map già inizializzata in dataAuthorGeo.js
-import { updateMap } from "./pointUtils.js";
+import { updateMap, updateTable } from "./pointUtils.js";
 import { points } from "./pointUtils.js";
 document.addEventListener("mapReady", () => {
    console.log("📌 formMapIntegration caricato"); // <-- log per capire se maReady viene triggerato più volte
@@ -113,6 +113,9 @@ document.getElementById("open-add-point")?.addEventListener("click", () => {
     // 🟦 MODALITÀ EDIT
     if (mode === "edit" && pointId) {
 
+        console.log("🟦 MODE EDIT", { mode, pointId });
+
+      console.log("TEMPERATURE FORM =", formData.get("temperature"));
       response = await fetch(`/points/${pointId}`, {
         method: "PUT",
         body: formData,
@@ -191,7 +194,7 @@ alert("✅ Signalement ajouté");
   alert("✅ Point ajouté avec succès !");
 }
 updateMap();
-
+updateTable();
 drawnItems.clearLayers();
 
 form.reset();

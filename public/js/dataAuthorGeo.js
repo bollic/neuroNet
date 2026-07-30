@@ -1,10 +1,21 @@
 // public/js/dataAuthorGeo.js
 import { loadCategories } from "./mapCommon.js";
 import { initializeMap, map } from "./mapCore.js";
+import { loadBaseLayers } from "./mapLayers.js";
 import { updateMap, updateTable, resetMarkersMap, setUpdateMapDeps } from "./pointUtils.js";
 import { getMarker } from "./pointUtils.js";
 const points = window.points || [];
 const currentUserId = window.currentUserId;
+
+
+
+function getPointUserId(point) {
+  if (!point.user) return null;
+
+  return typeof point.user === "object"
+    ? point.user._id
+    : point.user;
+}
 
 let currentEditPoint = null;
 
@@ -17,17 +28,81 @@ setUpdateMapDeps({
   drawnItems: window.drawnItems,
   showGroupPoints: document.getElementById("toggleGroupPoints")?.checked
 });
+
 window.editPoint = function (id) {
+ 
   const point = window.points.find(p => p._id === id);
   if (!point) return;
 
   currentEditPoint = point;
+   console.log(point);
+   console.log("ATTRIBUTES =", point.attributes);
+   document.querySelector("[name='temperature']").value =
+    point.attributes?.climate?.temperature ?? "";
 
-  document.getElementById("edit-name").value = point.name || "";
-    document.getElementById("edit-category").value = point.category || "";
-  document.getElementById("edit-description").value = point.description || "";
+document.querySelector("[name='interieurTemperature']").value =
+    point.attributes?.climate?.interieurTemperature ?? "";
+  document.querySelector("[name='humidite']").value =
+    point.attributes?.climate?.humidite ?? "";
+console.log(document.querySelector("[name='temperature']").value);
 
-  document.getElementById("edit-modal").checked = true;
+// ----- ENVIRONMENT -----
+document.querySelector("[name='surface']").value =
+    point.attributes?.environment?.surface ?? "";
+
+document.querySelector("[name='trees']").checked =
+    point.attributes?.environment?.trees ?? false;
+
+document.querySelector("[name='shade']").checked =
+    point.attributes?.environment?.shade ?? false;
+
+document.querySelector("[name='water']").checked =
+    point.attributes?.environment?.water ?? false;
+
+
+// ----- BUILDING -----
+document.querySelector("[name='etage']").value =
+    point.attributes?.building?.etage ?? "";
+
+document.querySelector("[name='dernierEtage']").checked =
+    point.attributes?.building?.dernierEtage ?? false;
+
+document.querySelector("[name='toitSansOmbrage']").checked =
+    point.attributes?.building?.toitSansOmbrage ?? false;
+
+document.querySelector("[name='toitBlanc']").checked =
+    point.attributes?.building?.toitBlanc ?? false;
+
+document.querySelector("[name='exposition']").value =
+    point.attributes?.building?.exposition ?? "";
+
+document.querySelector("[name='volets']").checked =
+    point.attributes?.building?.volets ?? false;
+
+document.querySelector("[name='airConditioning']").checked =
+    point.attributes?.building?.airConditioning ?? false;
+  document.getElementById("form-name").value = point.name || "";
+  document.getElementById("form-category").value = point.category || "";
+  document.getElementById("form-description").value = point.description || "";
+
+  const form = document.getElementById("add-point");
+  form.dataset.mode = "edit";
+
+  document.getElementById("pointId").value = point._id;
+  document.getElementById("point").value = JSON.stringify({
+    type: "Feature",
+    geometry: {
+        type: "Point",
+        coordinates: point.coordinates
+    },
+    properties: {}
+});
+  document.getElementById("submit-point-btn").textContent = "Modifier";
+   
+  document.getElementById("submit-point-btn").disabled = false;
+  const panel = document.getElementById("form-panel");
+  panel.classList.remove("hidden");
+ // document.getElementById("edit-modal").checked = true;
 };
 
 
@@ -59,7 +134,7 @@ window.deletePointById = async function (id) {
 
     // refresh mappa
     updateMap();
-
+    updateTable();
     console.log("✅ point supprimé");
 
   } catch (err) {
@@ -132,6 +207,7 @@ document.body.style.pointerEvents = "auto";
   resetMarkersMap();
   // refresh UI
   updateMap();
+  updateTable();
 };
 
 
@@ -174,10 +250,13 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("🟢 CLICK ADD POINT");
    const planLimit = window.PLAN_LIMIT;
 
-           const myPointsCount = points.filter(p => {
-                const userId = typeof p.user === "object" ? p.user._id : p.user;
-                return String(userId) === String(currentUserId);
-              }).length;
+          const myPointsCount = points.filter(p => {
+
+                    const userId = p.user?._id ?? p.user;
+
+                    return String(userId) === String(currentUserId);
+
+                }).length;
            
                // 🚫 BLOCCO REALE
             if (myPointsCount  >= planLimit) {
@@ -236,12 +315,9 @@ if (quickBtn) {
         "Cliquez sur la carte pour ajouter un point rapide";
       hint.classList.remove("hidden");
     }
-
     console.log("⚡ QUICK MODE ON");
   });
 }
-
-
 
 async function loadPointsFromApi() {
   const res = await fetch('/api/points');
@@ -284,101 +360,109 @@ document.addEventListener("DOMContentLoaded", async function() {
       btn.innerHTML = '⏳';
     }
   });
-
-    // 1️⃣ Carica le categorie
+// -------------------
+// 1️⃣ Catégories
+// -------------------
     await loadCategories();
 
-    // -------------------
-    // 2️⃣ Inizializza la mappa
+// -------------------
+// 2️⃣ Carte
+// -------------------
     const res = initializeMap();
-    let map = res.map;
+    const map = res.map;
 
   map.on('click', async (e) => {
     const hint = document.getElementById("map-hint");
-if (hint) hint.classList.add("hidden");
-      if (window.mapState.quickAddMode) {
-        const marker = L.marker([
-          e.latlng.lat,
-          e.latlng.lng
-        ]);
+    if (hint) hint.classList.add("hidden");
+          if (window.mapState.quickAddMode) {
+            const marker = L.marker([
+              e.latlng.lat,
+              e.latlng.lng
+            ]);
 
-      marker.addTo(map);
-        marker.setOpacity(0.5);
-      marker.bindTooltip("⚡", {
-        permanent: false
+          marker.addTo(map);
+            marker.setOpacity(0.5);
+          marker.bindTooltip("⚡", {
+            permanent: false
+          }).openTooltip();
+
+    //   console.log("Categorie disponibili:", window.CATEGORIES);
+    const defaultCategory = window.CATEGORIES?.[0]?.name;
+
+    const formData = new FormData();
+
+    formData.append("name", "📍 Point rapide");
+    formData.append("category", defaultCategory);
+    formData.append("description", "");
+
+    formData.append(
+      "point",
+      JSON.stringify(marker.toGeoJSON())
+    );
+
+        try {
+
+      const response = await fetch("/addPoint", {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
+
+      const result = await response.json();
+
+      console.log("🚀 QUICK RESULT", result);
+
+      if (result.success) {
+
+      if (typeof result.point.user === "string") {
+        result.point.user = { _id: result.point.user };
+      }
+
+      points.push(result.point);
+
+      marker.bindTooltip("✅", {
+          permanent: false
       }).openTooltip();
 
- //   console.log("Categorie disponibili:", window.CATEGORIES);
-const defaultCategory = window.CATEGORIES?.[0]?.name;
+      updateMap();
+      updateTable(); 
 
-const formData = new FormData();
-
-formData.append("name", "📍 Point rapide");
-formData.append("category", defaultCategory);
-formData.append("description", "");
-
-formData.append(
-  "point",
-  JSON.stringify(marker.toGeoJSON())
-);
-
-    try {
-
-  const response = await fetch("/addPoint", {
-    method: "POST",
-    body: formData,
-    credentials: "include"
-  });
-
-  const result = await response.json();
-
-  console.log("🚀 QUICK RESULT", result);
-
-  if (result.success) {
-
-  if (typeof result.point.user === "string") {
-    result.point.user = { _id: result.point.user };
-  }
-
-  points.push(result.point);
-
-  marker.bindTooltip("✅", {
-       permanent: false
-  }).openTooltip();
-
-  updateMap();
-
-setTimeout(() => {
-  marker.remove();
-}, 1000);
-}
-
-
-} catch (err) {
-
-  console.error("❌ QUICK ERROR", err);
-
-}
-    // QUI ARRIVERÀ IL FETCH
-
-    window.mapState.quickAddMode = false;
-
-    return;
-  }
-  console.log("MAP CLICK OK");
-});
     setTimeout(() => {
-      map.invalidateSize();
-    }, 300);
-
-    let pointsLayer = res.pointsLayer;
-    let parcellesLayer = res.parcellesLayer;        
-    let layerGroup = res.layerGroup;
-    let drawnItems = res.drawnItems;
-    let userUsedGeolocation = false;
+      marker.remove();
+    }, 1000);
+    }
 
 
-  // ✅ QUI
+    } catch (err) {
+
+      console.error("❌ QUICK ERROR", err);
+
+    }
+        // QUI ARRIVERÀ IL FETCH
+
+        window.mapState.quickAddMode = false;
+
+        return;
+      }
+      console.log("MAP CLICK OK");
+    });
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 300);
+
+      const pointsLayer = res.pointsLayer;
+      const parcellesLayer = res.parcellesLayer;
+      const layerGroup = res.layerGroup;
+      const drawnItems = res.drawnItems;
+      let userUsedGeolocation = false;
+
+  // -------------------
+// 3️⃣ Couches cartographiques
+// -------------------
+     
+    await loadBaseLayers(map);
+
+
    /*     map.on("click", function (e) {
        // openOverlay(e.latlng.lat, e.latlng.lng, true);
 
@@ -432,89 +516,131 @@ setTimeout(() => {
         layerGroup,
         drawnItems,     
         userUsedGeolocation,
-        showGroupPoints: false
+        showGroupPoints: false,
+        highlightTableRow
     });
     
     // -------------------
     // 5️⃣ Aggiorna mappa e tabella
     updateMap();
-  console.log("🧪 CHIAMO updateTable");
-updateTable();
+        console.log("🧪 CHIAMO updateTable");
+        updateTable();
+        // -------------------
+// Adatta il form al tipo di gruppo
+// -------------------
+
+const observationFields =
+    document.getElementById("observation-fields");
+
+if (observationFields) {
+
+    console.log("GROUP TYPE:", window.GROUP_TYPE);
+
+    observationFields.classList.toggle(
+        "hidden",
+        window.GROUP_TYPE !== "observation"
+    );
+
+}
+
 
       const notifiedPoints = new Set();
       // 🚚 TEST posizione camion
-     setInterval(async () => {
 
-          const res = await fetch('/api/driver-position');
-          const driver = await res.json();
+      //CONDIZIONE SOLO FIELD
 
-          console.log("🚚 Posizione camion:", driver);
+    console.log("GROUP TYPE:", window.GROUP_TYPE);
 
-          // sicurezza
-          if (!driver) return;
-          if (!window.truckMarker) {
+    // Solo per i gruppi Mobile Service
+      if (window.GROUP_TYPE === "mobile-service") {
 
-                  window.truckMarker = L.marker(
-                    [driver.lat, driver.lng]
-                  ).addTo(map);
+       console.log("🚚 Tracking camion attivato");
 
-                } else {
+        setInterval(async () => {
 
-                  window.truckMarker.setLatLng(
-                    [driver.lat, driver.lng]
-                  );
+              const res = await fetch('/api/driver-position');
+              const driver = await res.json();
 
-                }
+              console.log("🚚 Posizione camion:", driver);
 
-                
-              const myPoints = points.filter(p => {
+              // sicurezza
+           if (
+    !driver ||
+    driver.lat == null ||
+    driver.lng == null
+) {
+    console.log("🚚 Aucun chauffeur disponible");
+    return;
+}
+              if (!window.truckMarker) {
 
-              let userId = null;
+                      window.truckMarker = L.marker(
+                        [driver.lat, driver.lng]
+                      ).addTo(map);
 
-              if (p.user && typeof p.user === "object") {
-                userId = p.user._id;
-              } else {
-                userId = p.user;
+                    } else {
+
+                      window.truckMarker.setLatLng(
+                        [driver.lat, driver.lng]
+                      );
+
+                    }
+
+                    
+                  const myPoints = points.filter(p => {
+
+                  const userId = getPointUserId(p);
+
+                  return String(userId) === String(currentUserId);
+
+                });
+
+              myPoints.forEach(point => {
+
+                const distance = map.distance(
+                  [driver.lat, driver.lng],
+                  [point.coordinates[1], point.coordinates[0]]
+                );
+
+                console.log(
+                  `🚚 → ${point.name}: ${Math.round(distance)} m`
+                );
+
+            if (distance < 100 &&
+              !notifiedPoints.has(point._id)
+            ) {
+
+                notifiedPoints.add(point._id);
+
+                if (document.getElementById("truck-notification")) return;
+
+                const notif = document.createElement("div");
+                notif.id = "truck-notification";
+
+                notif.textContent =
+                  `🚚 Il camion est proche de ${point.name}`;
+
+                notif.className =
+                  "fixed top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-3 rounded-xl shadow-xl z-[9999]";
+
+                document.body.appendChild(notif);        
               }
+              if (distance >= 100) {
+                  notifiedPoints.delete(point._id);
+              }
+              });
 
-              return String(userId) === String(currentUserId);
+    }, 10000);
 
-            });
+    
+      } else {
 
-          myPoints.forEach(point => {
+          console.log(
+              "🚫 Tracking camion disattivato per questo gruppo"
+          );
 
-            const distance = map.distance(
-              [driver.lat, driver.lng],
-              [point.coordinates[1], point.coordinates[0]]
-            );
+    }
 
-            console.log(
-              `🚚 → ${point.name}: ${Math.round(distance)} m`
-            );
-        if (distance < 100 &&
-           !notifiedPoints.has(point._id)) {
-
-            notifiedPoints.add(point._id);
-
-            if (document.getElementById("truck-notification")) return;
-
-            const notif = document.createElement("div");
-            notif.id = "truck-notification";
-
-            notif.textContent =
-              `🚚 Il camion est proche de ${point.name}`;
-
-            notif.className =
-              "fixed top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-3 rounded-xl shadow-xl z-[9999]";
-
-            document.body.appendChild(notif);        
-          }
-          if (distance >= 100) {
-              notifiedPoints.delete(point._id);
-          }
-          });
-
-}, 10000);
 
 const sharedPointId = getPointIdFromURL();
 if(sharedPointId){
@@ -574,6 +700,9 @@ function isMobile() {
   return window.innerWidth < 768;
 }
 function highlightTableRow(pointId) {
+
+    console.log("🟢 highlightTableRow CHIAMATA:", pointId);
+
      // 👉 Apri automaticamente il drawer se è chiuso
 
 
@@ -585,6 +714,7 @@ function highlightTableRow(pointId) {
     $('#main-table tbody tr').removeClass('highlight-row');
     // Trova la riga corrispondente
     const row = $(`#main-table tbody tr[data-point-id='${pointId}']`);
+    console.log("ROW TROVATA:", row.length, row);
     // Se esiste, evidenziale e scrolla fino a lei
     if (row.length > 0) {
         row.addClass('highlight-row');
