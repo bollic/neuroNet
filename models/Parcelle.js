@@ -18,12 +18,21 @@ const ParcelleSchema = new mongoose.Schema({
     required: true
   },
    icon: { type: String, default: null }, 
+    area: {
+        type: Number,
+        default: 0
+    },
+    buildingPercent: {
+    type: Number,
+    default: 0
+},
   geometry: {
     type: {
       type: String, // es: "Polygon"
       enum: ['Polygon'],
       required: true
     },
+    
     coordinates: {
       type: [[[Number]]], // array di array di coordinate [lng, lat]
       required: true

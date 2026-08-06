@@ -2,6 +2,8 @@
 import { getIconEmoji, createEmojiMarker } from "./mapCommon.js";
 
 // Variabili locali al modulo (come in pointUtils.js)
+
+
 export let map = null;
 export let parcelles = [];
 export let drawnItems = null;
@@ -16,6 +18,10 @@ export function setParcellesDeps(deps) {
     drawnItems = deps.drawnItems || drawnItems;
     parcellesLayer = deps.parcellesLayer || parcellesLayer;
     highlightTableRow = deps.highlightTableRow || highlightTableRow;
+}
+
+export function calculateParcelArea(parcelleGeometry) {
+    return turf.area(parcelleGeometry);
 }
 
 export function updateMap() {
@@ -56,6 +62,22 @@ export function updateMap() {
          console.log("🧪 onEachFeature ATTIVATO", parcelle._id);
        // const id = parcelle._id;
         const id = feature.properties?.id || parcelle._id;
+
+            layer.bindPopup(`
+                <strong>${parcelle.name || "Parcelle sans nom"}</strong><br>
+                Categoria: ${parcelle.category || ""}<br>
+                Surface: ${Math.round(parcelle.area || 0)} m²<br>
+                🏢 Bâtiments: ${(parcelle.buildingPercent || 0).toFixed(1)} %<br>
+
+                Status: ${parcelle.status || "A_VERIFIER"}
+                    Status: <span class="status-label">${parcelle.status || "A_VERIFIER"}</span><br>
+    <button class="btn-status" data-id="${parcelle._id}" data-status="OK">🟢 OK</button>
+    <button class="btn-status" data-id="${parcelle._id}" data-status="NON_CONFORME">🔴 NON</button>
+    <button class="btn-status" data-id="${parcelle._id}" data-status="A_VERIFIER">🟡 VERIFY</button>
+
+                `);
+
+
         layer.on("click", () => {
             console.log("🟣 CLICK ENTRATO", id);
             highlightTableRow(id);
@@ -96,28 +118,7 @@ parcellesLayersMap.set(parcelle._id, geoLayer);
         // Emoji ai vertici
         try {
             const coords = parcelle.geometry.coordinates[0];           
-            coords.forEach(([lng, lat]) => {
-             const emoji = getIconEmoji(parcelle) || "📌";
-
-createEmojiMarker([lat, lng], emoji)
-  .addTo(parcellesLayer)
-  .bindPopup(`
-    <div>
-      <strong>${parcelle.name || "Parcelle sans nom"}</strong><br>
-      Categoria: ${parcelle.category || "Senza categoria"}<br>
-    Status: <span class="status-label">${parcelle.status || "A_VERIFIER"}</span><br>
-    <button class="btn-status" data-id="${parcelle._id}" data-status="OK">🟢 OK</button>
-    <button class="btn-status" data-id="${parcelle._id}" data-status="NON_CONFORME">🔴 NON</button>
-    <button class="btn-status" data-id="${parcelle._id}" data-status="A_VERIFIER">🟡 VERIFY</button>
-
-
-      Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}
-
-    </div>
-  `);
-console.log(parcelle);
-          
-            });
+        
         } catch (e) {
             console.warn("Errore creando emoji sui vertici:", e);
         }

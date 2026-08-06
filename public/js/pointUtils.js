@@ -49,6 +49,20 @@ export function updateMap() {
     console.log("💣 CLEAR LAYERS");
 
     console.log("Popup aperta:", map._popup);
+     const showTresChaud =
+        document.getElementById("toggle-tresChaud")?.checked;
+
+    const showChaud =
+        document.getElementById("toggle-chaud")?.checked;
+
+    const showMoyen =
+        document.getElementById("toggle-moyen")?.checked;
+
+    const showConfortable =
+        document.getElementById("toggle-confortable")?.checked;
+
+    const showExcellent =
+        document.getElementById("toggle-excellent")?.checked;
 
     pointsLayer.clearLayers();
 
@@ -60,6 +74,8 @@ export function updateMap() {
     layerGroup?.clearLayers();
    resetMarkersMap();   // JS state pulito
      // console.log("Punto appena aggiunto:", points[points.length - 1])
+
+
     // -------------------
     // 2️⃣ Determina quali punti mostrare
     // -------------------
@@ -81,6 +97,38 @@ export function updateMap() {
             ) {
                 return false;
             }
+
+            // Comfort del punto (esempio)
+           const comfortScore = getComfortIndex(point);
+
+   // 🔴 Très chaud
+if (comfortScore <= 2 && !showTresChaud)
+    return false;
+
+// 🟠 Chaud
+if (comfortScore >= 3 &&
+    comfortScore <= 4 &&
+    !showChaud)
+    return false;
+
+// 🟡 Moyen
+if (comfortScore >= 5 &&
+    comfortScore <= 6 &&
+    !showMoyen)
+    return false;
+
+// 🟢 Confortable
+if (comfortScore >= 7 &&
+    comfortScore <= 8 &&
+    !showConfortable)
+    return false;
+
+// 🌿 Excellent
+if (comfortScore >= 9 &&
+    !showExcellent)
+    return false;
+
+
             return true;
         });
 

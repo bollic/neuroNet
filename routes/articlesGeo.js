@@ -9,6 +9,7 @@ const mongoose = require('mongoose');
 const User = require('../models/users');
 const PointModel = require('../models/Point'); 
 const ParcelleModel = require('../models/Parcelle'); 
+const turf = require("@turf/turf");
 const Group = require('../models/Group');
 const {
   isAuthenticated,
@@ -23,7 +24,7 @@ const { getUserById, getOfficeByGroupId } = require('../services/userService');
 const { parsePointGeoJSON, parsePolygonGeoJSON  } = require("../services/geoService");
 
 const { distanceMeters } = require('../utils/geoServer');
-
+const { loadBuildings } = require("../utils/gisUtils");
 const { validateCategory } = require("../services/categoryService");
 const paypal = require('@paypal/checkout-server-sdk');
 const { notifyAdminUpgrade } = require("../utils/notifyAdmin");
@@ -1044,6 +1045,7 @@ async function loadPointAndGroup(req, res, next) {
     res.status(500).send('Errore server');
   }
 }
+
 /*
 router.get('/addPoint', isAuthenticated, onlyField, async (req, res) => {
   console.log("🔎 /addPoint SESSIONE:", req.session);
@@ -1272,7 +1274,11 @@ router.get("/addParcelle", isAuthenticated, async (req, res) => {
     
     // 🔹 Definisci userId e groupId
     const userId = currentUser._id;
+
     const groupId = currentUser.groupId;
+    const points = await PointModel.find({
+            user: currentUser._id
+          }).lean();
     const planCheck = await checkPlanLimit(
             userId,
             groupId,
@@ -1284,6 +1290,7 @@ router.get("/addParcelle", isAuthenticated, async (req, res) => {
       user: currentUser,                // Passi l'utente loggato
       categories: categorieDisponibili, // Le categorie collegate all’office
       status,
+       points,          // 👈 aggiungi questa riga
       pointsUsed: planCheck.totalUsed,
        planLimit: planCheck.planLimit,
        canAddParcelle: planCheck.allowed
@@ -1759,10 +1766,43 @@ try {
   });
 }
 const { name: cleanCategory, icon } = categoryData;
- let geometry, newParcelleVertices;
+ let geometry, newParcelleVertices, area, buildingPercent = 0;
 try {
   const parsed = parsePolygonGeoJSON(polygon);
   geometry = parsed.geometry;
+
+    // 👇 AGGIUNGI QUI
+  area = turf.area(geometry);
+
+  const buildings = loadBuildings();
+  let totalBuildingsArea = 0;
+
+// per ogni edificio...
+for (const building of buildings.features) {
+   // centro dell'edificio
+    const center = turf.centroid(building);
+    // qui in seguito controlleremo se è nella parcella
+
+       // è dentro la parcella?
+    const inside = turf.booleanPointInPolygon(center, geometry);
+
+       if (inside) {
+        const areaBuilding = turf.area(building);
+        totalBuildingsArea += areaBuilding;
+    }
+}
+
+// calcolo della percentuale
+ buildingPercent = (totalBuildingsArea / area) * 100;
+console.log("🏢 Area bâtiments:", totalBuildingsArea);
+console.log("🏢 % bâtiments:", buildingPercent.toFixed(2), "%");
+console.log("🏢 % bâtiments:", buildingPercent);
+  console.log("📐 Area parcella:", area, "m²");
+  console.log(
+    "🏢 Bâtiments caricati:",
+    buildings.features.length
+);
+
   newParcelleVertices = parsed.verticesCount;
 } catch (err) {
   return res.status(400).json({
@@ -1790,6 +1830,8 @@ if (!planCheck.allowed) {
       category: cleanCategory,
       icon,            // ✅ SALVATA
       geometry,
+      area,  
+      buildingPercent,
       groupId: fieldUser.groupId,
     });
     console.log("👉 groupId usato per la nuova parcella:", fieldUser.groupId);

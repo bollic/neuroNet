@@ -37,6 +37,7 @@ async function loadParcellesFromApi() {
     label.textContent = newStatus;
   }
 }
+
 console.log("🔥 FILE dataAuthorParcelle.js CARICATO");
  // 🔥 GESTIONE CLICK BOTTONI POPUP (STATUS)
   export function attachPopupEvents({ parcelles, map}) {

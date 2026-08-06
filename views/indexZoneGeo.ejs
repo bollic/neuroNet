@@ -132,6 +132,9 @@ footer {
          <% } %>
           <!-- 3:  unica mappa -->
     <div id="content-sections" class="relative w-full">
+
+            <!-- Informations du groupe -->
+
       <!-- 🗺️ MAPPA -->
   <div id="map-section" class="relative flex-1">
   <div id="map" class="w-full h-full"></div>
@@ -143,6 +146,31 @@ footer {
     class="bg-white rounded-full w-12 h-12 shadow-lg">
     🔍
   </button>
+</div>
+<div id="layer-controls"
+     class="absolute top-4 right-4 z-[1000]
+            bg-white rounded-xl shadow-lg p-3">
+
+    <label class="flex items-center gap-2">
+        <input type="checkbox"
+               id="toggle-buildings"
+               checked>
+        🏢 Bâtiments
+    </label>
+    
+    <label class="flex items-center gap-2">
+        <input type="checkbox"
+               id="toggle-parking"
+               checked>
+        🚗 Parkings
+    </label>
+
+    <label class="flex items-center gap-2">
+        <input type="checkbox"
+               id="toggle-parks">
+        🌳 Parcs
+    </label>
+
 </div>
 <% if (mode === "field") { %>
       <div class="absolute top-4 right-4 z-[2000]">
@@ -210,13 +238,13 @@ footer {
 
 <div id="search-panel"
      class="hidden fixed
-            top-28 left-14
+            top-28 left-4
             z-[3500]
             w-56
             max-h-[70vh]
             overflow-y-auto
-            bg-white/70
-            backdrop-blur-sm
+            bg-white
+           
             rounded-xl
             shadow-xl
             p-3">

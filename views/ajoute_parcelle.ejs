@@ -66,14 +66,49 @@ async function updateGroupId(userId) {
   </form>
 </div>
 
+<script>
+  window.points = <%- JSON.stringify(points || []) %>;
+</script>
 
 <script defer>
+  console.log("POINTS:", window.points);
 document.addEventListener("DOMContentLoaded", function() {
   const map = L.map("map", { center: [46.2, 2.9], zoom: 5, tap: false });
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map);
 
   const drawnItems = new L.FeatureGroup().addTo(map);
   let markers = [];
+
+  window.points.forEach(pt => {
+  if (!pt.coordinates) return;
+
+  const [lng, lat] = pt.coordinates;
+
+  L.marker([lat, lng])
+    .addTo(map)
+    .bindPopup(pt.name || "Point");
+});
+// Centatura sui points
+const bounds = L.latLngBounds([]);
+
+window.points.forEach(pt => {
+  if (!pt.coordinates) return;
+
+  const [lng, lat] = pt.coordinates;
+  bounds.extend([lat, lng]);
+});
+
+if (bounds.isValid()) {
+  map.fitBounds(bounds, { padding: [150, 150] });
+
+  setTimeout(() => {
+   
+    map.setZoom(13);
+    console.log("ZOOM DOPO =", map.getZoom());
+  }, 300);
+}
+
+console.log(window.points[0])
 
   // Aggiungi marker singolo con click
   map.on("click", function(e) {

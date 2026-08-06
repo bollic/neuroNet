@@ -1,7 +1,7 @@
 // public/js/dataAuthorGeo.js
 import { loadCategories } from "./mapCommon.js";
 import { initializeMap, map } from "./mapCore.js";
-import { loadBaseLayers } from "./mapLayers.js";
+import { loadBaseLayers, getLayer } from "./mapLayers.js";
 import { updateMap, updateTable, resetMarkersMap, setUpdateMapDeps } from "./pointUtils.js";
 import { getMarker } from "./pointUtils.js";
 const points = window.points || [];
@@ -461,7 +461,20 @@ document.addEventListener("DOMContentLoaded", async function() {
 // -------------------
      
     await loadBaseLayers(map);
-
+        
+        [
+            "toggle-tresChaud",
+            "toggle-chaud",
+            "toggle-moyen",
+            "toggle-confortable",
+            "toggle-excellent"
+        ].forEach(id => {
+        
+            document.getElementById(id)?.addEventListener("change", e => {
+                updateMap();
+            });
+        
+        });
 
    /*     map.on("click", function (e) {
        // openOverlay(e.latlng.lat, e.latlng.lng, true);
@@ -504,7 +517,43 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     console.log("🧪 points dopo API:", points);
     
+  // -------------------
+// 4️⃣ Contrôle des couches
+// -------------------
 
+document
+    .getElementById("toggle-buildings")
+    ?.addEventListener("change", e => {
+
+        const layer = getLayer("buildings");
+
+        if (!layer) return;
+
+        if (e.target.checked)
+            map.addLayer(layer);
+        else
+            map.removeLayer(layer);
+
+    });
+
+document
+    .getElementById("toggle-parking")
+    ?.addEventListener("change", e => {
+
+        const layer = getLayer("parking");
+
+        if (!layer) return;
+
+        if (e.target.checked)
+            map.addLayer(layer);
+        else
+            map.removeLayer(layer);
+
+    });
+
+
+   
+console.log("🧪 points dopo API:", points);
     // -------------------
     // 4️⃣ Passa le dipendenze a pointUtils
     setUpdateMapDeps({

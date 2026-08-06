@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@paypal/checkout-server-sdk": "^1.0.3",
+    "@turf/turf": "^7.4.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "connect-mongo": "^5.1.0",
