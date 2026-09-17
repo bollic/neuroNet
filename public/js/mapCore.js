@@ -1,4 +1,4 @@
-// mapCore.js
+// public/js/mapCore.js
 
 export let map, layerGroup, drawnItems;
 export let pointsLayer, parcellesLayer;
@@ -12,53 +12,7 @@ let userMarker; // 👈 QUI (fuori da tutto)
 export function initializeMap() {
     // 1️⃣ Inizializza mappa
     map = L.map("map", { center: [43.2, 1.30], zoom: 10 });
-
-    const legend = L.control({ position: "topleft" });
-
-legend.onAdd = function () {
-  const div = L.DomUtil.create("div", "legend");
-  div.innerHTML = `
-
-  
-    <div style="
-      background:white;
-      padding:10px;
-      border-radius:10px;
-      box-shadow:0 2px 8px rgba(0,0,0,.2);
-      font-size:13px;
-      line-height:1.5;
-    ">
-      <strong>Indice de confort</strong><br>
-      <label class="flex items-center gap-2">
-                <input type="checkbox" id="toggle-tresChaud" checked>
-                🔴 Très chaud (0–2)
-            </label>
-
-            <label class="flex items-center gap-2">
-                <input type="checkbox" id="toggle-chaud" checked>
-                🟠 Chaud (3–4)
-            </label>
-
-            <label class="flex items-center gap-2">
-                <input type="checkbox" id="toggle-moyen" checked>
-                🟡 Moyen (5–6)
-            </label>
-
-            <label class="flex items-center gap-2">
-                <input type="checkbox" id="toggle-confortable" checked>
-                🟢 Confortable (7–8)
-            </label>
-
-            <label class="flex items-center gap-2">
-                <input type="checkbox" id="toggle-excellent" checked>
-                🌿 Excellent (9–10)
-            </label>
-    </div>
-  `;
-  return div;
-};
-
-legend.addTo(map);
+   // const isObservation = window.GROUP_TYPE === "observation";
 
         // 👇 BLOCCA propagazione eventi Leaflet → DOM
               const drawerCheckbox = document.getElementById("my-drawer");

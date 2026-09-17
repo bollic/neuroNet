@@ -124,10 +124,9 @@ app.use((req, res, next) => {
 
 // LOG USER (non tocca la sessione)
 app.use((req, res, next) => {
-  console.log("💡 User loggato:", req.session.user?.email || "NO");
+  console.log("💡 User loggato:", req.session.user?.pseudonyme || "NO");
   next();
 });
-
 // LOG REQUEST
 app.use((req, res, next) => {
   console.log(`➡️  REQUEST: ${req.method} ${req.originalUrl}`);

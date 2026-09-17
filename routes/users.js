@@ -37,8 +37,8 @@ router.get("/login", (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  console.log('Tentativo di login con:', email);
+  const { pseudonyme, password } = req.body;
+  console.log('Tentativo di login con:', pseudonyme);
   console.log('🧪 Password in chiaro dal form:', password);
 
   // Caso 1: SINGLE_USER (admin hardcoded)
@@ -80,12 +80,27 @@ router.post('/login', async (req, res) => {
 */
   // Caso 2: utente dal DB
   try {
-    const userFromDb = await User.findOne({ email });
+    console.log("🔎 LOGIN - pseudonyme ricevuto:", pseudonyme);
+
+const tuttiGliUtenti = await User.find({}, {
+  pseudonyme: 1,
+  email: 1,
+  role: 1,
+  groupId: 1
+}).lean();
+
+console.log("🔎 UTENTI PRESENTI NEL DB:");
+console.log(tuttiGliUtenti);
+
+    const userFromDb = await User.findOne({   $or: [
+    { pseudonyme: pseudonyme },
+    { email: pseudonyme }
+  ] });
     if (!userFromDb) {
       console.log('Email non trovata nel DB');
       return res.status(401).render('login', {
         title: 'Connexion',
-        error: "Adresse email ou mot de passe incorrect.",
+        error: "Pseudonyme ou mot de passe incorrect.",
         success: null,
         role: req.query.role || null
       });   
@@ -117,7 +132,9 @@ if (userFromDb.role === 'office' && userFromDb.groupId) {
     groupPlan = group.plan;
   }
 }
-
+    console.log("🔎 USER FROM DB COMPLETO:", userFromDb);
+console.log("🔎 userFromDb.pseudonyme:", userFromDb.pseudonyme);
+console.log("🔎 userFromDb.email:", userFromDb.email);
     // rigenera sessione
     req.session.regenerate(function (err) {
       if (err) {
@@ -128,14 +145,15 @@ if (userFromDb.role === 'office' && userFromDb.groupId) {
   // 1️⃣ imposta user in sessione
       req.session.user = {
         _id: userFromDb._id,
-        email: userFromDb.email,
+       pseudonyme: userFromDb.pseudonyme || userFromDb.email,
+
         role: userFromDb.role,
         groupId: userFromDb.groupId,
         isAdmin: userFromDb.role === 'admin',
         xp: userXp,
        plan: groupPlan        // ⭐ QUI
       };
-
+      console.log("🔎 SESSION USER DOPO LOGIN:", req.session.user);
      // 2️⃣ calcola redirect PRIMA del save
       let redirectTo = req.session.redirectTo;
       if (!redirectTo) {
@@ -357,14 +375,14 @@ if (role === "field" && group) {
 
 // Traitement du formulaire de signup
 router.post('/signup', async (req, res) => {
-  const { email, password, role, group, groupName, groupType } = req.body;
+  const { pseudonyme, password, role, group, groupName, groupType } = req.body;
   const groupId = (group || "").trim();
 
   // console.log("🧪 Tipo gruppo scelto:", groupType);
     // 🔹 Log del gruppo ricevuto
  // console.log('🔹 POST signup, gruppo scelto:', group);
   console.log('📨 [SIGNUP] Richiesta ricevuta');
-  console.log('📨 [SIGNUP] Email:', email);
+console.log('📨 [SIGNUP] Pseudonyme:', pseudonyme);
   console.log('📨 [SIGNUP] Password in chiaro dal form:', password);
   console.log('📨 [SIGNUP] Ruolo scelto:', role);
   /*
@@ -391,12 +409,12 @@ const fieldCheck = await checkFieldLimit(groupId, 1);
 
 }
     // Vérifier si l'user existe déjà
-    const existingUser = await User.findOne({ email });
-    console.log('🔍 [SIGNUP] Controllo utente esistente per:', email);
+    const existingUser = await User.findOne({ pseudonyme });
+    console.log('🔍 [SIGNUP] Controllo utente esistente per:', pseudonyme );
     if (existingUser) {
-       console.log('⚠️ [SIGNUP] Email già presente nel DB:', email);
+       console.log('⚠️ [SIGNUP] Email già presente nel DB:', pseudonyme );
     return res.render('signup', {
-      error: 'Cet email est déjà utilisé.',
+      error: 'Cet pseudonyme est déjà utilisé.',
       role: role || 'field',
          group,
         groups: await User.find({ role: 'office' }).distinct('groupId')
@@ -426,8 +444,7 @@ const generatedGroupId = role === 'office'
   : group || null;
 
 const newUser = new User({
- 
-  email: email,
+  pseudonyme: pseudonyme,
   password: hashedPassword,
   role: ['office', 'field'].includes(role) ? role : 'field',
   categories: inheritedCategories,
@@ -468,7 +485,7 @@ console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);
     // Stocker les informations user dans la session
     req.session.user = {
     _id: newUser._id,  
-    email: newUser.email,
+    pseudonyme: newUser.pseudonyme,
     role: newUser.role,
     groupId: newUser.groupId,
     isAdmin: newUser.role === 'admin',
@@ -620,10 +637,10 @@ router.get('/del/:id', async (req, res) => {
       console.log('user non trovato per ID:', id);
       return res.status(404).send('user non trovato');
     }
-    console.log('User eliminato:', deletedUser.email);
+    console.log('User eliminato:', deletedUser.pseudonyme);
     // 2) Elimina tutti gli articoli di quell'utente
     const result = await PointModel.deleteMany({ user: id });
-    console.log(`Eliminati ${result.deletedCount} articoli di ${deletedUser.email}`);
+    console.log(`Eliminati ${result.deletedCount} articoli di ${deletedUser.pseudonyme}`);
 
     // 3) Redirect alla lista utenti
     return res.redirect('/users');

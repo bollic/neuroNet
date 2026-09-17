@@ -1,5 +1,10 @@
-<%- include('layout/headerZoneParcelle') %>
-
+ <!-- views/indexZoneCombined.ejs -->
+<%- include('layout/headerZoneGeo') %>
+<script>
+  window.APP_VIEW = "<%= mode %>";
+  window.APP_MODE = "<%= mode %>";
+  window.GROUP_TYPE = "<%= group.groupType %>";
+</script>
 <style>
   html, body { height: 100%; }
   #map { height: 80vh; width: 100%; }
@@ -7,7 +12,6 @@
 </style>
 
 <div class="flex flex-row h-[80vh]">
-  <!-- Drawer -->
   <div class="drawer drawer-start drawer-mobile md:drawer-open">
     <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
@@ -21,40 +25,77 @@
           <i class="fas fa-plus"></i> Ajouter une parcelle
         </button>
       </a>
+      <div class="fixed top-36 left-4 z-[3000]">
+        <button
+          id="search-btn"
+          class="bg-white rounded-full w-12 h-12 shadow-lg">
+          🔍
+        </button>
+      </div>
+
+                
+          <div id="search-panel"
+              class="hidden fixed
+                      top-28 left-4
+                      z-[3500]
+                      w-56
+                      max-h-[70vh]
+                      overflow-y-auto
+                      bg-white                    
+                      rounded-xl
+                      shadow-xl
+                      p-3">
+                      <button id="close-search"
+                        class="absolute top-2 right-3 text-xl font-bold">
+                        ✕</button>
+
+                  
+  <%- include('partials/listCombined') %>
+                          
+
+          </div>
+
+      <%- include('partials/layerControls') %>
     </div>
 
     <!-- Sidebar -->
     <div class="drawer-side">
       <label for="my-drawer" class="drawer-overlay"></label>
-      <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
-        
-        <h3 class="font-semibold mb-3">Mes Zones</h3>
-        <% if (parcelles && parcelles.length > 0) { %>
-          <ul>
-            <% parcelles.forEach((p, idx) => { %>
-              <li><%= idx+1 %> - <%= p.name %></li>
-            <% }) %>
-          </ul>
-        <% } else { %>
-          <div>Aucune parcelle trouvée</div>
-        <% } %>
-
-        <h3 class="font-semibold mt-6 mb-3">Mes Points (esempio)</h3>
-        <% if (points && points.length > 0) { %>
-          <ul>
-            <% points.slice(0,3).forEach((pt, idx) => { %>
-              <li><%= idx+1 %> - <%= pt.name || 'Point' %></li>
-            <% }) %>
-          </ul>
-        <% } else { %>
-          <div>Aucun point trouvé</div>
-        <% } %>
-
+      <aside class="hidden md:block w-80 bg-base-200 p-4 overflow-y-auto">   
+    
+  <%- include('partials/listCombined') %>
       </aside>
     </div>
   </div>
 </div>
+<script>
+  
+// Apertura / chiusura pannello con la lente
+document.getElementById("search-btn")
+  ?.addEventListener("click", () => {
+    document
+      .getElementById("search-panel")
+      ?.classList.toggle("hidden");
 
+        document
+      .getElementById("search-label")
+      ?.classList.toggle("hidden");
+  });
+
+// Chiusura con la X
+document.getElementById("close-search")
+  ?.addEventListener("click", () => {
+
+    document
+      .getElementById("search-panel")
+      ?.classList.add("hidden");
+
+    document
+      .getElementById("search-label")
+      ?.classList.add("hidden");
+
+  });
+</script>
 <script>
   window.parcelles = <%- JSON.stringify(parcelles || []) %>;
   window.points = <%- JSON.stringify(points || []) %>;

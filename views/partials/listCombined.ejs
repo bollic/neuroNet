@@ -1,0 +1,36 @@
+ 
+ <!-- views/partials/listCombined.ejs -->
+
+<h3 class="font-semibold mb-3">Mes Zones</h3>
+
+<% if (parcelles && parcelles.length > 0) { %>
+  <ul class="space-y-2 text-sm">
+    <% parcelles.forEach((p, idx) => { %>
+      <li class="border-b pb-1">
+        <span class="font-medium"><%= idx + 1 %>.</span>
+        <%= p.name %>
+      </li>
+    <% }) %>
+  </ul>
+<% } else { %>
+  <div class="text-sm text-gray-500">
+    Aucune zone trouvée
+  </div>
+<% } %>
+
+<h3 class="font-semibold mt-6 mb-3">📍 Mes Points</h3>
+
+<% if (points && points.length > 0) { %>
+  <ul class="space-y-2 text-sm">
+    <% points.slice(0,3).forEach((pt, idx) => { %>
+      <li class="border-b pb-1">
+        <span class="font-medium"><%= idx + 1 %>.</span>
+        <%= pt.name || "Point" %>
+      </li>
+    <% }) %>
+  </ul>
+<% } else { %>
+  <div class="text-sm text-gray-500">
+    Aucun point trouvé
+  </div>
+<% } %>

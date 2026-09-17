@@ -11,6 +11,9 @@ const PointModel = require('../models/Point');
 const ParcelleModel = require('../models/Parcelle'); 
 const turf = require("@turf/turf");
 const Group = require('../models/Group');
+const ObservationForm = require('../models/ObservationForm');
+
+
 const {
   isAuthenticated,
   onlyField,
@@ -235,7 +238,7 @@ router.put('/points/:pointId', isAuthenticated, onlyField, uploadSingle, async (
       return res.status(400).json({ message: "ID non valido" });
     }
 
-    const { name, point, category, description } = req.body || {};
+    const { name, point, category, description, attributes } = req.body || {};
     console.log("🧾 Dati dal form:", { name, point, category, description });
     console.log("🧾 Body ricevuto:", req.body);
     console.log("📷 File ricevuto:", req.file ? req.file.filename : "❌ nessun file");
@@ -247,7 +250,13 @@ router.put('/points/:pointId', isAuthenticated, onlyField, uploadSingle, async (
       return res.status(401).json({ message: "Utente non trovato" });
     }
     console.log("✅ Utente trovato:", fieldUser.email, "| groupId:", fieldUser.groupId);
+    const group = await Group.findOne({ groupId });
 
+if (!group) {
+  return res.status(400).json({ message: "Groupe introuvable" });
+}
+
+console.log("🧪 GROUP TYPE:", group.groupType);
     // Recupera office dello stesso gruppo
     const office = await User.findOne({ role: "office", groupId: fieldUser.groupId });
     if (!office) {
@@ -268,39 +277,27 @@ router.put('/points/:pointId', isAuthenticated, onlyField, uploadSingle, async (
     // Parsing GeoJSON
     const { lng, lat } = parsePointGeoJSON(point);
     console.log("📍 Coordinate aggiornate:", { lng, lat });
-    console.log("TEMPERATURE DAL BODY =", req.body.temperature);
+   
     // Aggiorna il punto solo se appartiene all’utente
-    const updatedPoint = await PointModel.findOneAndUpdate(
-      { _id: pointId, user: userId },
-      {
-        name,
-      
-        description,
-        category: cleanCategory,
-        coordinates: [lng, lat],
-        icon,
-          "attributes.climate.temperature": req.body.temperature || null,
-           "attributes.climate.interieurTemperature": req.body.interieurTemperature || null,
-  "attributes.climate.humidite": req.body.humidite || null,
+const updateData = {
+  name,
+  description,
+  category: cleanCategory,
+  coordinates: [lng, lat],
+  icon,
 
-  "attributes.environment.surface": req.body.surface || "",
-  "attributes.environment.trees": !!req.body.trees,
-  "attributes.environment.shade": !!req.body.shade,
-  "attributes.environment.water": !!req.body.water,
+  ...(req.file ? { image: `/uploads/${req.file.filename}` } : {})
+};
 
-  "attributes.building.etage": req.body.etage || null,
-  "attributes.building.exposition": req.body.exposition || null,
-  "attributes.building.volets": !!req.body.volets,
-  "attributes.building.airConditioning": !!req.body.airConditioning,
-  "attributes.building.dernierEtage": !!req.body.dernierEtage,
-  "attributes.building.toitSansOmbrage": !!req.body.toitSansOmbrage,
-  "attributes.building.toitBlanc": !!req.body.toitBlanc,
+if (group.groupType === "observation") {
+  updateData.attributes = attributes || {};
+}
 
-        
-        ...(req.file ? { image: `/uploads/${req.file.filename}` } : {})
-      },
-      { new: true }
-    );
+const updatedPoint = await PointModel.findOneAndUpdate(
+  { _id: pointId, user: userId },
+  updateData,
+  { new: true }
+);
 
     if (!updatedPoint) {
       console.warn("❌ Punto non trovato o non autorizzato:", pointId);
@@ -309,7 +306,7 @@ router.put('/points/:pointId', isAuthenticated, onlyField, uploadSingle, async (
     // 🔹 QUI POPOLI user
       await updatedPoint.populate('user', 'email role');
 
-console.log("ATTRIBUTES SALVATI =", updatedPoint.attributes);
+
     // Aggiorna XP utente (conteggio punti)
     fieldUser.xp = await PointModel.countDocuments({ user: fieldUser._id });
     await fieldUser.save();
@@ -436,7 +433,7 @@ router.get('/groups/:groupId', async (req, res) => {
     // Recupera membri e punti
     const groupMembers = await User.find({ groupId });
     const points = await PointModel.find({ groupId });
-
+    const observationForm = await ObservationForm.findOne({ groupId });
     // Render
     res.render('group-detail', {
       groupId,
@@ -444,7 +441,8 @@ router.get('/groups/:groupId', async (req, res) => {
       members: groupMembers,
       points,
       user,
-      isGroupOffice
+      isGroupOffice,
+      observationForm
     });
 
   } catch (err) {
@@ -491,10 +489,93 @@ router.post('/groups/:groupId/updateInfo', async (req, res) => {
      // console.log("GROUP SALVATO:", updated);
       res.redirect(`/groups/${groupId}`);
     });
+// 💾 Sauvegarder le formulaire d'observation
+router.post('/groups/:groupId/observation-form', async (req, res) => {
+  const { groupId } = req.params;
+  const { label, type, required } = req.body;
+
+  const user = req.session.user;
+
+  // 🔐 Contrôle des permissions
+  if (
+    !user ||
+    (user.role !== 'admin' &&
+      !(user.role === 'office' && user.groupId === groupId))
+  ) {
+    return res.status(403).send("Non hai i permessi per configurare questo formulario");
+  }
+
+  // 🔎 Vérification du groupe
+  const group = await Group.findOne({ groupId });
+
+  if (!group) {
+    return res.status(404).send("Groupe introuvable");
+  }
+
+  // 🔎 Le formulaire est réservé aux groupes Observation
+  if (group.groupType !== 'observation') {
+    return res.status(400).send("Ce groupe n'est pas un groupe Observation");
+  }
+
+  // 🔎 Vérification du champ
+  if (!label || !label.trim()) {
+    return res.status(400).send("Le nom du champ est obligatoire");
+  }
+
+  const allowedTypes = ['text', 'number', 'boolean', 'select'];
+
+  if (!allowedTypes.includes(type)) {
+    return res.status(400).send("Type de champ invalide");
+  }
+
+  // 💾 Création ou récupération du formulaire
+  let observationForm = await ObservationForm.findOne({ groupId });
+
+  if (!observationForm) {
+    observationForm = new ObservationForm({
+      groupId,
+      fields: []
+    });
+  }
+
+  // ➕ Ajout du champ
+  observationForm.fields.push({
+    name: label
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '_'),
+
+    label: label.trim(),
+
+    type,
+
+    required: required === 'on',
+
+    options: []
+  });
+
+  await observationForm.save();
+
+  console.log("💾 FORMULAIRE OBSERVATION :", observationForm);
+
+  res.redirect(`/groups/${groupId}`);
+});
 
 router.get('/indexZoneCombined', isAuthenticated, onlyField, async (req, res) => {
   try {
     const user = req.session.user;
+
+       console.log("🧪 FIELD user:", user.pseudonyme, "groupId:", user.groupId);
+
+    // 🔍 Recupera il gruppo
+    const group = await Group.findOne({ groupId: user.groupId });
+    
+    console.log("🧪 GROUP:", group);
+console.log("🧪 GROUP TYPE:", group.groupType);
+   
+    if (!group) {
+      return res.status(400).send("Gruppo non trovato");
+    }
 
     // 🌿 Parcelles
     const parcelles = await ParcelleModel
@@ -515,10 +596,12 @@ router.get('/indexZoneCombined', isAuthenticated, onlyField, async (req, res) =>
     const categories = referenteOffice?.categories || [];
 
     res.render('indexZoneCombined', {
-      user,
        mode: "field",
+      user,
+  
       parcelles,
       points,
+      group,
       categories
     });
 
@@ -559,6 +642,16 @@ router.get('/indexZoneParcelle', isAuthenticated, onlyField, async (req, res) =>
   }
 
   try {
+
+        // 🔍 Recupera il gruppo
+    const group = await Group.findOne({
+      groupId: user.groupId
+    }).lean();
+
+    if (!group) {
+      return res.status(400).send("Gruppo non trovato");
+    }
+ // 🌿 Parcelles dell'utente
  const parcelles = await ParcelleModel.find({ user: user._id }).populate('user').lean();
 
      // ✅ recupera l'office del gruppo
@@ -576,6 +669,8 @@ const showWelcomeAddPoint = parcelleCount === 0;
       user,
       mode: "field",
       session: req.session,
+     // ⭐ AGGIUNTO
+      group,
       parcelles,
       categories,
          // 👇 DECISIONE QUI
@@ -671,7 +766,7 @@ router.get('/api/driver-position', isAuthenticated, async (req, res) => {
     groupId: req.session.user.groupId
   });
 
-  res.json(group.driverPosition || null);
+  res.json(group?.tournee?.driverPosition || null);
 });
 
 router.post('/update-driver-position',  isAuthenticated,
@@ -688,14 +783,14 @@ const group = await Group.findOne({
   groupId: req.session.user.groupId
 });
 
-const oldLat = group?.driverPosition?.lat;
-const oldLng = group?.driverPosition?.lng;
+const oldLat = group?.tournee?.driverPosition?.lat;
+const oldLng = group?.tournee?.driverPosition?.lng;
 
 // salva la nuova posizione
 await Group.updateOne(
   { groupId: req.session.user.groupId },
   {
-    driverPosition: {
+    'tournee.driverPosition': {
       lat,
       lng,
       updatedAt: new Date()
@@ -717,6 +812,102 @@ if (
 }
 
   res.json({ success: true });
+});
+
+
+router.post('/start-tournee', isAuthenticated, onlyOffice, async (req, res) => {
+
+  try {
+
+    const group = await Group.findOne({
+      groupId: req.session.user.groupId
+    });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: "Groupe introuvable"
+      });
+    }
+
+    // Avvia la tournée
+    group.tournee = group.tournee || {};
+
+    group.tournee.active = true;
+    group.tournee.startedAt = new Date();
+    group.tournee.startedBy = req.session.user._id;
+
+    await group.save();
+
+    console.log(
+      "🚚 Tournée démarrée pour le groupe:",
+      group.groupId,
+      "par:",
+      req.session.user.pseudonyme || req.session.user.email
+    );
+
+    res.json({
+      success: true,
+      tournee: group.tournee
+    });
+
+  } catch (err) {
+
+    console.error("❌ Erreur démarrage tournée:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors du démarrage de la tournée"
+    });
+
+  }
+
+});
+
+router.post('/stop-tournee', isAuthenticated, onlyOffice, async (req, res) => {
+
+  try {
+
+    const group = await Group.findOne({
+      groupId: req.session.user.groupId
+    });
+
+    if (!group) {
+      return res.status(404).json({
+        success: false,
+        message: "Groupe introuvable"
+      });
+    }
+
+    group.tournee = group.tournee || {};
+
+    group.tournee.active = false;
+
+    await group.save();
+
+    console.log(
+      "🛑 Tournée arrêtée pour le groupe:",
+      group.groupId,
+      "par:",
+      req.session.user.pseudonyme || req.session.user.email
+    );
+
+    res.json({
+      success: true,
+      tournee: group.tournee
+    });
+
+  } catch (err) {
+
+    console.error("❌ Erreur arrêt tournée:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de l'arrêt de la tournée"
+    });
+
+  }
+
 });
 
 router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
@@ -746,10 +937,9 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
     console.log("👥 Utenti field trovati:", fieldUsers.length);
 
     const fieldUserIds = fieldUsers.map((u) => u._id); // ObjectId, NON string
-    const pointsRaw = await PointModel.find({
-      // user: { $in: fieldUserIds },
-      groupId: currentUser.groupId
-    }).populate('user', 'email');
+   const pointsRaw = await PointModel.find({
+        groupId: currentUser.groupId
+      }).populate('user', '_id pseudonyme role');
     // QUI? 
     // 👇 aggiungi qui i log di debug
     console.log('📍 Punti trovati dopo il filtro:', pointsRaw.length);
@@ -767,7 +957,8 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
           category: p.category,
           attributes: p.attributes,
           coordinates: p.coordinates || [], // necessario per Leaflet
-          description: p.description || "",          
+          description: p.description || "", 
+
           createdAtFormatted: date
             ? date.toLocaleString("it-IT", {
                 day: "2-digit",
@@ -780,7 +971,7 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
 
           createdAtISO: date ? date.toISOString().slice(0, 10) : "", // 👈 campo nascosto per filtro DataTables
           userId: p.user ? p.user._id.toString() : null,
-          userEmail: p.user ? p.user.email : "Signalements rapides"
+          pseudonyme: p.user? p.user.pseudonyme: "Signalements rapides"
         };
       });
       points.forEach(p => {
@@ -791,12 +982,12 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
       // Raggruppa i punti per ciascun field
        const pointsByField = fieldUsers.map(f => ({
           userId: f._id.toString(),
-          email: f.email,
+          pseudonyme: f.pseudonyme,
           points: points.filter(p => p.userId === f._id.toString())
         }));
         pointsByField.push({
             userId: null,
-            email: "📍 Signalements publics",
+            pseudonyme: "📍 Signalements publics",
             points: points.filter(p => p.userId === null)
         });
         console.log("📦 pointsByField:");
@@ -834,6 +1025,7 @@ const showOfficeEmptyState = points.length === 0;
         user: req.session.user,
           group,
         groupId: currentUser.groupId,
+     
         plan: currentPlan,
         showOfficeEmptyState,    
         justCreatedGroup,
@@ -964,7 +1156,7 @@ router.get('/indexZoneGeo', isAuthenticated, onlyField, async (req, res) => {
   try {
     const user = req.session.user;
 
-    console.log("🧪 FIELD user:", user.email, "groupId:", user.groupId);
+    console.log("🧪 FIELD user:", user.pseudonyme, "groupId:", user.groupId);
 
     // 🔍 Recupera il gruppo
     const group = await Group.findOne({ groupId: user.groupId });
@@ -975,7 +1167,16 @@ console.log("🧪 GROUP TYPE:", group.groupType);
     if (!group) {
       return res.status(400).send("Gruppo non trovato");
     }
+    // 🧩 Form Observation configurato per questo gruppo
+    let observationForm = null;
 
+    if (group.groupType === "observation") {
+      observationForm = await ObservationForm.findOne({
+        groupId: user.groupId
+      });
+
+      console.log("🧩 ObservationForm:", observationForm);
+    }
         // 👇 AGGIUNGI QUESTO
     const points = await PointModel.find({
       groupId: user.groupId
@@ -1017,12 +1218,14 @@ const isFirstSignalement = pointsXp === 0;
       plan,
       pointLimit,
       group,
+      formType: group.formType,
       pointsXp,        // 👈 SOLO punti
       parcelleXp,      // 👈 SOLO parcelle
       PointsUsed,      // 👈 TOTALE (per il limite)
       planUX,      // <-- QUI
         points, // 👈 ORA VERO
       categories, // <-- aggiungi qui
+      observationForm,
        // 👇 DECISIONE QUI
       showWelcomeAddPoint: isFirstSignalement
     });
@@ -1331,6 +1534,7 @@ router.delete("/service/point/:pointId", isAuthenticated, onlyOffice, async (req
     }
 
 });
+
 router.post("/service/addPoint", uploadSingle, async (req, res) => {
   try {
 
@@ -1421,44 +1625,17 @@ router.post('/addPoint', isAuthenticated, onlyField, uploadSingle, async (req, r
     console.log("🏷️ groupId dalla sessione:", groupId);
     console.log("📷 File ricevuto:", req.file ? req.file.filename : "❌ nessun file");
    
-   const { 
-  name, 
-  point, 
-  category, 
-  description,
-  temperature,
-  interieurTemperature,
-  humidite,
-  wind,
-  surface,
-  trees,
-  shade,
-  water,
-  etage,
-  dernierEtage,
-  toitSansOmbrage,
-  toitBlanc,
-  exposition,
-  volets,
-  airConditioning
-
+const {
+  name,
+  point,
+  category,
+  description
 } = req.body;
- //   const { name, point, category, description } = req.body;
-    console.log("🧾 Tutto il body ricevuto:", req.body);
-    console.log("🌡 Observation data:", {
-  temperature,
-   interieurTemperature,
-  humidite,
-  wind,
-  surface,
-  trees,
-  shade,
-  water,
-  etage,
-  volets,
-  airConditioning
-});
-    
+
+// 🔄 FASE DI TRANSIZIONE:
+// per il momento recuperiamo ancora i vecchi campi
+// perché observationFields.ejs li invia ancora direttamente.
+   
     // Recupera utente field
 
     const fieldUser = await getUserById(userId);
@@ -1477,6 +1654,118 @@ if (!group) {
 }
 
 console.log("🏷️ Piano del gruppo:", group.plan);
+
+// 🧩 Form Observation configurato per questo gruppo
+let observationForm = null;
+
+if (group.groupType === "observation") {
+  observationForm = await ObservationForm.findOne({ groupId });
+
+  if (!observationForm) {
+    return res.status(400).json({
+      success: false,
+      message: "Aucun formulaire d'observation configuré pour ce groupe"
+    });
+  }
+
+  console.log("🧩 ObservationForm trouvé:", observationForm._id);
+}
+
+ const observationData = req.body.observation || {};
+
+// 🔐 Valida e normalizza i campi Observation
+let cleanObservationData = {};
+
+if (group.groupType === "observation") {
+
+  for (const field of observationForm.fields) {
+
+    const fieldName = field.name;
+
+    // Il Field ha inviato questo campo?
+    const hasValue = Object.prototype.hasOwnProperty.call(
+      observationData,
+      fieldName
+    );
+
+    // Campo obbligatorio
+    if (field.required && !hasValue) {
+      return res.status(400).json({
+        success: false,
+        message: `Le champ "${field.label}" est obligatoire.`
+      });
+    }
+
+    // Se non è stato inviato e non è obbligatorio,
+    // non lo aggiungiamo agli attributes
+    if (!hasValue) {
+      continue;
+    }
+
+    let value = observationData[fieldName];
+
+    // 🔢 NUMBER
+    if (field.type === "number") {
+
+      if (value === "") {
+        value = null;
+      } else {
+        value = Number(value);
+
+        if (Number.isNaN(value)) {
+          return res.status(400).json({
+            success: false,
+            message: `Valeur invalide pour "${field.label}".`
+          });
+        }
+      }
+    }
+
+    // ☑️ BOOLEAN
+    else if (field.type === "boolean") {
+
+      if (value === true || value === "true") {
+        value = true;
+      } else if (value === false || value === "false") {
+        value = false;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: `Valeur invalide pour "${field.label}".`
+        });
+      }
+    }
+
+    // 🔤 TEXT
+    else if (field.type === "text") {
+      value = String(value);
+    }
+
+    // 📋 SELECT
+    else if (field.type === "select") {
+
+      value = String(value);
+
+      if (
+        field.options &&
+        field.options.length > 0 &&
+        !field.options.includes(value)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: `Valeur non autorisée pour "${field.label}".`
+        });
+      }
+    }
+
+    cleanObservationData[fieldName] = value;
+  }
+}
+
+console.log("🧩 Observation data ricevuta:", observationData);
+console.log("🧹 Observation data pulita:", cleanObservationData);
+console.log("🧾 Tutto il body ricevuto:", req.body);
+console.log("🧩 Observation data ricevuta:", observationData);
 // 🔐 Controllo limite piano (1 punto = 1)
 const planCheck = await checkPlanLimit(userId, groupId, 1);
 
@@ -1535,33 +1824,13 @@ console.log("Coordinate [lng, lat]:", [lng, lat]);
 console.log("File immagine:", req.file ? req.file.filename : "❌ nessun file");
 console.log("GroupId:", groupId || fieldUser.groupId);
 console.log("Icon:", icon);
-console.log("🌍 ATTRIBUTES:", {
-  climate: {
-    temperature,
-    interieurTemperature,
-    humidite,
-    wind
-  },
-  environment: {
-    surface,
-    trees,
-    shade,
-    water
-  },
-  building: {
-    volets,
-    etage,
-    dernierEtage,
-    toitSansOmbrage,
-    toitBlanc,
-    airConditioning
-  }
-});  
+
   // ✅ Crea il punto nel DB
 const newPoint = await PointModel.create({
 
     user: userId,
     source: "field",
+
     name,
     category: cleanCategory,
     description,
@@ -1574,41 +1843,15 @@ const newPoint = await PointModel.create({
 
     icon,
 
-
-    attributes: {
-
-      climate: {
-        temperature: temperature ? Number(temperature) : null,
-        interieurTemperature: interieurTemperature ? Number(interieurTemperature) : null,
-        humidite: humidite ? Number(humidite) : null,
-        wind: wind ? Number(wind) : null
-      },
-
-      environment: {
-        surface: surface || "",
-        trees: trees === "on",
-        shade: shade === "on",
-        water: water === "on"
-      },
-
-      building: {
-          etage: etage ? Number(etage) : null,
-
-           dernierEtage: dernierEtage === "on",
-           toitSansOmbrage: toitSansOmbrage === "on",
-           toitBlanc: toitBlanc === "on",
-
-          exposition: exposition || null,
-          
-        volets: volets === "on",
-        airConditioning: airConditioning === "on"
-      }
-
-    }
+   attributes: cleanObservationData
+// tolgo attributes : climate, ..
 
 });
 
   fieldUser.xp = await PointModel.countDocuments({ user: fieldUser._id });
+  if (!fieldUser.pseudonyme) {
+    fieldUser.pseudonyme = fieldUser.email;
+  }
   await fieldUser.save();
   req.session.user.xp = fieldUser.xp;
 
@@ -1621,7 +1864,8 @@ const newPoint = await PointModel.create({
     coordinates: newPoint.coordinates,
     groupId: newPoint.groupId,
     user: newPoint.user.toString(),
-    image: newPoint.image
+    image: newPoint.image,
+    attributes: newPoint.attributes
   });
 
 // 🔹 Conteggio corretto dei punti del field

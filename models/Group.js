@@ -25,12 +25,20 @@ const GroupSchema = new mongoose.Schema({
       ],
       default: "community"
     },
-    
-  driverPosition: {
-  lat: Number,
-  lng: Number,
-  updatedAt: Date
-},
+  
+    tournee: {
+      active: Boolean,
+      startedAt: Date,
+      startedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      driverPosition: {
+        lat: Number,
+        lng: Number,
+        updatedAt: Date
+      }
+    },
   
   // 👇 NUOVI CAMPI
   planUpdatedAt: {

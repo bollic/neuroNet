@@ -133,6 +133,35 @@ export async function loadBaseLayers(map) {
   await loadRoads(map);
   await loadBikePaths(map);
 
+  // -------------------
+  // Contrôle des couches
+  // -------------------
+
+  [
+    ["toggle-buildings", "buildings"],
+    ["toggle-parking", "parking"],
+    ["toggle-roads", "roads"],
+    ["toggle-bikePaths", "bikePaths"]
+  ].forEach(([checkboxId, layerName]) => {
+
+    document
+      .getElementById(checkboxId)
+      ?.addEventListener("change", e => {
+
+        const layer = getLayer(layerName);
+
+        if (!layer) return;
+
+        if (e.target.checked) {
+          map.addLayer(layer);
+        } else {
+          map.removeLayer(layer);
+        }
+
+      });
+
+  });
+
 }
 
 export function getLayer(name) {

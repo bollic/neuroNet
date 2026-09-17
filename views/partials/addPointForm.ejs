@@ -34,9 +34,13 @@
     </select>
   </div>
 
-  
-  <!-- Campi specifici del gruppo -->
+<!-- Campi specifici del gruppo -->
+
+<% if (group && group.groupType === "observation") { %>
+
   <%- include("form/observationFields") %>
+
+<% } %>
 
   <div class="mb-1">
  <textarea

@@ -11,6 +11,29 @@ export let parcellesLayer = null;
 export let highlightTableRow = () => {};
 
 const parcellesLayersMap = new Map();
+
+export function highlightParcelleOnMap(parcelleId, highlight = true) {
+    const geoLayer = parcellesLayersMap.get(String(parcelleId));
+
+    if (!geoLayer) {
+        console.log("❌ Layer Parcelle non trovato:", parcelleId);
+        return;
+    }
+
+    geoLayer.eachLayer((layer) => {
+        if (highlight) {
+            layer.setStyle({
+                weight: 5,
+                fillOpacity: 0.5
+            });
+        } else {
+            layer.setStyle({
+                weight: 3,
+                fillOpacity: 0.2
+            });
+        }
+    });
+}
 // Funzione per reiniettare le dipendenze
 export function setParcellesDeps(deps) {
     map = deps.map || map;

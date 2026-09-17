@@ -15,7 +15,8 @@ router.get('/', isAuthenticated, async (req, res) => {
 
   console.log(
     "🌿 API /parcelles user:",
-    user.email,
+ 
+     user.pseudonyme,
     "groupId:",
     user.groupId
   );

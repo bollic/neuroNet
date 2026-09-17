@@ -1,0 +1,41 @@
+<!-- views/partials/listParcelle.ejs -->
+
+<h3 class="font-semibold mb-3">Mes Parcelles</h3>
+
+<% if (parcelles && parcelles.length > 0) { %>
+
+  <ul class="space-y-2 text-sm">
+
+    <% parcelles.forEach((parcelle, index) => { %>
+
+      <li
+        class="parcelle-item border-b pb-1 cursor-pointer"
+        data-id="<%= parcelle._id %>"
+      >
+
+        <span class="font-medium">
+          <%= index + 1 %>.
+        </span>
+
+        <%= parcelle.name %>
+
+        <a
+          href="/delete-parcelle/<%= parcelle._id %>"
+          class="ml-2 text-red-600"
+        >
+          🗑
+        </a>
+
+      </li>
+
+    <% }) %>
+
+  </ul>
+
+<% } else { %>
+
+  <div class="text-sm text-gray-500">
+    Aucune parcelle trouvée 🌱
+  </div>
+
+<% } %>

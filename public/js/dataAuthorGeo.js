@@ -1,13 +1,14 @@
 // public/js/dataAuthorGeo.js
 import { loadCategories } from "./mapCommon.js";
 import { initializeMap, map } from "./mapCore.js";
-import { loadBaseLayers, getLayer } from "./mapLayers.js";
+import { loadBaseLayers } from "./mapLayers.js";
 import { updateMap, updateTable, resetMarkersMap, setUpdateMapDeps } from "./pointUtils.js";
+import { initMobileServiceTracking } from "./mobileService.js";
+import { initObservation } from "./observation.js";
+import { initPointForm } from "./pointForm.js";
 import { getMarker } from "./pointUtils.js";
 const points = window.points || [];
 const currentUserId = window.currentUserId;
-
-
 
 function getPointUserId(point) {
   if (!point.user) return null;
@@ -17,7 +18,7 @@ function getPointUserId(point) {
     : point.user;
 }
 
-let currentEditPoint = null;
+
 
 setUpdateMapDeps({
   map: window.map,
@@ -28,82 +29,6 @@ setUpdateMapDeps({
   drawnItems: window.drawnItems,
   showGroupPoints: document.getElementById("toggleGroupPoints")?.checked
 });
-
-window.editPoint = function (id) {
- 
-  const point = window.points.find(p => p._id === id);
-  if (!point) return;
-
-  currentEditPoint = point;
-   console.log(point);
-   console.log("ATTRIBUTES =", point.attributes);
-   document.querySelector("[name='temperature']").value =
-    point.attributes?.climate?.temperature ?? "";
-
-document.querySelector("[name='interieurTemperature']").value =
-    point.attributes?.climate?.interieurTemperature ?? "";
-  document.querySelector("[name='humidite']").value =
-    point.attributes?.climate?.humidite ?? "";
-console.log(document.querySelector("[name='temperature']").value);
-
-// ----- ENVIRONMENT -----
-document.querySelector("[name='surface']").value =
-    point.attributes?.environment?.surface ?? "";
-
-document.querySelector("[name='trees']").checked =
-    point.attributes?.environment?.trees ?? false;
-
-document.querySelector("[name='shade']").checked =
-    point.attributes?.environment?.shade ?? false;
-
-document.querySelector("[name='water']").checked =
-    point.attributes?.environment?.water ?? false;
-
-
-// ----- BUILDING -----
-document.querySelector("[name='etage']").value =
-    point.attributes?.building?.etage ?? "";
-
-document.querySelector("[name='dernierEtage']").checked =
-    point.attributes?.building?.dernierEtage ?? false;
-
-document.querySelector("[name='toitSansOmbrage']").checked =
-    point.attributes?.building?.toitSansOmbrage ?? false;
-
-document.querySelector("[name='toitBlanc']").checked =
-    point.attributes?.building?.toitBlanc ?? false;
-
-document.querySelector("[name='exposition']").value =
-    point.attributes?.building?.exposition ?? "";
-
-document.querySelector("[name='volets']").checked =
-    point.attributes?.building?.volets ?? false;
-
-document.querySelector("[name='airConditioning']").checked =
-    point.attributes?.building?.airConditioning ?? false;
-  document.getElementById("form-name").value = point.name || "";
-  document.getElementById("form-category").value = point.category || "";
-  document.getElementById("form-description").value = point.description || "";
-
-  const form = document.getElementById("add-point");
-  form.dataset.mode = "edit";
-
-  document.getElementById("pointId").value = point._id;
-  document.getElementById("point").value = JSON.stringify({
-    type: "Feature",
-    geometry: {
-        type: "Point",
-        coordinates: point.coordinates
-    },
-    properties: {}
-});
-  document.getElementById("submit-point-btn").textContent = "Modifier";
-   
-  document.getElementById("submit-point-btn").disabled = false;
-  const panel = document.getElementById("form-panel");
-  panel.classList.remove("hidden");
- // document.getElementById("edit-modal").checked = true;
-};
 
 
 window.mapState = {
@@ -142,91 +67,6 @@ window.deletePointById = async function (id) {
   }
 };
 // ✅ QUI
-window.saveEdit = async function () {
-  if (!currentEditPoint) return;
-
-  const updatedData = {
-    name: document.getElementById("edit-name").value,
-    description: document.getElementById("edit-description").value,
-    category: document.getElementById("edit-category").value,
-
-      point: JSON.stringify({
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: currentEditPoint.coordinates
-      }
-     })
-
-
-  };
-
-  const res = await fetch(`/points/${currentEditPoint._id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(updatedData)
-  });
-
-const data = await res.json();
-if (!data.success) {
-  console.log("❌ update failed:", data.message);
-  return;
-}
-
-const updatedPoint = data.point;
-
-  // aggiorna array locale
-  const index = points.findIndex(p => p._id === updatedPoint._id);
-  if (index !== -1) {
-    points[index] = updatedPoint;
-  }
-
-  // chiudi modal
-  document.getElementById("edit-modal").checked = false;
-// pulizia globale DaisyUI
-document.body.classList.remove("modal-open");
-document.querySelectorAll(".modal").forEach(m => {
-  m.classList.remove("modal-open");
-});
-
-
-// 🔥 QUESTO È QUELLO CHE TI MANCAVA
-// panel nuovo sistema
-const panel = document.getElementById("form-panel");
-if (panel) {
-  panel.classList.add("hidden");
-  panel.classList.remove("active");
-}
-
-// sicurezza scroll / blocchi
-document.body.style.overflow = "auto";
-document.body.style.pointerEvents = "auto";
-
-  resetMarkersMap();
-  // refresh UI
-  updateMap();
-  updateTable();
-};
-
-
-
-// 👇 FORZA globale (sicuro al 100%)
-window.closeForm = function () {
-  const panel = document.getElementById("form-panel");
-  if (!panel) return;
-  document.getElementById("open-add-point")
-    ?.classList.remove("hidden");
-
-  document.getElementById("quick-add-point")
-    ?.classList.remove("hidden");
-
-  panel.classList.add("hidden");
-  panel.classList.remove("active");
-
-  console.log("CLOSE CLICK OK");
-};
 function getPointIdFromURL() {
   const path = window.location.pathname;
   const match = path.match(/\/point\/([a-zA-Z0-9]+)/);
@@ -268,9 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const hint = document.querySelector("#map-hint");
         if (hint) {
           hint.textContent = "Cliquez sur la carte pour placer le point";
-          hint.classList.remove("hidden");
-
-      
+          hint.classList.remove("hidden");  
         }
   window.mapState.isSelectingPoint = true;
           console.log(
@@ -329,45 +167,43 @@ async function loadPointsFromApi() {
 
 // 🔥 LOG DI TEST
 console.log("🔥 FILE CARICATO");
+// 🟦 BLOCCO 1 — Avvio: categorie → mappa → dati
 
-let table;
 document.addEventListener("DOMContentLoaded", async function() { 
       console.log("🤖 DOM CONTENT LOADED callback ESEGUITA");
-  table = $('#main-table').DataTable({
-    paging: false,
-  //pageLength: 20,
-
-
+const tableOptions = {
+  paging: false,
   scrollX: false,
   autoWidth: false,
   responsive: false,
-  columnDefs: [
-   {
-    targets: 0,
-    orderable: false
-  }
-  ],
+  columnDefs: [{ targets: 0, orderable: false }],
   language: {
     url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/fr-FR.json'
   }
-});
+};
 
+$('#main-table-mobile').DataTable(tableOptions);
+$('#main-table-desktop').DataTable(tableOptions);
     // ⬇️⬇️⬇️ SOLO QUI ⬇️⬇️⬇️
-  $('#main-table tbody').on('submit', '.delete-point-form', function (e) {
+$('#main-table-mobile tbody, #main-table-desktop tbody')
+  .on('submit', '.delete-point-form', function (e) {
     const btn = this.querySelector('button');
     if (btn) {
       btn.disabled = true;
       btn.innerHTML = '⏳';
     }
   });
+
+
+
 // -------------------
-// 1️⃣ Catégories
+// 1️⃣ Carica le categorie
 // -------------------
     await loadCategories();
 
-// -------------------
-// 2️⃣ Carte
-// -------------------
+ // -------------------
+  // 2️⃣ Inizializza la mappa
+  // -------------------
     const res = initializeMap();
     const map = res.map;
 
@@ -460,100 +296,16 @@ document.addEventListener("DOMContentLoaded", async function() {
 // 3️⃣ Couches cartographiques
 // -------------------
      
-    await loadBaseLayers(map);
-        
-        [
-            "toggle-tresChaud",
-            "toggle-chaud",
-            "toggle-moyen",
-            "toggle-confortable",
-            "toggle-excellent"
-        ].forEach(id => {
-        
-            document.getElementById(id)?.addEventListener("change", e => {
-                updateMap();
-            });
-        
-        });
-
-   /*     map.on("click", function (e) {
-       // openOverlay(e.latlng.lat, e.latlng.lng, true);
-
-        // 👇 attiva modalità ultra-rapida
-          window.isSelectingPoint = true;
-        });
-        */
-    /*      document.getElementById("open-add-point")
-        ?.addEventListener("click", () => {
-         const planLimit = window.PLAN_LIMIT;
-
-           const myPointsCount = points.filter(p => {
-                const userId = typeof p.user === "object" ? p.user._id : p.user;
-                return String(userId) === String(currentUserId);
-              }).length;
-           
-               // 🚫 BLOCCO REALE
-            if (myPointsCount  >= planLimit) {
-                alert("Limite de points atteint pour le plan free");
-                return; // 👈 QUESTO È IL FIX
-            } 
-            window.mapState.isSelectingPoint = true;
-
-            console.log("🟡 Modalità selezione attiva");
-
-            // opzionale UX
-            document.body.style.cursor = "crosshair";
-        
-        // 👇 NUOVO (al posto di alert)
-
-         //  alert("📍 Clique sur la carte pour ajouter un point");
-   });*/
-
     // -------------------
-    // 3️⃣ Carica i punti dall’API
- //   const apiPoints = await loadPointsFromApi();
-    // points.length = 0;
-  //  points.push(...apiPoints);
-
-    console.log("🧪 points dopo API:", points);
-    
+ 
   // -------------------
 // 4️⃣ Contrôle des couches
 // -------------------
 
-document
-    .getElementById("toggle-buildings")
-    ?.addEventListener("change", e => {
-
-        const layer = getLayer("buildings");
-
-        if (!layer) return;
-
-        if (e.target.checked)
-            map.addLayer(layer);
-        else
-            map.removeLayer(layer);
-
-    });
-
-document
-    .getElementById("toggle-parking")
-    ?.addEventListener("change", e => {
-
-        const layer = getLayer("parking");
-
-        if (!layer) return;
-
-        if (e.target.checked)
-            map.addLayer(layer);
-        else
-            map.removeLayer(layer);
-
-    });
-
-
-   
 console.log("🧪 points dopo API:", points);
+
+
+  // 🟩 BLOCCO 2 — Passaggio delle dipendenze → aggiornamento della mappa-------------------
     // -------------------
     // 4️⃣ Passa le dipendenze a pointUtils
     setUpdateMapDeps({
@@ -569,6 +321,14 @@ console.log("🧪 points dopo API:", points);
         highlightTableRow
     });
     
+
+    initPointForm(points, {
+        resetMarkersMap,
+        updateMap,
+        updateTable
+      });
+   // initPointForm(points);
+    
     // -------------------
     // 5️⃣ Aggiorna mappa e tabella
     updateMap();
@@ -577,119 +337,30 @@ console.log("🧪 points dopo API:", points);
         // -------------------
 // Adatta il form al tipo di gruppo
 // -------------------
+// const observationFields
+if (window.GROUP_TYPE === "observation") {
+    initObservation();
+}
 
-const observationFields =
-    document.getElementById("observation-fields");
 
-if (observationFields) {
+console.log("GROUP TYPE:", window.GROUP_TYPE);
 
-    console.log("GROUP TYPE:", window.GROUP_TYPE);
+if (window.GROUP_TYPE === "mobile-service") {
 
-    observationFields.classList.toggle(
-        "hidden",
-        window.GROUP_TYPE !== "observation"
+    initMobileServiceTracking(
+        map,
+        points,
+        currentUserId,
+        getPointUserId
+    );
+
+} else {
+
+    console.log(
+        "🚫 Tracking camion disattivato per questo gruppo"
     );
 
 }
-
-
-      const notifiedPoints = new Set();
-      // 🚚 TEST posizione camion
-
-      //CONDIZIONE SOLO FIELD
-
-    console.log("GROUP TYPE:", window.GROUP_TYPE);
-
-    // Solo per i gruppi Mobile Service
-      if (window.GROUP_TYPE === "mobile-service") {
-
-       console.log("🚚 Tracking camion attivato");
-
-        setInterval(async () => {
-
-              const res = await fetch('/api/driver-position');
-              const driver = await res.json();
-
-              console.log("🚚 Posizione camion:", driver);
-
-              // sicurezza
-           if (
-    !driver ||
-    driver.lat == null ||
-    driver.lng == null
-) {
-    console.log("🚚 Aucun chauffeur disponible");
-    return;
-}
-              if (!window.truckMarker) {
-
-                      window.truckMarker = L.marker(
-                        [driver.lat, driver.lng]
-                      ).addTo(map);
-
-                    } else {
-
-                      window.truckMarker.setLatLng(
-                        [driver.lat, driver.lng]
-                      );
-
-                    }
-
-                    
-                  const myPoints = points.filter(p => {
-
-                  const userId = getPointUserId(p);
-
-                  return String(userId) === String(currentUserId);
-
-                });
-
-              myPoints.forEach(point => {
-
-                const distance = map.distance(
-                  [driver.lat, driver.lng],
-                  [point.coordinates[1], point.coordinates[0]]
-                );
-
-                console.log(
-                  `🚚 → ${point.name}: ${Math.round(distance)} m`
-                );
-
-            if (distance < 100 &&
-              !notifiedPoints.has(point._id)
-            ) {
-
-                notifiedPoints.add(point._id);
-
-                if (document.getElementById("truck-notification")) return;
-
-                const notif = document.createElement("div");
-                notif.id = "truck-notification";
-
-                notif.textContent =
-                  `🚚 Il camion est proche de ${point.name}`;
-
-                notif.className =
-                  "fixed top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-3 rounded-xl shadow-xl z-[9999]";
-
-                document.body.appendChild(notif);        
-              }
-              if (distance >= 100) {
-                  notifiedPoints.delete(point._id);
-              }
-              });
-
-    }, 10000);
-
-    
-      } else {
-
-          console.log(
-              "🚫 Tracking camion disattivato per questo gruppo"
-          );
-
-    }
-
 
 const sharedPointId = getPointIdFromURL();
 if(sharedPointId){
@@ -760,10 +431,15 @@ function highlightTableRow(pointId) {
         setTimeout(() => map.invalidateSize(), 300);
     }*/
     // Rimuove evidenziazione da tutte le righe
-    $('#main-table tbody tr').removeClass('highlight-row');
-    // Trova la riga corrispondente
-    const row = $(`#main-table tbody tr[data-point-id='${pointId}']`);
-    console.log("ROW TROVATA:", row.length, row);
+  $('#main-table-mobile tbody tr, #main-table-desktop tbody tr')
+    .removeClass('highlight-row');
+
+const row = $(
+    `#main-table-mobile tbody tr[data-point-id='${pointId}'],
+     #main-table-desktop tbody tr[data-point-id='${pointId}']`
+); 
+
+console.log("ROW TROVATA:", row.length, row);
     // Se esiste, evidenziale e scrolla fino a lei
     if (row.length > 0) {
         row.addClass('highlight-row');
@@ -785,22 +461,44 @@ function highlightTableRow(pointId) {
 // -------------------
   
       document.addEventListener('click', (e) => {
-  console.log("⛈️ CLICK SU:", e.target);
-});
+          console.log("⛈️ CLICK SU:", e.target);
+        });
  // -------------------
     // DATATABLES
     // -------------------
 
 // 🔧 Riaggiusta colonne quando apri/chiudi il drawer
 
-    $('#page-length').on('change', function() {
-        table.page.len($(this).val()).draw();
-    });
-    table.on('length.dt', function(e, settings, len) {
-        $('#page-length').val(len);
-    });
-    console.log("DataTables inizializzato:", table);
-    console.log("Elementi nella tabella:", table.rows().count());
+ $('#page-length').on('change', function() {
+    const len = $(this).val();
+
+    $('#main-table-mobile').DataTable().page.len(len).draw();
+    $('#main-table-desktop').DataTable().page.len(len).draw();
+});
+
+$('#main-table-mobile').on('length.dt', function(e, settings, len) {
+    $('#page-length').val(len);
+});
+
+$('#main-table-desktop').on('length.dt', function(e, settings, len) {
+    $('#page-length').val(len);
+});
+
+console.log("DataTables inizializzato:", {
+    mobile: $('#main-table-mobile').DataTable(),
+    desktop: $('#main-table-desktop').DataTable()
+});
+
+console.log("Elementi tabella mobile:",
+    $('#main-table-mobile').DataTable().rows().count()
+);
+
+console.log("Elementi tabella desktop:",
+    $('#main-table-desktop').DataTable().rows().count()
+);
+
+
+
 
 });
 

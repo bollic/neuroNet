@@ -1,35 +1,16 @@
 <!--indexZoneParcelle.ejs-->
-
-<%- include('layout/headerZoneParcelle') %>
-
+<%- include('layout/headerZoneGeo') %>
+<script>
+  window.APP_VIEW = "<%= mode %>";
+  window.APP_MODE = "<%= mode %>";
+  window.GROUP_TYPE = "<%= group.groupType %>";
+</script>
 <style>
   html, body { height: 100%; }
-
-   #map {   
-     height: 100%;
-    width: 100%; 
-    position: relative;   /* 👈 AGGIUNGI QUESTO */
-    z-index: 10;          /* 👈 AGGIUNGI QUESTO */
-     
-  }
-
-  .leaflet-container {
-  z-index: 1 !important;
-  }
+  #map { height: 80vh; width: 100%; }
+  .leaflet-container { z-index: 0 !important; }
 </style>
-<style>
-  /*
-.drawer-side {
-    pointer-events: none;
-    z-index: 1 !important;
-}
 
-.drawer-side aside {
-    pointer-events: auto;
-    z-index: 2;
-}
-*/
-</style>
   <style>
 .highlight-row {
   background-color: #ffe9a8 !important;
@@ -42,100 +23,98 @@
     overflow-y: visible !important; /* elimina scrollbar verticale */
   }
 </style>
-<div class="drawer">
 
-  <input id="my-drawer" type="checkbox" class="drawer-toggle" />
+<div class="flex flex-row h-[80vh]">
+  <div class="drawer drawer-start drawer-mobile md:drawer-open">
+    <input id="my-drawer" type="checkbox" class="drawer-toggle" />
 
-  <!-- CONTENUTO PRINCIPALE -->
-  <div class="drawer-content h-screen flex flex-col">
+    <!-- CONTENUTO PRINCIPALE -->
+    <div class="drawer-content relative">
+       <div id="map" class="w-full h-[80vh] rounded-lg shadow-md"></div>
 
-    <!-- TOP BAR MOBILE -->
-    <div class="p-2 md:hidden">
-      <label for="my-drawer" class="btn btn-primary btn-sm shadow">
-        ☰ Menu
-      </label>
-    </div>
-
-    <!-- AREA PRINCIPALE -->
-    <div class="flex flex-1 min-h-0 md:gap-4">
-            <!-- SIDEBAR DESKTOP -->
-      <aside class="hidden md:block w-80 bg-base-200 p-4 overflow-y-auto">
-
-        <% if (parcelles && parcelles.length > 0) { %>
-          <table class="table table-zebra w-full">
-            <tbody>
-              <% parcelles.forEach((parcelle, index) => { %>
-                <tr class="parcelle-item" data-id="<%= parcelle._id %>">
-                  <td><%= index + 1 %></td>
-                  <td><%= parcelle.name %></td>
-                  <td>
-                    <a href="/delete-parcelle/<%= parcelle._id %>"
-                       class="btn btn-xs btn-outline-danger">
-                      🗑
-                    </a>
-                  </td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
-        <% } else { %>
-          <div class="text-center text-secondary mt-5">
-            Aucune parcelle trouvée 🌱
-          </div>
-        <% } %>
-
-      </aside>
-
-      <!-- MAPPA -->
-      <div class="flex-1 relative min-h-0">
-
-        <!-- 🔥 FIX IMPORTANTE: wrapper con altezza garantita -->
-        <div class="absolute inset-0">
-
-          <div id="map" class="w-full h-full z-0"></div>
-
-        </div>
-      
+      <!-- MENU MOBILE FLOTTANTE -->
+      <div class="fixed top-36 left-4 z-[3000]">
+        <button
+          id="open-parcelle"
+          class="bg-white rounded-full w-12 h-12 shadow-lg">
+          ☰
+        </button>
       </div>
 
 
+      <!-- LISTA PARCELLE MOBILE -->
+      <div id="parcelle-panel"
+           class="hidden fixed
+                  top-28 left-4
+                  z-[3500]
+                  w-56
+                  max-h-[70vh]
+                  overflow-y-auto
+                  bg-white
+                  rounded-xl
+                  shadow-xl
+                  p-3">
+
+        <button
+          id="close-parcelle"
+          class="absolute top-2 right-3 text-xl font-bold">
+          ✕
+        </button>
+
+        <%- include('partials/listParcelle') %>
+
+      </div>
+
+
+      <%- include('partials/layerControls') %>
+
     </div>
-  </div>
 
-  <!-- SIDEBAR MOBILE -->
-  <div class="drawer-side md:hidden">
-    <label for="my-drawer" class="drawer-overlay"></label>
 
-    <aside class="w-80 bg-base-200 p-4 overflow-y-auto">
+    <!-- SIDEBAR DESKTOP -->
+    <div class="drawer-side">
 
-      <% if (parcelles && parcelles.length > 0) { %>
-        <table class="table table-zebra w-full">
-          <tbody>
-            <% parcelles.forEach((parcelle, index) => { %>
-              <tr class="parcelle-item" data-id="<%= parcelle._id %>">
-                <td><%= index + 1 %></td>
-                <td><%= parcelle.name %></td>
-                <td>
-                  <a href="/delete-parcelle/<%= parcelle._id %>"
-                     class="btn btn-xs btn-outline-danger">
-                    🗑
-                  </a>
-                </td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      <% } else { %>
-        <div class="text-center text-secondary mt-5">
-          Aucune parcelle trouvée 🌱
-        </div>
-      <% } %>
+      <label
+        for="my-drawer"
+        class="drawer-overlay">
+      </label>
 
-    </aside>
+      <aside class="hidden md:block w-80 bg-base-200 p-4 overflow-y-auto">
+
+        <%- include('partials/listParcelle') %>
+
+      </aside>
+
+    </div>
+
   </div>
 
 </div>
 
+
+<!-- APERTURA / CHIUSURA LISTA MOBILE -->
+<script>
+
+  document.getElementById("open-parcelle")
+    ?.addEventListener("click", () => {
+
+      document
+        .getElementById("parcelle-panel")
+        ?.classList.toggle("hidden");
+
+    });
+
+
+  document.getElementById("close-parcelle")
+    ?.addEventListener("click", () => {
+
+      document
+        .getElementById("parcelle-panel")
+        ?.classList.add("hidden");
+
+    });
+
+</script>
      <!-- 🔥 BOTTONE ADD SEMPRE VISIBILE -->
 
 <!-- 🔥 GLOBAL FLOATING BUTTON (FORZA SOPRA TUTTO) -->
@@ -169,7 +148,7 @@
 <script>
 
   // Variabile JS usata dal client
-  const parcelles = <%- JSON.stringify(parcelles || []) %>;
+window.parcelles = <%- JSON.stringify(parcelles || []) %>;
   console.log("📦 Parcelles dal server:", <%- JSON.stringify(parcelles) %>);
   window.CATEGORIES = <%- JSON.stringify(categories || []) %>;     
    console.log("🧪 CATEGORIES DAL SERVER:", window.CATEGORIES);

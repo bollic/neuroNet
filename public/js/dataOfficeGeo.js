@@ -1,5 +1,5 @@
 // js/dataOfficeGeo.js
-import { getComfortIndex } from "./pointUtils.js";
+
 document.addEventListener("DOMContentLoaded", function () {
   let map;
   let layerGroup;
@@ -222,12 +222,12 @@ document.addEventListener('click', (e) => {
 const markerMap = {};
 
 
-  function updateMap(filterCategory = "", filterDate = "", filterComfort = "") {
+  function updateMap(filterCategory = "", filterDate = "") {
     console.log("updateMap triggered");
     console.log("updateMap:", {
     filterCategory,
     filterDate,
-    filterComfort
+   
 });
     if (!layerGroup || !drawnItems) return;
     layerGroup.clearLayers();
@@ -246,26 +246,7 @@ const markerMap = {};
                               return p.createdAtISO && p.createdAtISO.startsWith(filterDate);
                             })
 
-                                .filter(p => {
-        if (!filterComfort) return true;
-      
-        console.log("POINT =", p);                        
-        const score = getComfortIndex(p);
-        console.log("SCORE =", score);
-  console.log(
-    p.name,
-    "score =", score,
-    "filter =", filterComfort
-);
-        switch (filterComfort) {
-            case "0-2": return score <= 2;
-            case "3-4": return score >= 3 && score <= 4;
-            case "5-6": return score >= 5 && score <= 6;
-            case "7-8": return score >= 7 && score <= 8;
-            case "9-10": return score >= 9;
-            default: return true;
-        }
-    });
+
 
   if (!data.length) return;
 
@@ -353,34 +334,145 @@ const markerMap = {};
  const startTrackingBtn = document.getElementById('start-tracking');
 let watchId = null;
 
-if (startTrackingBtn) {
-  startTrackingBtn.addEventListener('click', () => {
+      if (startTrackingBtn) {
 
-    if (watchId !== null) return; // evita doppioni
+        startTrackingBtn.addEventListener('click', async () => {
 
-    watchId = navigator.geolocation.watchPosition(
-      async pos => {
+          if (watchId !== null) return;
 
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+          // 1️⃣ Avvia la tournée sul server
+          try {
 
-        await fetch('/update-driver-position', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ lat, lng })
+            const response = await fetch('/start-tournee', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+              console.error("❌ Impossible de démarrer la tournée");
+              return;
+            }
+
+            console.log("🚚 Tournée démarrée:", result.tournee);
+          
+                  // 🔄 Ricarica la pagina:
+            // EJS vedrà tournee.active = true
+            // e mostrerà "Arrêter la tournée"
+            window.location.reload();
+          } catch (err) {
+
+            console.error("❌ Erreur /start-tournee:", err);
+            return;
+
+          }
+
+          // 2️⃣ Solo dopo avvia il GPS
+          watchId = navigator.geolocation.watchPosition(
+
+            async pos => {
+
+              const lat = pos.coords.latitude;
+              const lng = pos.coords.longitude;
+
+              await fetch('/update-driver-position', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ lat, lng })
+              });
+
+            },
+
+            console.error,
+
+            {
+              enableHighAccuracy: true
+            }
+
+          );
+
         });
 
-      },
-      console.error,
-      {
-        enableHighAccuracy: true
       }
-    );
 
-  });
-}
+ const stopTrackingBtn = document.getElementById('stop-tracking');
+
+
+      if (stopTrackingBtn) {
+
+        stopTrackingBtn.addEventListener('click', async () => {
+
+       // 1️⃣ Ferma il GPS nel browser
+              if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                console.log("📍 GPS arrêté");
+              }
+          // 2️⃣ Ferma la tournée sul server
+          try {
+
+            const response = await fetch('/stop-tournee', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+              console.error("❌ Impossible d'arrêter la tournée");
+              return;
+            }
+
+            console.log("🚚 Tournée arrêtée:", result.tournee);
+                      // 3️⃣ Ricarica la pagina
+             window.location.reload();
+          } catch (err) {
+
+            console.error("❌ Erreur /stop-tournee:", err);
+            return;
+
+          }
+
+          // 2️⃣ Solo dopo avvia il GPS
+          watchId = navigator.geolocation.watchPosition(
+
+            async pos => {
+
+              const lat = pos.coords.latitude;
+              const lng = pos.coords.longitude;
+
+              await fetch('/update-driver-position', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({ lat, lng })
+              });
+
+            },
+
+            console.error,
+
+            {
+              enableHighAccuracy: true
+            }
+
+          );
+
+        });
+
+      }
   // ===============================
   // 🔄 AGGIORNA categorie (submit)
   // ===============================
@@ -587,9 +679,8 @@ const rowContent = `
   return {
     signalement: rowContent,
     createdAtISO: p.createdAtISO,
-    userEmail: p.userEmail,
+    pseudonyme: p.pseudonyme,
     category: p.category,
-    comfort: getComfortIndex(p),
     userId: p.userId || null,
     _id: p._id
   };
@@ -604,7 +695,7 @@ const rowContent = `
             },
 
             { data: 'createdAtISO', visible: false },
-            { data: "userEmail", visible: false },
+             { data: 'pseudonyme', visible: false },
             { data: 'category', visible: false }
           ],
       // 🔥 QUESTO è più affidabile
@@ -613,13 +704,13 @@ const rowContent = `
       },
 
    rowGroup: {
-  dataSrc: "userEmail",
-  startRender: function (rows, group) {
+      dataSrc: "pseudonyme",
+      startRender: function (rows, group) {
 
-    const shortName = group.split("@")[0];
+      const shortName = group.split("@")[0];
 
-    return `${shortName} (${rows.count()})`;
-  }
+      return `${shortName} (${rows.count()})`;
+     }
 },
 
   order: [[1, "desc"]]
@@ -657,43 +748,14 @@ $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
 
   const filterCategory = $('#filter-category').val();
   const filterDate = $('#filter-date').val();
-    const filterComfort = $('#filter-comfort').val();
-
+   
     const createdAtISO = data[1];
     const category = data[3];
-  const comfort = table.row(dataIndex).data().comfort;
-
 
   const categoryMatch = !filterCategory || category === filterCategory;
   const dateMatch = !filterDate || (createdAtISO && createdAtISO.startsWith(filterDate));
 
-
-let comfortMatch = true;
-
-switch (filterComfort) {
-    case "0-2":
-        comfortMatch = comfort <= 2;
-        break;
-
-    case "3-4":
-        comfortMatch = comfort >= 3 && comfort <= 4;
-        break;
-
-    case "5-6":
-        comfortMatch = comfort >= 5 && comfort <= 6;
-        break;
-
-    case "7-8":
-        comfortMatch = comfort >= 7 && comfort <= 8;
-        break;
-
-    case "9-10":
-        comfortMatch = comfort >= 9;
-        break;
-}
-
-
-  return categoryMatch && dateMatch && comfortMatch;
+  return categoryMatch && dateMatch;
 });
 
 // ========================
@@ -719,18 +781,18 @@ $('#main-table_filter input').on('input', function() {
 // ========================
 // Trigger draw quando cambiano categoria o data
 // ========================
-$("#filter-category, #filter-date, #filter-comfort" ).on("change", function () {
+$("#filter-category, #filter-date" ).on("change", function () {
   
   // svuota la ricerca globale SENZA triggerare input
   table.search('');
-   const filterComfort = $("#filter-comfort").val();
+   
   const filterCategory = $("#filter-category").val();
   const filterDate = $("#filter-date").val();
   
-  console.log("Filtro comfort:", filterComfort);
+ 
 
    table.draw(); // trigger filtro custom
-  updateMap(filterCategory, filterDate, filterComfort); // aggiorna la mappa
+  updateMap(filterCategory, filterDate); // aggiorna la mappa
  
 });
 

@@ -1,4 +1,4 @@
-// pointUtils.js
+// public/js/pointUtils.js
 
 export let map = null;
 export let points = [];
@@ -49,20 +49,6 @@ export function updateMap() {
     console.log("💣 CLEAR LAYERS");
 
     console.log("Popup aperta:", map._popup);
-     const showTresChaud =
-        document.getElementById("toggle-tresChaud")?.checked;
-
-    const showChaud =
-        document.getElementById("toggle-chaud")?.checked;
-
-    const showMoyen =
-        document.getElementById("toggle-moyen")?.checked;
-
-    const showConfortable =
-        document.getElementById("toggle-confortable")?.checked;
-
-    const showExcellent =
-        document.getElementById("toggle-excellent")?.checked;
 
     pointsLayer.clearLayers();
 
@@ -79,7 +65,8 @@ export function updateMap() {
     // -------------------
     // 2️⃣ Determina quali punti mostrare
     // -------------------
-
+    // CONDIZIONE AVVOLGIMENTO
+    //const isObservation = window.GROUP_TYPE === "observation";
         const pointsToShow = points.filter(point => {
             if (!point.coordinates || point.coordinates.length !== 2) return false;
 
@@ -99,35 +86,6 @@ export function updateMap() {
             }
 
             // Comfort del punto (esempio)
-           const comfortScore = getComfortIndex(point);
-
-   // 🔴 Très chaud
-if (comfortScore <= 2 && !showTresChaud)
-    return false;
-
-// 🟠 Chaud
-if (comfortScore >= 3 &&
-    comfortScore <= 4 &&
-    !showChaud)
-    return false;
-
-// 🟡 Moyen
-if (comfortScore >= 5 &&
-    comfortScore <= 6 &&
-    !showMoyen)
-    return false;
-
-// 🟢 Confortable
-if (comfortScore >= 7 &&
-    comfortScore <= 8 &&
-    !showConfortable)
-    return false;
-
-// 🌿 Excellent
-if (comfortScore >= 9 &&
-    !showExcellent)
-    return false;
-
 
             return true;
         });
@@ -159,101 +117,6 @@ if (comfortScore >= 9 &&
       // const userLabel = isMyPoint ? 'Toi' : (point.user?.email || 'Inconnu');
        
       
-      const a = point.attributes || {};
-        const climate = a.climate || {};
-        const environment = a.environment || {};
-        const building = a.building || {};
-
-        
-const comfortScore = getComfortIndex(point);
-const comfortBadge = getComfortBadge(comfortScore);
-
-console.log("🌿 Comfort debug");
-console.log({
-    temperature: climate.temperature,
-    interieurTemperature: climate.interieurTemperature,
-    humidite: climate.humidite,
-    surface: environment.surface,
-    trees: environment.trees,
-    shade: environment.shade,
-    water: environment.water,
-    volets: building.volets,
-    clim: building.airConditioning,
-    etage: building.etage,
-    exposition: building.exposition,
-    score: comfortScore
-});
-
-const facteursDefavorables = [];
-const facteursFavorables = [];
-
-if (building.dernierEtage) facteursDefavorables.push("Dernier étage (chauffe par le toit)");
-if (building.toitSansOmbrage) facteursDefavorables.push("Toit sans ombrage");
-if (environment.surface === "beton") facteursDefavorables.push("Environnement très minéral");
-if (building.exposition === "Sud") facteursDefavorables.push("Façade exposée au sud");
-
-if (environment.trees) facteursFavorables.push("Arbres à proximité");
-if (environment.shade) facteursFavorables.push("Ombre");
-if (environment.water) facteursFavorables.push("Présence d'eau");
-if (building.volets) facteursFavorables.push("Volets");
-if (building.toitBlanc) facteursFavorables.push("Toiture réfléchissante");
-if (building.airConditioning) facteursFavorables.push("Climatisation");   
-
-
-        let observationHtml = "";
-
-        if (window.GROUP_TYPE === "observation") {
-
-            observationHtml = `
-
-                ${climate.temperature != null
-                    ? `🌡 Extérieur : <strong>${climate.temperature}°C</strong><br>`
-                    : ""}
-                
-                ${climate.interieurTemperature != null
-                    ? `🏠 Intérieur : <strong>${climate.interieurTemperature}°C</strong><br>`
-                    : ""}
-
-
-
-                ${environment.shade
-                    ? `☂ Ombre : oui<br>`
-                    : ""}
-          
-                ${building.exposition
-                    ? `☀️ Exposition : ${building.exposition}<br>`
-                    : ""}
-
-                ${building.etage
-                    ? `🏢 Étage : ${building.etage}<br>`
-                    : ""}
-
-
-                ${building.airConditioning
-                    ? `❄ Climatisation : oui<br>`
-                    : ""}
-<br>
-<hr>
-
-🌿 <strong>Indice de confort thermique : ${comfortScore}/10</strong><br><br>
-
-<br>
-${
-    facteursDefavorables.length
-        ? `⚠️ <strong>Facteurs défavorables</strong><br>
-           ${facteursDefavorables.map(f => `• ${f}`).join("<br>")}<br><br>`
-        : ""
-}
-
-${
-    facteursFavorables.length
-        ? `✅ <strong>Facteurs favorables</strong><br>
-           ${facteursFavorables.map(f => `• ${f}`).join("<br>")}`
-        : ""
-}
-
-            `;
-}
         const marker = L.marker([point.coordinates[1], point.coordinates[0]], {
                     
                         
@@ -280,18 +143,7 @@ ${
         ${iconEmoji}
     </div>
 
-    <div style="
-    margin-top:3px;
-    background:white;
-    padding:2px 6px;
-    border-radius:12px;
-    text-align:center;
-    box-shadow:0 1px 4px rgba(0,0,0,0.25);
-">
-    <strong style="font-size:11px;">
-        ${comfortBadge}
-    </strong>
-</div>
+ 
 
 </div>
 `,
@@ -309,7 +161,7 @@ className: ''
     ` : ''}
 
 
-        ${observationHtml}
+       
     ${
       point.description
         ? `<div style="margin-top:6px; font-style:italic;">
@@ -378,15 +230,18 @@ export function updateTable() {
         }
         console.log("TABLE", points?.length, currentUserId);
         if (!points ) return;
-        const dt = $('#main-table').DataTable();
-        dt.clear();
+   const dtMobile = $('#main-table-mobile').DataTable();
+const dtDesktop = $('#main-table-desktop').DataTable();
+
+dtMobile.clear();
+dtDesktop.clear();
     const showGroupPoints = !!document.getElementById("toggleGroupPoints")?.checked;
         console.log("TOGGLE =", showGroupPoints);
         
 
 
 const isOpen = window.APP_VIEW === "open";
-
+const isObservation = window.GROUP_TYPE === "observation";
 points.filter(point => {
 
 if (isOpen) return true;
@@ -408,10 +263,7 @@ if (isOpen) return true;
                 const isMine = String(userId) === String(currentUserId);
                 const name = point.name || 'Senza nome';
               
-                const comfortScore = getComfortIndex(point);
-                const comfortBadge = getComfortBadge(comfortScore);
-
-                const dateText = point.createdAt
+                   const dateText = point.createdAt
                     ? new Date(point.createdAt).toLocaleDateString('fr-FR')
                     : '';
 
@@ -434,30 +286,46 @@ if (isOpen) return true;
 </div>
         `;
 
-        const newRow = dt.row.add([
-        rowContent,
-        comfortBadge
-        ]).node();
+const categoryContent = `
+    <span class="text-sm">
+        ${point.category || '—'}
+    </span>
+`;
+const newRowMobile = dtMobile.row.add([
+    rowContent,
+    categoryContent
+]).node();
 
-    $(newRow).attr('data-point-id', point._id);  // 👈 aggiungi l'ID qui
-    $(newRow).off('click');
+const newRowDesktop = dtDesktop.row.add([
+    rowContent,
+    categoryContent
+]).node();
+
+$(newRowMobile).attr('data-point-id', point._id);
+$(newRowDesktop).attr('data-point-id', point._id);
+
 });
-    dt.draw();
+    dtMobile.draw();
+dtDesktop.draw();
     // 👇 aggiungi dopo dt.draw();
-$('#main-table tbody tr').each(function() {
+$('#main-table-mobile tbody tr, #main-table-desktop tbody tr').each(function() {
     const pointId = $(this).data('point-id');
+
     if (pointId) {
         $(this).off('click').on('click', function() {
 
-             // 👉 Evidenzia la riga nella tabella
             highlightTableRow(pointId);
-            
-           const marker = getMarker(pointId);
+
+            const marker = getMarker(pointId);
+
             if (marker) {
                 marker.openPopup();
-                // opzionale: anima marker
+
                 marker._icon.classList.add('marker-highlight');
-                setTimeout(() => marker._icon.classList.remove('marker-highlight'), 1000);
+
+                setTimeout(() => {
+                    marker._icon.classList.remove('marker-highlight');
+                }, 1000);
             }
         });
     }
@@ -466,64 +334,6 @@ $('#main-table tbody tr').each(function() {
 }
  
 
-export function getComfortIndex(point) {
 
-    let score = 5; // punto di partenza
-
-    const climate = point.attributes?.climate || {};
-    const env = point.attributes?.environment || {};
-    const building = point.attributes?.building || {};
-    // Surface
-    if (env.surface === "beton") score -= 2;
-    if (env.surface === "asphalte") score -= 2;
-    if (env.surface === "terre") score += 1;
-    if (env.surface === "herbe") score += 2;
-
-    if (env.trees) score += 2;
-    if (env.shade) score += 2;
-    if (env.water) score += 1;
-
-    if (building.volets) score += 1;
-    if (building.airConditioning) score += 1;
-   
-    // Étage
-    if (building.etage >= 6) score -= 1;
-    // Dernier étage
-     if (building.dernierEtage) score -= 1;
-     if (building.toitSansOmbrage) score -= 1;
-     if (building.toitBlanc) score += 1;
-// Exposition
-if (building.exposition === "Sud") score -= 1;
-if (building.exposition === "Ouest") score -= 1;
-if (building.exposition === "Nord") score += 1;
-// Température intérieure
-if (climate.interieurTemperature <= 27) score += 2;
-else if (climate.interieurTemperature >= 30) score -= 2;
-
-// Température extérieure
-if (climate.temperature >= 38) score -= 2;
-else if (climate.temperature >= 35) score -= 1;
-
-    score = Math.max(0, Math.min(score, 10));
-
-    return score;
-}
-
-function getComfortBadge(score) {
-
-    if (score <= 2)
-        return "🥵 Très chaud<br><small>" + score + "/10</small>";
-
-    if (score <= 4)
-        return "🔴 Faible<br><small>" + score + "/10</small>";
-
-    if (score <= 6)
-        return "🟡 Moyen<br><small>" + score + "/10</small>";
-
-    if (score <= 8)
-        return "🟢 Confortable<br><small>" + score + "/10</small>";
-
-    return "🌿 Excellent<br><small>" + score + "/10</small>";
-}
 
 

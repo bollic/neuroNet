@@ -1,7 +1,8 @@
 // dataAuthorParcelle.js
 import { loadCategories } from "./mapCommon.js";
 import { initializeMap } from "./mapCore.js";
-import { updateMap, setParcellesDeps } from "./parcelleUtils.js";
+import { loadBaseLayers,  getLayer } from "./mapLayers.js";
+import { updateMap, setParcellesDeps, highlightParcelleOnMap } from "./parcelleUtils.js";
 // esempio
 
 function updateStatusButtonsUI(popupNode, activeStatus) {
@@ -98,8 +99,10 @@ updateStatusButtonsUI(popupNode, status);
   });
 });
 }
+// 🟦 BLOCCO 1 — Avvio: categorie → mappa → dati
 document.addEventListener("DOMContentLoaded", async function() { 
-      // 1️⃣ Carica le categorie
+ 
+  // 1️⃣ Carica le categorie
     await loadCategories();
    console.log("CATEGORIES caricate:", window.CATEGORIES);
 
@@ -108,69 +111,63 @@ document.addEventListener("DOMContentLoaded", async function() {
   // -------------------
   const res = initializeMap();
   const map = res.map;
+  await loadBaseLayers(map);
   const drawnItems = res.drawnItems;
   const parcellesLayer = res.parcellesLayer;
   const pointsLayer = res.pointsLayer;
-   // 3️⃣ Usa parcelles già passate dalla route
-let parcelles = window.parcelles;
-if (!parcelles) {
-  // Se non ci sono parcelles dalla route, chiama API
-  parcelles = await loadParcellesFromApi();
-}
-  console.log("🌿 Parcelles dalla view:", parcelles);
+  // 3️⃣ Recupera i dati
+      let parcelles = window.parcelles;
+      if (!parcelles) {
+        // Se non ci sono parcelles dalla route, chiama API
+        parcelles = await loadParcellesFromApi();
+      }
+        console.log("🌿 Parcelles dalla view:", parcelles);
 
- // const parcelles = await loadParcellesFromApi();
-  //console.log("🌿 Parcelles caricate:", parcelles);
+      // const parcelles = await loadParcellesFromApi();
+        //console.log("🌿 Parcelles caricate:", parcelles);
 function highlightTableRow(parcelleId) {
+/*
   const drawer = document.getElementById("my-drawer");
 
-  // 1️⃣ Apri drawer
+  // Apri il drawer se necessario
   if (drawer && !drawer.checked) {
     drawer.checked = true;
   }
+*/
+  console.log("CERCO PARCELLE:", parcelleId);
 
-  const table = $('#main-table').DataTable();
+  // Rimuovi highlight precedente
+  document
+    .querySelectorAll(".parcelle-item")
+    .forEach(el => {
+      el.classList.remove("highlight-row");
+    });
 
-  // 2️⃣ Reset highlight
-  table.rows().nodes().to$().removeClass("highlight-row");
+  // Cerca la parcelle nella nuova lista
+  const item = document.querySelector(
+    `.parcelle-item[data-id="${parcelleId}"]`
+  );
 
-  console.log("CERCO:", parcelleId);
-
-  // 3️⃣ Trova righe via DataTables
-  const rows = table.rows().nodes().to$().filter(function () {
-    const id = $(this).attr("data-id");
-    return id && id == parcelleId;
-  });
-
-  console.log("ROWS TROVATE:", rows.length);
-
-  if (rows.length > 0) {
-    // 4️⃣ Highlight
-    rows.addClass("highlight-row");
-
-    // 5️⃣ Vai alla pagina giusta
-    const rowIndex = table.row(rows[0]).index();
-
-    table.page(Math.floor(rowIndex / table.page.len())).draw(false);
-
-    // 6️⃣ Scroll corretto (DataTables scroll container)
-    setTimeout(() => {
-      const container = $('.dataTables_scrollBody');
-
-      if (container.length) {
-        container.animate({
-          scrollTop: rows.first().position().top + container.scrollTop() - 100
-        }, 300);
-      } else {
-        rows[0].scrollIntoView({
-          behavior: "smooth",
-          block: "center"
-        });
-      }
-    }, 150);
+  if (!item) {
+    console.log("❌ PARCELLE NON TROVATA:", parcelleId);
+    return;
   }
+
+  console.log("✅ PARCELLE TROVATA:", item);
+
+  // Evidenzia
+  item.classList.add("highlight-row");
+
+  // Scroll verso la parcelle
+  setTimeout(() => {
+    item.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }, 150);
 }
-  // -------------------
+
+  // 🟩 BLOCCO 2 — Passaggio delle dipendenze → aggiornamento della mappa-------------------
   // 4️⃣ Passa dipendenze a parcelleUtils
   // -------------------
   setParcellesDeps({
@@ -187,24 +184,22 @@ function highlightTableRow(parcelleId) {
 updateMap();
 attachPopupEvents({ parcelles, map });
 
+// 🟧 BLOCCO 3 — Interazione lista ↔ mappa
 document.querySelectorAll(".parcelle-item").forEach(el => {
   const id = el.dataset.id;
 
   el.addEventListener("mouseenter", () => {
-    //const row = 
-    document.querySelectorAll(`[data-id="${id}"]`)
-  .forEach(r => r.classList.add("highlight-row"));
+    el.classList.add("highlight-row");
+    highlightParcelleOnMap(id, true);
   });
 
   el.addEventListener("mouseleave", () => {
-   document
-  .querySelectorAll(`[data-id="${id}"]`)
-  .forEach(r => r.classList.remove("highlight-row"));
+    el.classList.remove("highlight-row");
+    highlightParcelleOnMap(id, false);
   });
 });
 
  
-
     // -------------------
 // 5.1️⃣ DISEGNA POINTS (solo combined)
 // -------------------
@@ -239,7 +234,7 @@ if (points.length && map) {
     .addTo(pointsLayer)
     .bindPopup(pt.name || "Point");
   });
-  map.invalidateSize();
+ // map.invalidateSize();
 
 // Zoom automatico su tutti gli elementi
 setTimeout(() => {
@@ -269,45 +264,14 @@ setTimeout(() => {
 
 
 }
-  // -------------------
-  // 6️⃣ Drawer resize
-  // -------------------
-const drawerToggle = document.getElementById("my-drawer");
+// -------------------
+// 6️⃣ Drawer resize
+// -------------------
+// const drawerToggle = document.getElementById("my-drawer");
 
-if (drawerToggle && !drawerToggle.checked) {
-  drawerToggle.checked = true;
+setTimeout(() => {
+  map.invalidateSize();
+}, 300);
 
-  setTimeout(() => {
-    map.invalidateSize();
-  }, 300);
-}
-
-  // 7️⃣ DataTables
-
-    // 1. INIZIALIZZA DATATABLES - SPOSTATO IN FONDO
-    const table = $('#main-table').DataTable({
-        pageLength: 20,
-        
-         rowCallback: function(row, data) {
-        $(row).attr('data-id', data._id);
-    },
-        language: {
-            url: 'https://cdn.datatables.net/plug-ins/1.11.5/i18n/it-IT.json'
-        }
-    });
-
-    // 2. GESTIONE CAMBIO ELEMENTI PER PAGINA
-    $('#page-length').on('change', function() {
-        table.page.len($(this).val()).draw();
-    });
-
-    // 3. AGGIORNA SELECT CON VALORE CORRENTE
-    table.on('length.dt', function(e, settings, len) {
-        $('#page-length').val(len);
-    });
-
-    // Aggiungi questi console.log per debug
-    console.log("DataTables inizializzato:", table);
-    console.log("Elementi nella tabella:", table.rows().count());
 
 });

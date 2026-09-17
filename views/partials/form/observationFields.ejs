@@ -1,227 +1,115 @@
-
-   
 <!-- views/partials/form/observationFields.ejs -->
 
-<div id="observation-fields" class="hidden">
+<div id="observation-fields">
 
-    <div class="divider">
-        Observation
-    </div>
+    <% if (observationForm && observationForm.fields && observationForm.fields.length > 0) { %>
 
+        <div class="divider">
+            Observation
+        </div>
 
-    <!-- 🌡 CLIMAT -->
-    <div class="mb-2">
-        <label class="text-xs">
-            🌡 Température (°C)
-        </label>
+        <% observationForm.fields.forEach(function(field) { %>
 
-        <input
-            type="number"
-            step="0.1"
-            name="temperature"
-            class="input input-bordered input-sm w-full"
-            placeholder="ex: 36.5">
-    </div>
-        <!-- 🌡 CLIMAT interne -->
-    <div class="mb-2">
-        <label class="text-xs">
-            🌡 Température à l ' interieur de l' appartement (°C)
-        </label>
+            <% if (field.type === "text") { %>
 
-        <input
-            type="number"
-            step="0.1"
-            name="interieurTemperature"
-            class="input input-bordered input-sm w-full"
-            placeholder="ex: 36.5">
-    </div>
+                <div class="mb-2">
+                    <label class="text-xs">
+                        <%= field.label %>
+                        <% if (field.required) { %>
+                            <span class="text-error">*</span>
+                        <% } %>
+                    </label>
 
-    <div class="mb-2">
-        <label class="text-xs">
-            💧 Humidité (%)
-        </label>
+                    <input
+                        type="text"
+                        name="observation[<%= field.name %>]"
+                        class="input input-bordered input-sm w-full"
+                        <% if (field.required) { %>required<% } %>
+                    />
+                </div>
 
-        <input
-            type="number"
-            name="humidite"
-            class="input input-bordered input-sm w-full"
-            placeholder="ex: 65">
-    </div>
+            <% } %>
 
 
+            <% if (field.type === "number") { %>
 
-    <!-- 🌍 ENVIRONNEMENT -->
+                <div class="mb-2">
+                    <label class="text-xs">
+                        <%= field.label %>
+                        <% if (field.required) { %>
+                            <span class="text-error">*</span>
+                        <% } %>
+                    </label>
 
-    <div class="mb-2">
+                    <input
+                        type="number"
+                        step="any"
+                        name="observation[<%= field.name %>]"
+                        class="input input-bordered input-sm w-full"
+                        <% if (field.required) { %>required<% } %>
+                    />
+                </div>
 
-        <label class="text-xs">
-             Surface dominante (béton, asphalte, herbe...)
-        </label>
+            <% } %>
 
-        <select
-            name="surface"
-            class="select select-bordered select-sm w-full">
 
-            <option value="">
-                Choisir
-            </option>
+            <% if (field.type === "boolean") { %>
 
-            <option value="beton">
-                Béton
-            </option>
+                <label class="flex gap-2 items-center mb-2">
 
-            <option value="asphalte">
-                Asphalte
-            </option>
+                    <input
+                        type="checkbox"
+                        name="observation[<%= field.name %>]"
+                        value="true"
+                        class="checkbox checkbox-sm"
+                    />
 
-            <option value="sol">
-                Sol naturel
-            </option>
+                    <span>
+                        <%= field.label %>
+                    </span>
 
-            <option value="vegetation">
-                Végétation
-            </option>
+                </label>
 
-        </select>
+            <% } %>
 
-    </div>
 
+            <% if (field.type === "select") { %>
 
-    <label class="flex gap-2 items-center mb-2">
+                <div class="mb-2">
 
-        <input
-            type="checkbox"
-            name="trees"
-            class="checkbox checkbox-sm">
+                    <label class="text-xs">
+                        <%= field.label %>
+                        <% if (field.required) { %>
+                            <span class="text-error">*</span>
+                        <% } %>
+                    </label>
 
-        🌳 Présence d'arbres
+                    <select
+                        name="observation[<%= field.name %>]"
+                        class="select select-bordered select-sm w-full"
+                        <% if (field.required) { %>required<% } %>
+                    >
 
-    </label>
+                        <option value="">
+                            Choisir
+                        </option>
 
+                        <% field.options.forEach(function(option) { %>
 
-    <label class="flex gap-2 items-center mb-2">
+                            <option value="<%= option %>">
+                                <%= option %>
+                            </option>
 
-        <input
-            type="checkbox"
-            name="shade"
-            class="checkbox checkbox-sm">
+                        <% }); %>
 
-       ☂️ Ombre naturelle
+                    </select>
 
-    </label>
+                </div>
 
+            <% } %>
 
-    <label class="flex gap-2 items-center mb-2">
+        <% }); %>
 
-        <input
-            type="checkbox"
-            name="water"
-            class="checkbox checkbox-sm">
-
-        💦 Présence d'eau
-
-    </label>
-
-
-
-    <!-- 🏢 BATIMENT -->
-
-    <div class="divider">
-        Bâtiment
-    </div>
-     <div class="mb-2">
-
-        <label class="text-xs">
-             🏢 Étage (per un appartament)
-        </label>
-
-        <select
-            name="etage"
-            class="select select-bordered select-sm w-full">
-
-            <option value="">
-                Choisir
-            </option>
-             <option value="0">RDC</option><option value="1"> 1</option>
-
-            <option value="2">2</option>
-
-            <option value="3">3</option><option value="4">4</option>
-            <option value="5">5</option><option value="6"> 6 </option>
-            <option value="7">7</option> <option value="8">8</option> <option value="9">9</option><option value="10">10</option>
-        </select>
-
-        <label class="cursor-pointer flex items-center gap-2">
-            <input
-                type="checkbox"
-                name="dernierEtage"
-                class="checkbox checkbox-sm">
-
-            <span>🏠 Dernier étage</span>
-        </label>
-        <label class="cursor-pointer flex items-center gap-2">
-            <input
-                type="checkbox"
-                name="toitSansOmbrage"
-                class="checkbox checkbox-sm">
-
-            <span>🏠 Toit sans ombrage</span>
-        </label>
-                <label class="cursor-pointer flex items-center gap-2">
-            <input
-                type="checkbox"
-                name="toitBlanc"
-                class="checkbox checkbox-sm">
-
-            <span>🏠 Toiture blanche / cool roof</span>
-        </label>
-    </div>
-
-
-      <div class="mb-2">
-
-        <label class="text-xs">
-             ☀️ Exposition 
-        </label>
-
-        <select
-            name="exposition"
-            class="select select-bordered select-sm w-full">
-
-            <option value="">
-                Choisir
-            </option>
-            <option value="Nord">Nord</option>
-            <option value="Est">Est</option>
-            <option value="Sud">Sud</option>
-            <option value="Ouest">Ouest</option>
-
-        </select>
-
-    </div>
-
-    <label class="flex gap-2 items-center mb-2">
-
-        <input
-            type="checkbox"
-            name="volets"
-            class="checkbox checkbox-sm">
-
-        🪟 Volets
-
-    </label>
-
-
-    <label class="flex gap-2 items-center mb-2">
-
-        <input
-            type="checkbox"
-            name="airConditioning"
-            class="checkbox checkbox-sm">
-
-        ❄ Climatisation
-
-    </label>
-
+    <% } %>
 
 </div>

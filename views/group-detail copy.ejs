@@ -1,0 +1,301 @@
+
+<!-- views/group-detail.ejs-->
+<%- include('layout/header') %>
+
+<div class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+
+  <!-- 🔹 Titolo -->
+  <h1 class="text-3xl font-extrabold text-primary text-center mb-6">
+    📋 Configuration du groupe
+  </h1>
+
+  <!-- ✏️ Form Admin -->
+<% if (user && (user.role === 'admin' || isGroupOffice)) { %>
+    <form action="/groups/<%= groupId %>/updateInfo" method="POST" class="mt-4 text-center space-y-3">
+      
+      <input 
+        type="text" 
+        name="name" 
+        value="<%= group.name %>"
+        placeholder="Ex : Signalements voirie • Inspections sécurité • Suivi terrain" 
+        class="input input-bordered w-1/2" 
+      />
+
+
+           
+    <!-- Type de groupe -->
+    <div>
+      <label for="groupType" class="block text-sm font-medium text-gray-700">
+        Utilisation principale
+      </label>
+
+      <select
+        id="groupType"
+        name="groupType"
+        class="select select-bordered w-full mt-1"
+      >
+        <option value="maintenance"
+  <%= group.groupType === "maintenance" ? "selected" : "" %>>
+  🏘️ Maintenance
+</option>
+
+<option value="mobile-service"
+  <%= group.groupType === "mobile-service" ? "selected" : "" %>>
+  🚚 Service mobile
+</option>
+
+<option value="observation"
+  <%= group.groupType === "observation" ? "selected" : "" %>>
+  🔍 Observation
+</option>
+
+<option value="community"
+  <%= group.groupType === "community" ? "selected" : "" %>>
+  👥 Communauté
+</option>
+      </select>
+    </div>
+        
+      <textarea 
+        name="description"
+        placeholder="Décrivez le type de signalements,
+         qui peut les créer et comment ils sont utilisés."
+          class="textarea textarea-bordered w-1/2">
+          <%= group.description %></textarea>
+
+      <input 
+        type="text" 
+        name="keywords" 
+        value="<%= group.keywords?.join(', ') %>"
+        placeholder="Ex : sécurité, terrain, inspection, incident" 
+        class="input input-bordered w-1/2" 
+      />
+
+      <div>
+        <button type="submit" class="btn btn-primary">💾 Sauvegarder</button>
+      </div>
+    </form>
+  <% } %>
+<% if (user && (user.role === 'admin' || isGroupOffice) &&
+  group.groupType === 'observation'
+) { %>
+  
+  <!-- 🔍 Formulaire d'observation -->
+  <div class="mt-8 bg-base-200 rounded-2xl shadow-md p-6">
+
+    <h2 class="text-2xl font-semibold text-primary text-center mb-2">
+      🔍 Formulaire d'observation
+    </h2>
+
+    <p class="text-gray-600 text-center mb-6">
+      Définissez les informations qui devront être renseignées
+      lors d'une observation.
+    </p>
+
+    <!-- Premier champ -->
+<form
+  action="/groups/<%= groupId %>/observation-form"
+  method="POST"
+  class="max-w-2xl mx-auto space-y-4"
+>
+
+  <div>
+    <label for="observationFieldLabel"
+           class="block text-sm font-medium text-gray-700">
+      Nom du champ
+    </label>
+
+    <input
+      type="text"
+      id="observationFieldLabel"
+      name="label"
+      placeholder="Ex : État général"
+      class="input input-bordered w-full mt-1"
+      required
+    />
+  </div>
+
+  <div>
+    <label for="observationFieldType"
+           class="block text-sm font-medium text-gray-700">
+      Type de champ
+    </label>
+
+    <select
+      id="observationFieldType"
+      name="type"
+      class="select select-bordered w-full mt-1"
+    >
+      <option value="text">Texte</option>
+      <option value="number">Nombre</option>
+      <option value="boolean">Oui / Non</option>
+      <option value="select">Liste de choix</option>
+    </select>
+  </div>
+
+  <label class="label cursor-pointer justify-start gap-3">
+    <input
+      type="checkbox"
+      name="required"
+      class="checkbox checkbox-primary"
+    />
+
+    <span class="label-text">
+      Champ obligatoire
+    </span>
+  </label>
+
+  <div class="text-center pt-2">
+    <button
+      type="submit"
+      class="btn btn-primary"
+    >
+      ➕ Ajouter le champ
+    </button>
+  </div>
+
+</form>
+<% if (observationForm && observationForm.fields.length > 0) { %>
+
+  <div class="mt-6">
+    <h3 class="text-lg font-semibold mb-3">
+      Champs configurés
+    </h3>
+
+    <ul class="space-y-2">
+      <% observationForm.fields.forEach(field => { %>
+
+        <li class="bg-base-100 rounded-lg p-3">
+          <strong><%= field.label %></strong>
+          — <%= field.type %>
+
+          <% if (field.required) { %>
+            <span class="text-error">Obligatoire</span>
+          <% } %>
+        </li>
+
+      <% }) %>
+    </ul>
+  </div>
+
+<% } %>
+  </div>
+  <% } %>
+  <form 
+    action="/groups/<%= groupId %>/toggle-visibility" 
+    method="POST"
+    class="mt-4 text-center"
+  >
+    <button type="submit" class="btn btn-outline btn-warning">
+      <% if (group.isPublic) { %>
+        🔒 Limiter l’accès au groupe
+      <% } else { %>
+        🔓 Ouvrir le groupe au public
+      <% } %>
+    </button>
+  </form>
+
+
+
+  <!-- 🔍 Descrizione e parole chiave -->
+  <div class="text-center text-gray-600 mb-8">
+    <h2 class="text-2xl font-semibold text-primary">
+      <%= group.name || "Nome non disponibile" %>
+    </h2>
+
+    <p class="mt-2 italic">
+      <%= group.description || "Nessuna descrizione disponibile." %>
+    </p>
+
+    <% if (group.keywords && group.keywords.length > 0) { %>
+      <p class="mt-2 text-sm text-gray-500">
+        <strong>Mots clé:</strong> 
+        <%= group.keywords.join(', ') %>
+      </p>
+    <% } %>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+    <!-- 📋 Colonna sinistra -->
+    <aside class="md:col-span-1 bg-base-200 rounded-2xl shadow-md p-5 space-y-6">
+
+      <!-- 👥 Membri -->
+      <section>
+        <h3 class="text-lg font-semibold text-primary mb-2">👥 Membri</h3>
+
+        <% if (members && members.length > 0) { %>
+          <ul class="space-y-1 text-gray-700">
+            <% members.forEach(m => { %>
+              <li class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-primary rounded-full"></span>
+                <%= m.email %> 
+                <span class="text-xs text-gray-500">(<%= m.role %>)</span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="text-gray-400 text-sm">Nessun membro trovato.</p>
+        <% } %>
+      </section>
+
+      <!-- 📍 Punti -->
+      <section>
+        <h3 class="text-lg font-semibold text-primary mb-2">📍 Punti del gruppo</h3>
+
+        <% if (points && points.length > 0) { %>
+          <div class="overflow-x-auto border border-gray-200 rounded-lg">
+            <table class="w-full text-sm">
+              <thead class="bg-primary/10">
+                <tr class="text-left">
+                  <th class="p-2">Nome</th>
+                  <th class="p-2">Categoria</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% points.forEach(p => { %>
+                  <tr class="border-t hover:bg-primary/5">
+                    <td class="p-2"><%= p.name || '–' %></td>
+                    <td class="p-2"><%= p.category || 'Senza categoria' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p class="text-gray-400 text-sm">Nessun punto trovato.</p>
+        <% } %>
+      </section>
+    </aside>
+
+    <!-- 📌 Feed -->
+    <div class="md:col-span-2 flex flex-col space-y-6">
+  <div class="bg-base-100 rounded-2xl shadow-md p-5">
+    <h3 class="text-lg font-semibold text-primary mb-3">📌 Feed del gruppo</h3>
+
+    <!-- 👇 QUI PASSA groupId AL JS -->
+    <div
+      id="group-feed"
+      data-group-id="<%= groupId %>"
+      class="mt-4 space-y-4">
+      <%- include("partials/groupFeedPublic", { points }) %>
+    </div>
+
+  </div>
+</div>
+
+
+  <!-- 🔙 Torna ai gruppi -->
+  <div class="text-center mt-12 pb-16">
+    <a href="/groups" class="btn btn-outline btn-primary shadow-md hover:shadow-lg transition">
+      ← Torna ai gruppi
+    </a>
+  </div>
+
+</div>
+
+<p class="text-xs opacity-50 text-center mt-6">
+ 
+</p>
+
+<%- include('layout/footer') %>

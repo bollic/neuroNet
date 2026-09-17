@@ -2,8 +2,9 @@ const mongoose = require('mongoose');
 //const uniqueValidator = require('mongoose-unique-validator');
 
 const userSchema = mongoose.Schema({
-  email: { type: String, required: function() { return this.role !== 'anon'; } },
-  password: { type: String, required: function() { return this.role !== 'anon'; } },
+  pseudonyme: { type: String, required: function() { return this.role !== 'anon'; } },
+   email: { type: String, required: false },
+    password: { type: String, required: function() { return this.role !== 'anon'; } },
 
   role: { 
     type: String, 

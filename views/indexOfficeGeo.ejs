@@ -62,10 +62,23 @@
     </a>
     
 <% if (group && group.groupType === "mobile-service") { %>
-  <button id="start-tracking"
-          class="btn btn-success">
-    🚚 Démarrer la tournée
-  </button>
+
+  <% if (group.tournee?.active) { %>
+
+    <button id="stop-tracking"
+            class="btn btn-error">
+      🛑 Arrêter la tournée
+    </button>
+
+  <% } else { %>
+
+    <button id="start-tracking"
+            class="btn btn-success">
+      🚚 Démarrer la tournée
+    </button>
+
+  <% } %>
+
 <% } %>
     <!-- 🔗 Invitation privée (compacte) -->
 <div class="mt-2 p-2 bg-base-100 rounded-lg border border-dashed text-sm">
@@ -187,21 +200,9 @@
       </div>
       <!-- Filtro -->
       <div class="flex flex-col gap-2 my-3">
-               <% if (group.groupType === "observation") { %>
-
-        <select id="filter-comfort" class="select select-bordered w-full">
-            <option value="">Tous les niveaux</option>
-            <option value="0-2">🔥 Très chaud</option>
-            <option value="3-4">🟠 Chaud</option>
-            <option value="5-6">🟡 Moyen</option>
-            <option value="7-8">🟢 Confortable</option>
-            <option value="9-10">🌿 Excellent</option>
-        </select>
-
-        <% } %>
+         
         <select id="filter-category" class="select select-bordered w-full">
-         <option value="">Toutes les catégories</option>
-
+             <option value="">Toutes les catégories</option>
         </select>
 
         <input type="date" id="filter-date" class="input input-bordered " />
@@ -212,14 +213,14 @@
 
     <div class="overflow-x-auto">
       <table id="main-table" class="table table-zebra w-full">
-        <thead>
-          <tr>
-            <th>Signalement</th>
-        
-            <th>Date</th>
-            <th style="display:none;">createdAtISO</th>
-          </tr>
-        </thead>
+       <thead>
+            <tr>
+              <th>Signalement</th>
+              <th style="display:none;">Date</th>
+              <th style="display:none;">userEmail</th>
+              <th style="display:none;">category</th>
+            </tr>
+          </thead>
         <tbody></tbody>
       </table>
     </div>
@@ -326,9 +327,9 @@
                     bg-purple-500 text-white
                     flex items-center justify-center
                     text-sm font-semibold">
-      <% if (user) { %>
-          <%= user.email.charAt(0).toUpperCase() %>
-      <% } %>
+     <% if (user) { %>
+          <%= (user.pseudonyme || user.email || '?').charAt(0).toUpperCase() %>
+     <% } %>
   </div>
 
       </button>
@@ -346,7 +347,7 @@
             <div class="flex items-center gap-2 mb-3">
               <i class="fas fa-envelope text-gray-400"></i>
               <span class="text-gray-700 truncate">
-                <%= user.email %>
+               <%= user.pseudonyme || user.email %>
               </span>
             </div>
           <% } %>
