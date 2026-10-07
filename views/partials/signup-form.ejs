@@ -103,6 +103,41 @@ Vous pourrez ajouter des signalements sur la carte.
       </select>
     </div>
         
+<!-- Services disponibles pour un groupe mobile -->
+<div id="mobile-services" class="hidden mt-3">
+  
+  <label class="block text-sm font-medium text-gray-700 mb-2">
+    Services proposés
+  </label>
+
+  <div class="flex flex-col gap-2">
+
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input
+        type="checkbox"
+        name="services.collecter"
+        value="true"
+        class="checkbox checkbox-primary"
+      />
+      <span>📥 Collecter</span>
+    </label>
+
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input
+        type="checkbox"
+        name="services.livrer"
+        value="true"
+        class="checkbox checkbox-primary"
+      />
+      <span>📤 Livrer</span>
+    </label>
+
+  </div>
+
+  <p class="text-xs text-gray-500 mt-2">
+    Choisissez les services que ce groupe pourra proposer.
+  </p>
+</div>
 <!-- Pseudonyme -->
 <div>
   <label for="pseudonyme" class="block text-sm font-medium text-gray-700">
@@ -140,5 +175,27 @@ Vous pourrez ajouter des signalements sur la carte.
   <p class="text-sm text-gray-500">Aucune inscription disponible pour ce rôle.</p>
 <% } %>
 
+<script>
+  const groupType = document.getElementById('groupType');
+  const mobileServices = document.getElementById('mobile-services');
+
+  function updateMobileServices() {
+    if (groupType.value === 'mobile-service') {
+      mobileServices.classList.remove('hidden');
+    } else {
+      mobileServices.classList.add('hidden');
+
+      mobileServices
+        .querySelectorAll('input[type="checkbox"]')
+        .forEach(input => {
+          input.checked = false;
+        });
+    }
+  }
+
+  groupType.addEventListener('change', updateMobileServices);
+
+  updateMobileServices();
+</script>
 
 

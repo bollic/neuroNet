@@ -255,13 +255,35 @@ const markerMap = {};
     data.forEach((point) => {
       const category = point.category;
       const iconEmoji = getIconEmoji(point);
-
+   
+      console.log("🧪 CREAZIONE GEOJSON OFFICE:", {
+          name: point.name,
+          serviceType: point.serviceType,
+          status: point.status
+      });
       const geoJson = {
         type: "Feature",
-        geometry: { type: "Point", coordinates: point.coordinates },
-        properties: { _id: point._id, name: point.name || "Senza nome", category, icon: iconEmoji , description: point.description},
+        geometry: { type: "Point",
+        coordinates: point.coordinates 
+      },
+        properties: {
+           _id: point._id, 
+           name: point.name || "Senza nome",
+            category,
+             icon: iconEmoji,
+             description: point.description,
+            status: point.status || "a_collecter",
+            serviceType: point.serviceType || "collecter"
+    
+          }
       };
-
+      console.log("🧪 GEOJSON CREATO:", {
+  name: point.name,
+  serviceType: point.serviceType,
+  status: point.status,
+  properties: geoJson.properties
+});
+      console.log("🧪 GEOJSON PROPERTIES:", geoJson.properties);
       const geoLayer = L.geoJSON(geoJson, {
 
         pointToLayer: function (feature, latlng) {
@@ -293,18 +315,131 @@ const markerMap = {};
          return marker; // 🔥 IMPORTANTISSIMO
         },
     // 👇 AGGIUNGI QUESTO
-  onEachFeature: function (feature, layer) {
-     const [lng, lat] = feature.geometry.coordinates;
-    layer.bindPopup(`
-      <div style="min-width:180px">
-        <strong>${feature.properties.name}</strong><br>
-        Categoria: ${feature.properties.category || "Sans"}<br>
-        Description: ${feature.properties.description || "Sans description"}<br>
-        Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}
+onEachFeature: function (feature, layer) {
+  console.log("🔥 ON EACH FEATURE:", feature.properties);
 
-      </div>
-    `);
+  const [lng, lat] = feature.geometry.coordinates;
+ const status = feature.properties.status || "a_collecter";
+ console.log("🔥 FEATURE COMPLETA:", JSON.stringify(feature, null, 2));
+console.log("🔥 SERVICE TYPE:", feature.properties?.serviceType);
+const serviceType = feature.properties.serviceType;
+
+console.log("🚨 POPUP SERVICE TYPE:", {
+    name: feature.properties.name,
+    serviceType: serviceType,
+    status: feature.properties.status,
+    properties: feature.properties
+});
+
+console.log("🔎 OFFICE POPUP:", {
+    id: feature.properties._id,
+    name: feature.properties.name,
+    serviceType: feature.properties.serviceType,
+    serviceTypeFinal: serviceType,
+    status: status
+});
+let actionHtml = "";
+console.log("🚨 POPUP ACTION:", {
+  name: feature.properties.name,
+  serviceType: serviceType,
+  status: status,
+  properties: feature.properties
+});
+if (serviceType === "livrer") {
+
+  if (status === "livre") {
+
+    actionHtml = `
+      <button
+        class="service-point-btn mt-2 bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg"
+        data-id="${feature.properties._id}"
+        data-status="livre" 
+  data-service-type="livrer">
+        ↩ Remettre à livrer
+      </button>
+    `;
+
+  } else {
+
+    actionHtml = `
+      <button
+        class="service-point-btn mt-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg"
+        data-id="${feature.properties._id}"
+        data-status="a_livrer"
+        data-service-type="livrer"
+        >
+        🚚 Livrer
+      </button>
+    `;
+
   }
+
+} else {
+
+  if (status === "collecte") {
+
+    actionHtml = `
+      <button
+        class="service-point-btn mt-2 bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg"
+        data-id="${feature.properties._id}"
+        data-status="collecte"
+        data-service-type="collecter">
+        ↩ Remettre à collecter
+      </button>
+    `;
+
+  } else {
+
+    actionHtml = `
+      <button
+        class="service-point-btn mt-2 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg"
+        data-id="${feature.properties._id}"
+        data-status="a_collecter"
+        data-service-type="collecter">
+        ✓ Collecter
+      </button>
+    `;
+
+  }
+}
+
+      
+    // 👇 ICI, FUORI DAL TEMPLATE
+    let statusLabel = status;
+
+   if (serviceType === "livrer") {
+      statusLabel = status === "livre"
+        ? "✓ Livré"
+        : "🟠 À livrer";
+    } else {
+      statusLabel = status === "collecte"
+        ? "✓ Collecté"
+        : "🟠 À collecter";
+    }
+
+
+
+  layer.bindPopup(`
+    <div style="min-width:200px">
+
+      <strong>${feature.properties.name}</strong><br>
+
+      Catégorie: ${feature.properties.category || "Sans"}<br>
+
+      Description:
+      ${feature.properties.description || "Sans description"}<br>
+
+     Statut:
+    <strong>${statusLabel}</strong><br>
+      
+      Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}
+
+      ${actionHtml}
+
+    </div>
+  `);
+
+}
 
     }).addTo(drawnItems);
 
@@ -319,6 +454,100 @@ const markerMap = {};
     }
   }
 
+  document.addEventListener("click", async (e) => {
+
+  const btn = e.target.closest(".service-point-btn");
+
+  if (!btn) return;
+
+  const pointId = btn.dataset.id;
+const serviceType = btn.dataset.serviceType;
+
+console.log("🚚 Service:", serviceType, "Point:", pointId);
+
+  if (!pointId) return;
+
+  try {
+
+    btn.disabled = true;
+    btn.textContent = "⏳...";
+console.log("🚚/📦 CLICK ACTION:", {
+    pointId,
+    serviceType: btn.dataset.serviceType,
+    status: btn.dataset.status,
+    route: btn.dataset.serviceType === "livrer"
+        ? `/points/${pointId}/livrer`
+        : `/points/${pointId}/collect`
+});
+const route = serviceType === "livrer"
+  ? `/points/${pointId}/livrer`
+  : `/points/${pointId}/collect`;
+
+const response = await fetch(
+  route,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include"
+  }
+);
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+       result.message ||
+  (serviceType === "livrer"
+    ? "Erreur lors de la livraison"
+    : "Erreur lors de la collecte")
+      );
+    }
+
+    
+    console.log("✅ Nouveau statut:", result.status);
+
+    // Met à jour le point localement
+    const point = points.find(
+      p => String(p._id) === String(pointId)
+    );
+
+        if (point) {
+            point.status = result.status;
+          }
+
+    // Ferme le popup
+  //  map.closePopup();
+
+    // Actualise la carte
+    updateMap();
+          // Rouvre le popup du même point avec son nouveau statut
+setTimeout(() => {
+    const marker = markerMap[pointId];
+
+    if (marker) {
+        marker.openPopup();
+    }
+}, 50);
+  } catch (err) {
+
+     console.error("❌ Erreur service:", err);
+
+        btn.disabled = false;
+
+        btn.textContent =
+          serviceType === "livrer"
+            ? "🚚 Livrer"
+            : "✓ Collecter";
+
+      alert(
+          serviceType === "livrer"
+            ? "Impossible de marquer le point comme livré."
+            : "Impossible de marquer le point comme collecté."
+        );
+  }
+
+});
   // ========================
   // Inizializzazione mappa
   // ========================
@@ -444,7 +673,7 @@ let watchId = null;
           }
 
           // 2️⃣ Solo dopo avvia il GPS
-          watchId = navigator.geolocation.watchPosition(
+   /*       watchId = navigator.geolocation.watchPosition(
 
             async pos => {
 
@@ -469,7 +698,7 @@ let watchId = null;
             }
 
           );
-
+*/
         });
 
       }

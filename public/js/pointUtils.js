@@ -109,6 +109,28 @@ export function updateMap() {
             : null;
 
         const isMyPoint = String(userId) === String(currentUserId);
+       
+       
+ const isMobileService = window.GROUP_TYPE === "mobile-service";
+
+const collectionStatusHtml = isMobileService ? `
+    <div style="margin-top:8px;">
+        <strong>Statut :</strong>
+          ${
+            point.serviceType === "livrer"
+                ? (
+                    point.status === "livre"
+                        ? `<span style="color:#16a34a;font-weight:600;">✓ Livré</span>`
+                        : `<span style="color:#2563eb;font-weight:600;">🔵 À livrer</span>`
+                  )
+                : (
+                    point.status === "collecte"
+                        ? `<span style="color:#16a34a;font-weight:600;">✓ Collecté</span>`
+                        : `<span style="color:#d97706;font-weight:600;">🟠 À collecter</span>`
+                  )
+        }
+    </div>
+` : '';
                 // 👇 QUI (ESATTAMENTE QUI)
         const bgColor = isMyPoint ? "#3b82f6" : "#ffffff";
         const borderColor = isMyPoint ? "#2563eb" : "#9ca3af";
@@ -160,7 +182,7 @@ className: ''
       👤 Declarant: <strong>${userEmail || 'Toi'}</strong><br>
     ` : ''}
 
-
+        ${collectionStatusHtml}
        
     ${
       point.description

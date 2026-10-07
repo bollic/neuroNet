@@ -230,7 +230,7 @@ $('#main-table-mobile tbody, #main-table-desktop tbody')
     formData.append("name", "📍 Point rapide");
     formData.append("category", defaultCategory);
     formData.append("description", "");
-
+    
     formData.append(
       "point",
       JSON.stringify(marker.toGeoJSON())

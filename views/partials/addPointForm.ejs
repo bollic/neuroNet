@@ -34,6 +34,53 @@
     </select>
   </div>
 
+
+    <script>
+  console.log("🚚 ADD POINT FORM - GROUP:", <%- JSON.stringify(group) %>);
+  console.log("🚚 ADD POINT FORM - SERVICES:", <%- JSON.stringify(group?.services || {}) %>);
+</script>
+  
+<!-- Type de service spécifique au mobile-service -->
+
+
+<% if (
+  group &&
+  group.groupType === "mobile-service" &&
+  (group.services?.collecter || group.services?.livrer)
+) { %>
+
+  <div class="mb-3">
+    <label class="label">
+      <span class="label-text font-semibold">
+        Type de service
+      </span>
+    </label>
+
+    <div class="flex gap-4">
+          <% if (group.services.collecter) { %>
+    <label class="flex items-center gap-2 cursor-pointer"> 
+        <input type="radio" name="serviceType" value="collecter" class="radio radio-primary" 
+        <% if (group.services.collecter) { %>checked<% } %> /> 
+        <span>📥 Collecter</span> 
+    </label>
+        <% } %>
+
+      <% if (group.services.livrer) { %>
+      <label class="flex items-center gap-2 cursor-pointer">
+         <input type="radio" 
+         name="serviceType"
+          value="livrer" class="radio radio-primary"
+           <% if (!group.services.collecter) { %>checked<% } %> />
+            <span>📤 Livrer</span>
+      </label>
+       <% } %>
+
+    </div>
+  </div>
+
+<% } %>
+
+
 <!-- Campi specifici del gruppo -->
 
 <% if (group && group.groupType === "observation") { %>

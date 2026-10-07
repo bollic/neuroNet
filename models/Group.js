@@ -25,7 +25,17 @@ const GroupSchema = new mongoose.Schema({
       ],
       default: "community"
     },
-  
+
+    services: {
+        collecter: {
+          type: Boolean,
+          default: false
+        },
+        livrer: {
+          type: Boolean,
+          default: false
+        }
+      },
     tournee: {
       active: Boolean,
       startedAt: Date,

@@ -5,6 +5,16 @@ const PointSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId,
   ref: 'User' },
 
+    status: {
+      type: String,
+      enum: ['a_collecter', 'collecte', 'a_livrer', 'livre'],
+      default: undefined
+    },
+    serviceType: {
+      type: String,
+      enum: ['collecter', 'livrer'],
+      default: undefined
+    },
   source: {
     type: String,
     enum: ['field', 'public'],

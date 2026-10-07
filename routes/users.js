@@ -465,11 +465,30 @@ console.log('✅ [SIGNUP] Utente creato e salvato nel DB:', newUser);
                     groupId: generatedGroupId,
                     name: groupName,
                     plan: "free",
-                    groupType: groupType || "classic"
+                    groupType: groupType || "community",
+
+                       services: {
+                          collecter: req.body['services.collecter'] === 'true',
+                          livrer: req.body['services.livrer'] === 'true'
+                        }
                 },
                 { upsert: true, new: true }
               );
-             // console.log("🧪 Gruppo salvato:", savedGroup);
+             console.log('🚚 [SIGNUP] Groupe créé avec services:', {
+              groupType: savedGroup.groupType,
+              services: savedGroup.services
+            });
+
+                        // 🔍 VERIFICA REALE DEL DOCUMENTO NEL DB
+            const verifyGroup = await Group.findOne({
+              groupId: generatedGroupId
+            });
+
+            console.log('🔍 [SIGNUP] VERIFICA GROUP DAL DB:', {
+              groupType: verifyGroup?.groupType,
+              services: verifyGroup?.services
+            });
+
       }
 
 

@@ -38,8 +38,6 @@
     <% } %>
 
   </div>
-
-
   <!-- ========================================================= -->
   <!-- CONFIGURATION / ADMIN -->
   <!-- ========================================================= -->
@@ -49,9 +47,9 @@
     <section class="bg-base-100 rounded-2xl shadow-md border border-base-300 overflow-hidden mb-8">
 
       <!-- Section header -->
-      <div class="bg-base-200 px-6 py-5 border-b border-base-300">
+      <div class="bg-base-200 px-6 py-4 border-b border-base-300">
 
-        <h2 class="text-2xl font-bold text-primary">
+        <h2 class="text-xl font-bold text-primary">
           ⚙️ Informations du groupe
         </h2>
 
@@ -63,12 +61,12 @@
 
 
       <!-- Formulaire -->
-      <div class="p-6 md:p-8">
+      <div class="p-5 md:p-8">
 
         <form
           action="/groups/<%= groupId %>/updateInfo"
           method="POST"
-          class="max-w-3xl mx-auto space-y-6"
+          class="max-w-3xl mx-auto space-y-4"
         >
 
           <!-- Nom -->
@@ -87,7 +85,7 @@
               name="name"
               value="<%= group.name %>"
               placeholder="Ex : Signalements voirie • Inspections sécurité • Suivi terrain"
-              class="input input-bordered w-full"
+              class="input input-bordered input-sm w-full"
             />
 
           </div>
@@ -106,7 +104,7 @@
             <select
               id="groupType"
               name="groupType"
-              class="select select-bordered w-full"
+              class="select select-bordered select-sm w-full"
             >
 
               <option
@@ -155,7 +153,7 @@
             <textarea
               id="groupDescription"
               name="description"
-              rows="4"
+              rows="2"
               placeholder="Décrivez le type de signalements, qui peut les créer et comment ils sont utilisés."
               class="textarea textarea-bordered w-full"
             ><%= group.description %></textarea>
@@ -179,7 +177,7 @@
               name="keywords"
               value="<%= group.keywords?.join(', ') %>"
               placeholder="Ex : sécurité, terrain, inspection, incident"
-              class="input input-bordered w-full"
+              class="input input-bordered input-sm w-full"
             />
 
             <p class="text-xs text-gray-500 mt-1">
@@ -194,7 +192,7 @@
 
             <button
               type="submit"
-              class="btn btn-primary px-6"
+             class="btn btn-primary btn-sm px-4"
             >
               💾 Sauvegarder
             </button>
@@ -209,290 +207,23 @@
 
   <% } %>
 
-
   <!-- ========================================================= -->
-  <!-- FORMULAIRE D'OBSERVATION -->
-  <!-- ========================================================= -->
-
-  <% if (
-    user &&
-    (user.role === 'admin' || isGroupOffice) &&
-    group.groupType === 'observation'
-  ) { %>
-
-    <section class="bg-base-100 rounded-2xl shadow-md border border-base-300 overflow-hidden mb-8">
-
-      <!-- Header -->
-      <div class="bg-base-200 px-6 py-5 border-b border-base-300">
-
-        <div class="flex items-center gap-3">
-
-          <div class="text-3xl">
-            🔍
-          </div>
-
-          <div>
-
-            <h2 class="text-2xl font-bold text-primary">
-              Formulaire d'observation
-            </h2>
-
-            <p class="text-sm text-gray-600 mt-1">
-              Définissez les informations qui devront être renseignées
-              lors d'une observation.
-            </p>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <!-- Contenu -->
-      <div class="p-6 md:p-8">
-
-        <!-- =================================================== -->
-        <!-- AJOUTER UN CHAMP -->
-        <!-- =================================================== -->
-
-        <div class="max-w-3xl mx-auto">
-
-          <div class="mb-5">
-
-            <h3 class="text-lg font-bold text-gray-800">
-              Ajouter un champ
-            </h3>
-
-            <p class="text-sm text-gray-500 mt-1">
-              Choisissez les informations que les utilisateurs devront
-              pouvoir renseigner lors d'une observation.
-            </p>
-
-          </div>
-
-
-          <form
-            action="/groups/<%= groupId %>/observation-form"
-            method="POST"
-            class="bg-base-200 rounded-xl p-5 md:p-6 space-y-5"
-          >
-
-            <!-- Nom du champ -->
-            <div>
-
-              <label
-                for="observationFieldLabel"
-                class="block text-sm font-semibold text-gray-700 mb-1"
-              >
-                Nom du champ
-              </label>
-
-              <input
-                type="text"
-                id="observationFieldLabel"
-                name="label"
-                placeholder="Ex : État général"
-                class="input input-bordered w-full bg-base-100"
-                required
-              />
-
-            </div>
-
-
-            <!-- Type du champ -->
-            <div>
-
-              <label
-                for="observationFieldType"
-                class="block text-sm font-semibold text-gray-700 mb-1"
-              >
-                Type de champ
-              </label>
-
-              <select
-                id="observationFieldType"
-                name="type"
-                class="select select-bordered w-full bg-base-100"
-              >
-
-                <option value="text">
-                  Texte
-                </option>
-
-                <option value="number">
-                  Nombre
-                </option>
-
-                <option value="boolean">
-                  Oui / Non
-                </option>
-
-                <option value="select">
-                  Liste de choix
-                </option>
-
-              </select>
-
-            </div>
-
-
-            <!-- Obligatoire -->
-            <label class="flex items-center gap-3 cursor-pointer">
-
-              <input
-                type="checkbox"
-                name="required"
-                class="checkbox checkbox-primary"
-              />
-
-              <span class="text-sm font-medium text-gray-700">
-                Champ obligatoire
-              </span>
-
-            </label>
-
-
-            <!-- Ajouter -->
-            <div class="flex justify-end pt-2">
-
-              <button
-                type="submit"
-                class="btn btn-primary px-6"
-              >
-                ➕ Ajouter le champ
-              </button>
-
-            </div>
-
-          </form>
-
-
-          <!-- ================================================= -->
-          <!-- CHAMPS CONFIGURÉS -->
-          <!-- ================================================= -->
-
-          <div class="mt-8">
-
-            <div class="flex items-center justify-between mb-4">
-
-              <h3 class="text-lg font-bold text-gray-800">
-                Champs configurés
-              </h3>
-
-              <% if (observationForm && observationForm.fields) { %>
-
-                <span class="badge badge-outline">
-                  <%= observationForm.fields.length %>
-                  <% if (observationForm.fields.length === 1) { %>
-                    champ
-                  <% } else { %>
-                    champs
-                  <% } %>
-                </span>
-
-              <% } %>
-
-            </div>
-
-
-            <% if (observationForm && observationForm.fields.length > 0) { %>
-
-              <div class="space-y-3">
-
-                <% observationForm.fields.forEach(field => { %>
-
-                  <div class="bg-base-100 border border-base-300 rounded-xl p-4">
-
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-
-                      <!-- Infos champ -->
-                      <div>
-
-                        <div class="font-semibold text-gray-800">
-                          <%= field.label %>
-                        </div>
-
-                        <div class="flex flex-wrap items-center gap-2 mt-1">
-
-                          <span class="badge badge-ghost badge-sm">
-
-                            <% if (field.type === 'text') { %>
-                              Texte
-
-                            <% } else if (field.type === 'number') { %>
-                              Nombre
-
-                            <% } else if (field.type === 'boolean') { %>
-                              Oui / Non
-
-                            <% } else if (field.type === 'select') { %>
-                              Liste de choix
-
-                            <% } else { %>
-                              <%= field.type %>
-
-                            <% } %>
-
-                          </span>
-
-
-                          <% if (field.required) { %>
-
-                            <span class="badge badge-error badge-outline badge-sm">
-                              Obligatoire
-                            </span>
-
-                          <% } else { %>
-
-                            <span class="text-xs text-gray-400">
-                              Facultatif
-                            </span>
-
-                          <% } %>
-
-                        </div>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                <% }) %>
-
-              </div>
-
-            <% } else { %>
-
-              <div class="border border-dashed border-gray-300 rounded-xl p-6 text-center">
-
-                <div class="text-3xl mb-2">
-                  📝
-                </div>
-
-                <p class="font-medium text-gray-600">
-                  Aucun champ configuré
-                </p>
-
-                <p class="text-sm text-gray-400 mt-1">
-                  Ajoutez le premier champ du formulaire ci-dessus.
-                </p>
-
-              </div>
-
-            <% } %>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-  <% } %>
-
+<!-- FORMULAIRE D'OBSERVATION -->
+<!-- ========================================================= -->
+
+<% if (
+  user &&
+  (user.role === 'admin' || isGroupOffice) &&
+  group.groupType === 'observation'
+) { %>
+
+  <%- include('partials/groupObservationConfig', {
+    group,
+    groupId,
+    observationForm
+  }) %>
+
+<% } %>
 
   <!-- ========================================================= -->
   <!-- ACCÈS AU GROUPE -->
@@ -586,147 +317,12 @@
       <!-- COLONNE GAUCHE -->
       <!-- ===================================================== -->
 
-      <aside class="md:col-span-1 bg-base-100 rounded-2xl shadow-md border border-base-300 p-5 space-y-8">
-
-
-        <!-- Membres -->
-        <section>
-
-          <h3 class="text-lg font-bold text-primary mb-3">
-            👥 Membres
-          </h3>
-
-          <% if (members && members.length > 0) { %>
-
-            <ul class="space-y-2 text-gray-700">
-
-              <% members.forEach(m => { %>
-
-                <li class="flex items-start gap-2">
-
-                  <span class="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
-
-                  <div>
-
-                    <div class="text-sm">
-                      <%= m.email %>
-                    </div>
-
-                    <div class="text-xs text-gray-500">
-                      <%= m.role %>
-                    </div>
-
-                  </div>
-
-                </li>
-
-              <% }) %>
-
-            </ul>
-
-          <% } else { %>
-
-            <p class="text-gray-400 text-sm">
-              Aucun membre trouvé.
-            </p>
-
-          <% } %>
-
-        </section>
-
-
-        <!-- Points -->
-        <section>
-
-          <h3 class="text-lg font-bold text-primary mb-3">
-            📍 Points du groupe
-          </h3>
-
-          <% if (points && points.length > 0) { %>
-
-            <div class="overflow-x-auto border border-base-300 rounded-lg">
-
-              <table class="w-full text-sm">
-
-                <thead class="bg-base-200">
-
-                  <tr class="text-left">
-
-                    <th class="p-2">
-                      Nom
-                    </th>
-
-                    <th class="p-2">
-                      Catégorie
-                    </th>
-
-                  </tr>
-
-                </thead>
-
-                <tbody>
-
-                  <% points.forEach(p => { %>
-
-                    <tr class="border-t border-base-300 hover:bg-base-200">
-
-                      <td class="p-2">
-                        <%= p.name || '–' %>
-                      </td>
-
-                      <td class="p-2">
-                        <%= p.category || 'Sans catégorie' %>
-                      </td>
-
-                    </tr>
-
-                  <% }) %>
-
-                </tbody>
-
-              </table>
-
-            </div>
-
-          <% } else { %>
-
-            <p class="text-gray-400 text-sm">
-              Aucun point trouvé.
-            </p>
-
-          <% } %>
-
-        </section>
-
-      </aside>
-
 
       <!-- ===================================================== -->
       <!-- FEED -->
       <!-- ===================================================== -->
 
-      <div class="md:col-span-2">
-
-        <div class="bg-base-100 rounded-2xl shadow-md border border-base-300 p-5">
-
-          <h3 class="text-lg font-bold text-primary mb-3">
-            📌 Feed du groupe
-          </h3>
-
-          <!-- groupId transmis au JS -->
-          <div
-            id="group-feed"
-            data-group-id="<%= groupId %>"
-            class="mt-4 space-y-4"
-          >
-
-            <%- include("partials/groupFeedPublic", { points }) %>
-
-          </div>
-
-        </div>
-
-      </div>
+   
 
     </div>
 
@@ -747,9 +343,6 @@
     </a>
 
   </div>
-
-</div>
-
 
 <p class="text-xs opacity-50 text-center mt-6"></p>
 

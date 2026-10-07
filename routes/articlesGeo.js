@@ -303,6 +303,7 @@ const updatedPoint = await PointModel.findOneAndUpdate(
       console.warn("❌ Punto non trovato o non autorizzato:", pointId);
       return res.status(404).json({ message: "Punto non trovato o non autorizzato" });
     }
+    console.log("🧩 ATTRIBUTES SALVATI:", updatedPoint.attributes);
     // 🔹 QUI POPOLI user
       await updatedPoint.populate('user', 'email role');
 
@@ -922,6 +923,10 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
     }
        // ⭐️ Recupero del gruppo dell’office
     const group = await Group.findOne({ groupId: currentUser.groupId });
+
+    console.log("🚚 GROUP SERVICES INDEX OFFICE:", group?.services);
+console.log("🚚 GROUP TYPE INDEX OFFICE:", group?.groupType);
+
     const currentPlan = group ? group.plan : "free";   // fallback
    
     // recupera il maxPoints dal config
@@ -940,6 +945,16 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
    const pointsRaw = await PointModel.find({
         groupId: currentUser.groupId
       }).populate('user', '_id pseudonyme role');
+      console.log("🔎 POINTS SERVICE TYPE:");
+
+pointsRaw.forEach(p => {
+  console.log({
+    id: p._id.toString(),
+    name: p.name,
+    serviceType: p.serviceType,
+    status: p.status
+  });
+});
     // QUI? 
     // 👇 aggiungi qui i log di debug
     console.log('📍 Punti trovati dopo il filtro:', pointsRaw.length);
@@ -958,7 +973,10 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
           attributes: p.attributes,
           coordinates: p.coordinates || [], // necessario per Leaflet
           description: p.description || "", 
-
+           // ⭐️ nuovo
+          status: p.status || "a_collecter",
+          serviceType: p.serviceType || null,
+          
           createdAtFormatted: date
             ? date.toLocaleString("it-IT", {
                 day: "2-digit",
@@ -992,7 +1010,7 @@ router.get('/indexOfficeGeo', isAuthenticated, onlyOffice, async (req, res) => {
         });
         console.log("📦 pointsByField:");
 pointsByField.forEach(g => {
-    console.log("-", g.email, "→", g.points.length, "points");
+    console.log("-", g.pseudonyme, "→", g.points.length, "points");
 });
         // conta i field del gruppo
 const fieldCount = await User.countDocuments({
@@ -1248,53 +1266,6 @@ async function loadPointAndGroup(req, res, next) {
     res.status(500).send('Errore server');
   }
 }
-
-/*
-router.get('/addPoint', isAuthenticated, onlyField, async (req, res) => {
-  console.log("🔎 /addPoint SESSIONE:", req.session);
-
-  try {
-     // 🔹 Utente field GARANTITO dai middleware
-     const currentUser = await User.findById(req.session.user._id);
-
-     // 🔹 Office dello stesso gruppo
-     const office = await getOfficeByGroupId(currentUser.groupId);
-     // 🔹 Categorie disponibili
-     const categorieDisponibili = (office?.categories || []).map(c => ({
-        name: c.name,
-        icon: c.icon || 'red'
-      }));
-
-      // 🔹 Fallback se office non ha categorie
-    if (categorieDisponibili.length === 0) {
-      categorieDisponibili.push(
-        { name: 'A', icon: 'red' },
-        { name: 'B', icon: 'red' },
-        { name: 'C', icon: 'red' },
-        { name: 'D', icon: 'red' },
-        { name: 'E', icon: 'red' }
-      );
-    }
-    // 🔹 Definisci userId e groupId
-    const userId = currentUser._id;
-    const groupId = currentUser.groupId;
-    const planCheck = await checkPlanLimit(userId, groupId, 0 );
-          console.log("🧪 PLAN CHECK GET:", planCheck);
-    const planUX = buildPlanUX(planCheck);
-// ✅ UN SOLO RENDER
-    res.render("ajoute_point", {
-      title: 'Point Form Page',
-      user: currentUser, // Passi l'oggetto user per usare dati utente nel template
-      categories: categorieDisponibili, // ✅ Ora sono quelle dell'office
-      
-       planUX
-    });
-  } catch (error) {
-    console.error("❌ Errore nel recupero categorie dall’utente office:", error);
-    res.status(500).send("Errore interno del server");
-  }
-});
-*/
 
 router.post('/update-categories', isAuthenticated, onlyOffice, async (req, res) => {
   console.log('🟡 [update-categories] INIZIO');
@@ -1625,19 +1596,15 @@ router.post('/addPoint', isAuthenticated, onlyField, uploadSingle, async (req, r
     console.log("🏷️ groupId dalla sessione:", groupId);
     console.log("📷 File ricevuto:", req.file ? req.file.filename : "❌ nessun file");
    
-const {
-  name,
-  point,
-  category,
-  description
-} = req.body;
+      let {
+        name,
+        point,
+        category,
+        description,
+        serviceType
+      } = req.body;
 
-// 🔄 FASE DI TRANSIZIONE:
-// per il momento recuperiamo ancora i vecchi campi
-// perché observationFields.ejs li invia ancora direttamente.
-   
     // Recupera utente field
-
     const fieldUser = await getUserById(userId);
     if (!fieldUser) {
       console.warn("❌ Nessun utente field trovato");
@@ -1648,9 +1615,42 @@ const {
     // 🔍 Recupera il gruppo
 const group = await Group.findOne({ groupId: groupId });
 
+console.log("🧪 GROUP MOBILE SERVICE:", {
+  groupType: group?.groupType,
+  services: group?.services
+});
+
 if (!group) {
   console.warn("❌ Nessun gruppo trovato con groupId:", groupId);
   return res.status(400).json({ message: "Gruppo non trovato" });
+}
+
+let initialStatus;
+
+if (group.groupType === "mobile-service") {
+
+  // Quick-add : determina il servizio dal gruppo
+  if (!serviceType && name === "📍 Point rapide") {
+
+    if (group.services?.livrer) {
+      serviceType = "livrer";
+      initialStatus = "a_livrer";
+    }
+
+    if (group.services?.collecter) {
+      serviceType = "collecter";
+      initialStatus = "a_collecter";
+    }
+  }
+
+  // Punto normale con serviceType già indicato
+  if (serviceType === "livrer") {
+    initialStatus = "a_livrer";
+  }
+
+  if (serviceType === "collecter") {
+    initialStatus = "a_collecter";
+  }
 }
 
 console.log("🏷️ Piano del gruppo:", group.plan);
@@ -1659,16 +1659,14 @@ console.log("🏷️ Piano del gruppo:", group.plan);
 let observationForm = null;
 
 if (group.groupType === "observation") {
+
   observationForm = await ObservationForm.findOne({ groupId });
 
-  if (!observationForm) {
-    return res.status(400).json({
-      success: false,
-      message: "Aucun formulaire d'observation configuré pour ce groupe"
-    });
+  if (observationForm) {
+    console.log("🧩 ObservationForm trouvé:", observationForm._id);
+  } else {
+    console.log("🧩 Aucun ObservationForm configuré — champs personnalisés facultatifs");
   }
-
-  console.log("🧩 ObservationForm trouvé:", observationForm._id);
 }
 
  const observationData = req.body.observation || {};
@@ -1676,7 +1674,7 @@ if (group.groupType === "observation") {
 // 🔐 Valida e normalizza i campi Observation
 let cleanObservationData = {};
 
-if (group.groupType === "observation") {
+if (group.groupType === "observation" && observationForm) {
 
   for (const field of observationForm.fields) {
 
@@ -1765,7 +1763,7 @@ if (group.groupType === "observation") {
 console.log("🧩 Observation data ricevuta:", observationData);
 console.log("🧹 Observation data pulita:", cleanObservationData);
 console.log("🧾 Tutto il body ricevuto:", req.body);
-console.log("🧩 Observation data ricevuta:", observationData);
+
 // 🔐 Controllo limite piano (1 punto = 1)
 const planCheck = await checkPlanLimit(userId, groupId, 1);
 
@@ -1843,9 +1841,13 @@ const newPoint = await PointModel.create({
 
     icon,
 
-   attributes: cleanObservationData
-// tolgo attributes : climate, ..
+    serviceType: group.groupType === "mobile-service"
+        ? serviceType
+        : undefined,
 
+    status: initialStatus,
+
+    attributes: cleanObservationData
 });
 
   fieldUser.xp = await PointModel.countDocuments({ user: fieldUser._id });
@@ -1865,7 +1867,9 @@ const newPoint = await PointModel.create({
     groupId: newPoint.groupId,
     user: newPoint.user.toString(),
     image: newPoint.image,
-    attributes: newPoint.attributes
+    attributes: newPoint.attributes,
+    serviceType: newPoint.serviceType,
+    status: newPoint.status
   });
 
 // 🔹 Conteggio corretto dei punti del field
@@ -1890,7 +1894,9 @@ const safePoint = {
   user: newPoint.user.toString(),
   image: newPoint.image || null,
   groupId: newPoint.groupId || null,
-    attributes: newPoint.attributes
+    attributes: newPoint.attributes,
+    serviceType: newPoint.serviceType,
+status: newPoint.status,
 };
 
 return res.status(200).json({
@@ -2094,32 +2100,6 @@ if (!planCheck.allowed) {
 });
 
 
-/*
-router.post('/delete/:pointId', isAuthenticated, async (req, res) => {
-  const userId = req.session.user?._id;
-  const pointId = req.params.pointId;
-
-  try {
-    const point = await PointModel.findOne({ _id: pointId, user: userId });
-
-    if (!point) {
-      // già eliminato o non tuo → UX pulita
-      return res.redirect('/indexZoneGeo');
-    }
-
-    await PointModel.deleteOne({ _id: pointId });
-
-    const newXp = await PointModel.countDocuments({ user: userId });
-    await User.findByIdAndUpdate(userId, { xp: newXp });
-    req.session.user.xp = newXp;
-
-    return res.redirect('/indexZoneGeo');
-  } catch (err) {
-    console.error('❌ Errore delete:', err);
-    return res.redirect('/indexZoneGeo');
-  }
-});
-*/
 router.delete('/points/:pointId', isAuthenticated, onlyField, async (req, res) => {
   const userId = req.session.user._id;
   const pointId = req.params.pointId;
@@ -2413,6 +2393,105 @@ router.get("/point/:pointId", isAuthenticated, async (req, res) => {
   }
 });
 
+router.post(
+    '/points/:pointId/collect',
+    isAuthenticated,
+    onlyOffice,
+    async (req, res) => {
+        try {
+            const point = await PointModel.findById(req.params.pointId);
+
+            if (!point) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Point non trouvé'
+                });
+            }
+
+            // Sécurité : le point doit appartenir au groupe de l'office
+            if (String(point.groupId) !== String(req.session.user.groupId)) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Accès interdit'
+                });
+            }
+
+          if (point.status === 'collecte') {
+                    point.status = 'a_collecter';
+                } else {
+                    point.status = 'collecte';
+                }
+
+                await point.save();
+              console.log("✅ POINT COLLECTÉ:", {
+                  id: point._id.toString(),
+                  status: point.status
+              });
+            res.json({
+                success: true,
+                status: point.status
+            });
+
+        } catch (err) {
+            console.error('❌ Erreur collecte point:', err);
+
+            res.status(500).json({
+                success: false,
+                message: 'Erreur serveur'
+            });
+        }
+    }
+);
+router.post(
+  '/points/:pointId/livrer',
+  isAuthenticated,
+  onlyOffice,
+  async (req, res) => {
+    try {
+      const point = await PointModel.findById(req.params.pointId);
+
+      if (!point) {
+        return res.status(404).json({
+          success: false,
+          message: 'Point non trouvé'
+        });
+      }
+
+      // Sécurité : le point doit appartenir au groupe de l'office
+      if (String(point.groupId) !== String(req.session.user.groupId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès interdit'
+        });
+      }
+
+      // Toggle : à livrer <-> livré
+      if (point.status === 'livre') {
+        point.status = 'a_livrer';
+      } else {
+        point.status = 'livre';
+      }
+
+      await point.save();
+       console.log("✅ POINT LIVRE':", {
+        id: point._id.toString(),
+        status: point.status
+                });
+      res.json({
+        success: true,
+        status: point.status
+      });
+
+    } catch (err) {
+      console.error('❌ Erreur livraison:', err);
+
+      res.status(500).json({
+        success: false,
+        message: 'Erreur serveur'
+      });
+    }
+  }
+);
 
 // ✅ Endpoint per ottenere sempre le categorie aggiornate dell’utente loggato
 router.get("/api/categories", isAuthenticated, async (req, res) => {
