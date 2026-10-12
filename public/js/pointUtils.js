@@ -66,7 +66,6 @@ export function updateMap() {
     // 2️⃣ Determina quali punti mostrare
     // -------------------
     // CONDIZIONE AVVOLGIMENTO
-    //const isObservation = window.GROUP_TYPE === "observation";
         const pointsToShow = points.filter(point => {
             if (!point.coordinates || point.coordinates.length !== 2) return false;
 
@@ -136,6 +135,36 @@ const collectionStatusHtml = isMobileService ? `
         const borderColor = isMyPoint ? "#2563eb" : "#9ca3af";
         const opacity = isMyPoint ? "1" : "0.85";  
         const iconEmoji = getIconEmoji(point);
+
+                // 🧩 Champs dynamiques Observation
+                let observationFieldsHtml = '';
+
+                if (
+                    window.GROUP_TYPE === "observation" &&
+                    point.attributes &&
+                    typeof point.attributes === "object"
+                ) {
+                    observationFieldsHtml = Object.entries(point.attributes)
+                        .filter(([key, value]) =>
+                            value !== undefined &&
+                            value !== null &&
+                            value !== ''
+                        )
+                        .map(([key, value]) => {
+                            const displayValue =
+                                typeof value === "boolean"
+                                    ? (value ? "Oui" : "Non")
+                                    : value;
+
+                            return `
+                                <div style="margin-top:5px;">
+                                    <strong>${key} :</strong> ${displayValue}
+                                </div>
+                            `;
+                        })
+                        .join('');
+                }
+
       // const userLabel = isMyPoint ? 'Toi' : (point.user?.email || 'Inconnu');
        
       
@@ -183,7 +212,7 @@ className: ''
     ` : ''}
 
         ${collectionStatusHtml}
-       
+        ${observationFieldsHtml}
     ${
       point.description
         ? `<div style="margin-top:6px; font-style:italic;">
@@ -354,8 +383,3 @@ $('#main-table-mobile tbody tr, #main-table-desktop tbody tr').each(function() {
 });
 
 }
- 
-
-
-
-

@@ -422,8 +422,6 @@ document.getElementById("close-search")
                         <% } %>
                       </span>
                     </label>
-
-
                     <% if (field.type === "text") { %>
 
                       <input
@@ -431,8 +429,6 @@ document.getElementById("close-search")
                         class="input input-bordered input-sm w-full edit-observation-field"
                         data-field-name="<%= field.name %>"
                       />
-
-
                     <% } else if (field.type === "number") { %>
 
                       <input
@@ -440,8 +436,6 @@ document.getElementById("close-search")
                         class="input input-bordered input-sm w-full edit-observation-field"
                         data-field-name="<%= field.name %>"
                       />
-
-
                     <% } else if (field.type === "boolean") { %>
 
                       <input

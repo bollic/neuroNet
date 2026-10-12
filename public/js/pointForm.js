@@ -161,11 +161,11 @@ const updatedData = {
  
   
   // sicurezza scroll / blocchi
-  document.body.style.overflow = "auto";
-  document.body.style.pointerEvents = "auto";
+    document.body.style.overflow = "auto";
+    document.body.style.pointerEvents = "auto";
     mapFunctions.resetMarkersMap();
-mapFunctions.updateMap();
-mapFunctions.updateTable();
+    mapFunctions.updateMap();
+    mapFunctions.updateTable();
     //resetMarkersMap();
     // refresh UI
     //updateMap();
@@ -186,7 +186,5 @@ mapFunctions.updateTable();
 
   console.log("CLOSE CLICK OK");
 };
-
-
 
 }
