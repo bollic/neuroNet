@@ -29,7 +29,6 @@ export function setUpdateMapDeps(deps) {
     userUsedGeolocation = deps.userUsedGeolocation ?? userUsedGeolocation;
     highlightTableRow = deps.highlightTableRow || highlightTableRow;
 }
-
     // -------------------
  // -------------------
 // FUNZIONE AGGIORNA MAPPA
@@ -269,117 +268,212 @@ marker.on('click', (e) => {
     }
 }
 
-
     // AGGIORNA LA TABELLA IN BASE AL TOGGLE
+// -------------------
+
+// AGGIORNA LA TABELLA IN BASE AL TOGGLE
 // -------------------
 
 export function updateTable() {
 
     console.log("🟢 updateTable chiamata");
-        if (!currentUserId) {
-            currentUserId = window.currentUserId;
+
+    if (!currentUserId) {
+        currentUserId = window.currentUserId;
+    }
+
+    console.log("TABLE", points?.length, currentUserId);
+
+    if (!points) return;
+
+    const dtMobile = $('#main-table-mobile').DataTable();
+    const dtDesktop = $('#main-table-desktop').DataTable();
+
+    dtMobile.clear();
+    dtDesktop.clear();
+
+    const showGroupPoints =
+        !!document.getElementById("toggleGroupPoints")?.checked;
+
+    console.log("TOGGLE =", showGroupPoints);
+
+    const isOpen = window.APP_VIEW === "open";
+
+    // Filtra i punti visibili
+    const filteredPoints = points.filter(point => {
+
+        if (isOpen) return true;
+
+        const userId = point.user?._id ?? point.user;
+
+        return (
+            showGroupPoints ||
+            String(userId) === String(currentUserId)
+        );
+    });
+
+    // Raggruppa i punti per email del dichiarante
+    console.log(
+    "🔎 VERIFICA USER DEI PUNTI:",
+    points.map(point => ({
+        name: point.name,
+        user: point.user,
+        userType: typeof point.user,
+        email: point.user?.email,
+        userId: point.user?._id ?? point.user
+    }))
+);
+    const groupedPoints = new Map();
+
+    filteredPoints.forEach(point => {
+
+        const email =
+            typeof point.user === "object" && point.user
+                ? point.user.email
+                : null;
+
+        const authorEmail = email || "Dichiarant inconnu";
+
+        if (!groupedPoints.has(authorEmail)) {
+            groupedPoints.set(authorEmail, []);
         }
-        console.log("TABLE", points?.length, currentUserId);
-        if (!points ) return;
-   const dtMobile = $('#main-table-mobile').DataTable();
-const dtDesktop = $('#main-table-desktop').DataTable();
 
-dtMobile.clear();
-dtDesktop.clear();
-    const showGroupPoints = !!document.getElementById("toggleGroupPoints")?.checked;
-        console.log("TOGGLE =", showGroupPoints);
-        
+        groupedPoints.get(authorEmail).push(point);
+    });
 
+    // Aggiunge intestazioni e punti alle due tabelle
+    groupedPoints.forEach((authorPoints, authorEmail) => {
 
-const isOpen = window.APP_VIEW === "open";
-const isObservation = window.GROUP_TYPE === "observation";
-points.filter(point => {
-
-if (isOpen) return true;
-
-   const userId = point.user?._id ?? point.user;
-
-    return (
-        showGroupPoints ||
-        String(userId) === String(currentUserId)
-    );
-})
-
-   .forEach(point => {
-    
-            /*const userId = typeof point.user === "object"
-                ? point.user._id
-                : point.user; */
-    const userId = point.user?._id ?? point.user;
-                const isMine = String(userId) === String(currentUserId);
-                const name = point.name || 'Senza nome';
-              
-                   const dateText = point.createdAt
-                    ? new Date(point.createdAt).toLocaleDateString('fr-FR')
-                    : '';
-
-            const actionCell = isMine
-                ? `<a href="/delete/${point._id}" class="btn btn-xs btn-error">
-                    <i class="fas fa-trash"></i>
-                    </a>`
-                : `<span class="text-gray-400 text-xs italic">—</span>`;
-
-            const rowContent = `
-                    <div class="flex flex-col">
-                    <div class="flex items-center gap-2">
-                    <span>${getIconEmoji(point)}</span>
-                    <span>${name}</span>
-                    </div>
-                    <div class="text-[10px] text-gray-500 ml-6">
-           ${dateText} 
-  </div>
-
-</div>
+                // Intestazione del dichiarante
+        const headerRow = `
+            <div class="bg-base-200 font-bold text-xs px-2 py-2">
+                👤 ${authorEmail} (${authorPoints.length})
+            </div>
         `;
 
-const categoryContent = `
-    <span class="text-sm">
-        ${point.category || '—'}
-    </span>
-`;
-const newRowMobile = dtMobile.row.add([
-    rowContent,
-    categoryContent
-]).node();
+        const headerMobile = dtMobile.row.add([
+            headerRow,
+            ''
+        ]).node();
 
-const newRowDesktop = dtDesktop.row.add([
-    rowContent,
-    categoryContent
-]).node();
+        const headerDesktop = dtDesktop.row.add([
+            headerRow,
+            ''
+        ]).node();
 
-$(newRowMobile).attr('data-point-id', point._id);
-$(newRowDesktop).attr('data-point-id', point._id);
+        $(headerMobile).addClass('declarant-header');
+        $(headerDesktop).addClass('declarant-header');
 
-});
+
+/*
+        const headerContent = `
+            <tr class="declarant-header">
+                <td colspan="2"
+                    class="bg-base-200 font-bold text-xs px-2 py-2">
+                    👤 ${authorEmail}
+                    <span class="font-normal">
+                        (${authorPoints.length})
+                    </span>
+                </td>
+            </tr>
+        `;
+
+        // Inserisce l'intestazione come riga speciale
+        const headerMobile = dtMobile.row.add([
+            headerContent,
+            ''
+        ]).node();
+
+        const headerDesktop = dtDesktop.row.add([
+            headerContent,
+            ''
+        ]).node();
+
+        $(headerMobile)
+            .addClass('declarant-header')
+            .attr('data-header', 'true');
+
+        $(headerDesktop)
+            .addClass('declarant-header')
+            .attr('data-header', 'true');
+*/
+        authorPoints.forEach(point => {
+
+            const userId = point.user?._id ?? point.user;
+            const isMine =
+                String(userId) === String(currentUserId);
+
+            const name = point.name || 'Senza nome';
+
+            const dateText = point.createdAt
+                ? new Date(point.createdAt).toLocaleDateString('fr-FR')
+                : '';
+
+            const rowContent = `
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                        <span>${getIconEmoji(point)}</span>
+                        <span>${name}</span>
+                    </div>
+                    <div class="text-[10px] text-gray-500 ml-6">
+                        ${dateText}
+                    </div>
+                </div>
+            `;
+
+            const categoryContent = `
+                <span class="text-sm">
+                    ${point.category || '—'}
+                </span>
+            `;
+
+            const newRowMobile = dtMobile.row.add([
+                rowContent,
+                categoryContent
+            ]).node();
+
+            const newRowDesktop = dtDesktop.row.add([
+                rowContent,
+                categoryContent
+            ]).node();
+
+            $(newRowMobile).attr('data-point-id', point._id);
+            $(newRowDesktop).attr('data-point-id', point._id);
+        });
+    });
+
     dtMobile.draw();
-dtDesktop.draw();
-    // 👇 aggiungi dopo dt.draw();
-$('#main-table-mobile tbody tr, #main-table-desktop tbody tr').each(function() {
-    const pointId = $(this).data('point-id');
+    dtDesktop.draw();
 
-    if (pointId) {
-        $(this).off('click').on('click', function() {
+    // Clic sulla riga: evidenzia il punto e apre la popup
+    $('#main-table-mobile tbody tr, #main-table-desktop tbody tr')
+        .each(function() {
 
-            highlightTableRow(pointId);
+            const pointId = $(this).attr('data-point-id');
 
-            const marker = getMarker(pointId);
+            if (pointId) {
+                $(this).off('click').on('click', function() {
 
-            if (marker) {
-                marker.openPopup();
+                    highlightTableRow(pointId);
 
-                marker._icon.classList.add('marker-highlight');
+                    const marker = getMarker(pointId);
 
-                setTimeout(() => {
-                    marker._icon.classList.remove('marker-highlight');
-                }, 1000);
+                    if (marker) {
+                        marker.openPopup();
+
+                        if (marker._icon) {
+                            marker._icon.classList.add('marker-highlight');
+
+                            setTimeout(() => {
+                                if (marker._icon) {
+                                    marker._icon.classList.remove(
+                                        'marker-highlight'
+                                    );
+                                }
+                            }, 1000);
+                        }
+                    }
+                });
             }
         });
-    }
-});
-
 }

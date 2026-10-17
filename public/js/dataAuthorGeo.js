@@ -18,8 +18,6 @@ function getPointUserId(point) {
     : point.user;
 }
 
-
-
 setUpdateMapDeps({
   map: window.map,
   points: window.points,
@@ -29,7 +27,6 @@ setUpdateMapDeps({
   drawnItems: window.drawnItems,
   showGroupPoints: document.getElementById("toggleGroupPoints")?.checked
 });
-
 
 window.mapState = {
   isSelectingPoint: false,
@@ -75,7 +72,6 @@ function getPointIdFromURL() {
   }
   return null;
 }
-
 
 document.addEventListener("DOMContentLoaded", () => {
   const btn = document.getElementById("open-add-point");
@@ -157,14 +153,6 @@ if (quickBtn) {
   });
 }
 
-async function loadPointsFromApi() {
-  const res = await fetch('/api/points');
-  const data = await res.json();
-
-  console.log("📡 Points caricati dalla API:", data.length, data);
-  return data;
-}
-
 // 🔥 LOG DI TEST
 console.log("🔥 FILE CARICATO");
 // 🟦 BLOCCO 1 — Avvio: categorie → mappa → dati
@@ -173,6 +161,7 @@ document.addEventListener("DOMContentLoaded", async function() {
       console.log("🤖 DOM CONTENT LOADED callback ESEGUITA");
 const tableOptions = {
   paging: false,
+  ordering: false,
   scrollX: false,
   autoWidth: false,
   responsive: false,
@@ -452,7 +441,6 @@ console.log("ROW TROVATA:", row.length, row);
         }
     }
 }
-
     // -------------------
     // FUNZIONE AGGIORNA MAPPA
     // -------------------
@@ -497,13 +485,4 @@ console.log("Elementi tabella desktop:",
     $('#main-table-desktop').DataTable().rows().count()
 );
 
-
-
-
 });
-
-    // -------------------
-    // DAISYUI DRAWER RESIZE
-    // -------------------
-  
- 

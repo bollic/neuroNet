@@ -1199,7 +1199,7 @@ console.log("🧪 GROUP TYPE:", group.groupType);
     const points = await PointModel.find({
       groupId: user.groupId
     })
-    .populate('user', '_id email role')
+    .populate('user', '_id pseudonyme email role')
     .lean();
 
 

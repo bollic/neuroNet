@@ -935,10 +935,8 @@ const rowContent = `
    rowGroup: {
       dataSrc: "pseudonyme",
       startRender: function (rows, group) {
-
-      const shortName = group.split("@")[0];
-
-      return `${shortName} (${rows.count()})`;
+          const shortName = group.split("@")[0];
+          return `${shortName} (${rows.count()})`;
      }
 },
 
